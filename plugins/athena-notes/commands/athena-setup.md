@@ -156,7 +156,124 @@ Also ensure `~/.claude/athena/` directory exists. Create it if missing.
 
 ---
 
-## Phase 5: Confirm & handoff
+## Phase 5: Offer to allowlist permissions (new user convenience)
+
+Without this, the user will hit a permission prompt every time an agent reads their identity file, lists vaults, writes a note, or creates a `.notes/` symlink. Offer to handle it now.
+
+### 5.1 Explain before asking
+
+Show the user exactly what you'll add and why. Don't just prompt blindly.
+
+```
+Athena Notes agents work across your notes folders and your identity file.
+Without permissions pre-approved, Claude Code will prompt you every time an
+agent touches those paths.
+
+I can add the needed permissions to ~/.claude/settings.json so it stays quiet.
+You can always review or edit them later at that file.
+
+Here's what I'd add:
+
+  Read access:
+    ~/.claude/athena/**       (identity file, plugin config)
+    {NOTES_ROOT}/**           (all your vaults and project notes)
+
+  Write + Edit access:
+    {NOTES_ROOT}/**           (scribe captures notes here)
+
+  Bash access (narrow patterns, only for these specific operations):
+    ls {NOTES_ROOT}            — vault discovery
+    ls {NOTES_ROOT}/*          — vault contents listing
+    ls ~/.claude/athena        — identity check
+    cat ~/.claude/athena/identity.md  — identity read
+    grep *                     — parsing identity fields
+    mkdir -p {NOTES_ROOT}/*    — auto-creating project vaults
+    mkdir -p ~/.claude/athena  — ensuring plugin dir exists
+    ln -s *                    — creating .notes symlinks in projects
+
+These take effect in your next session.
+```
+
+Replace `{NOTES_ROOT}` with the actual value the user chose (e.g. `~/notes` or `~/obsidian`).
+
+### 5.2 Ask approval
+
+Use AskUserQuestion:
+
+```
+Add these permissions to ~/.claude/settings.json? [Y/n]
+```
+
+Default: yes (they just set up the plugin; they want it to work).
+
+### 5.3 If approved: write safely
+
+1. Read `~/.claude/settings.json` (create if missing with `{}`)
+2. Parse as JSON
+3. If `permissions` key doesn't exist, create it: `{"permissions": {"allow": []}}`
+4. If `permissions.allow` doesn't exist, create it: `[]`
+5. **For each entry in the list below, add only if not already present in `permissions.allow` (dedupe by exact string match):**
+
+```
+Read({NOTES_ROOT}/**)
+Read(~/.claude/athena/**)
+Write({NOTES_ROOT}/**)
+Edit({NOTES_ROOT}/**)
+Bash(ls {NOTES_ROOT})
+Bash(ls {NOTES_ROOT}/*)
+Bash(ls -la {NOTES_ROOT}/*)
+Bash(ls ~/.claude/athena)
+Bash(ls ~/.claude/athena/*)
+Bash(cat ~/.claude/athena/identity.md)
+Bash(grep *)
+Bash(mkdir -p {NOTES_ROOT}/*)
+Bash(mkdir -p ~/.claude/athena)
+Bash(ln -s *)
+```
+
+Substitute `{NOTES_ROOT}` with the user's actual value.
+
+6. Write the updated JSON back, preserving all other existing settings. Use 2-space indentation.
+7. Report which entries were added vs which already existed:
+
+```
+Added N new permission entries.
+(M were already present — skipped.)
+
+These take effect in your next session. To review or remove later:
+  ~/.claude/settings.json  →  permissions.allow array
+```
+
+### 5.4 If declined: graceful acknowledgment
+
+```
+Skipped. You'll get permission prompts on first use of each path — you can
+approve-and-remember at that point, or re-run /athena-setup later.
+```
+
+Don't argue or re-prompt. Move on to Phase 6.
+
+### 5.5 Idempotency
+
+If the user re-runs `/athena-setup` and all entries are already present:
+
+```
+Permissions already configured (14 entries present). Nothing to add.
+```
+
+If some are present and some missing (rare, e.g., user deleted a few manually), add only the missing ones.
+
+### 5.6 Safety invariants
+
+- **Never replace** the `permissions.allow` array — always append.
+- **Never touch** `permissions.deny`, `permissions.ask`, or any other settings key.
+- **Never modify** `hooks`, `enabledPlugins`, or any unrelated section.
+- **Validate JSON** after write — if parse fails, restore the original and report.
+- If `~/.claude/settings.json` doesn't exist, create it with only `{"permissions": {"allow": [...]}}` — nothing else.
+
+---
+
+## Phase 6: Confirm & handoff
 
 After writing:
 

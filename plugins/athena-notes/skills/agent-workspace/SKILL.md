@@ -20,7 +20,7 @@ The `.agents/` prefix keeps working files separate from permanent notes while al
 
 ```
 .notes/.agents/
-├── muse/                    # Muse's exploration context
+├── athena/                  # Athena's exploration context
 │   └── {task-slug}/
 │       ├── context.md       # Task context and goals
 │       ├── progress.md      # What's been explored/decided
@@ -54,7 +54,7 @@ The `.agents/` prefix keeps working files separate from permanent notes while al
 
 ## File Conventions
 
-### Task Context (`muse/{task-slug}/context.md`)
+### Task Context (`athena/{task-slug}/context.md`)
 
 ```markdown
 ---
@@ -79,7 +79,7 @@ status: active | paused | complete
 - [[{existing note}]]
 ```
 
-### Task Progress (`muse/{task-slug}/progress.md`)
+### Task Progress (`athena/{task-slug}/progress.md`)
 
 ```markdown
 ---
@@ -191,7 +191,7 @@ target: idea | exploration | decision  # What it might become
 
 ## Agent Responsibilities
 
-### Muse
+### Athena
 
 - Creates task context when starting significant exploration
 - Updates progress as exploration proceeds
@@ -200,7 +200,7 @@ target: idea | exploration | decision  # What it might become
 
 ### Scribe
 
-- Writes task context files to `.agents/muse/{task}/`
+- Writes task context files to `.agents/athena/{task}/`
 - Writes drafts to `.agents/drafts/`
 - Promotes drafts to `.notes/` when ready
 - Updates progress files
@@ -342,7 +342,7 @@ When an agent is invoked in a git repo and `.notes/` is missing:
 When `.agents/` first needs to be used, create the structure:
 
 ```bash
-mkdir -p .notes/.agents/{muse,sage,archivist,forge,kindle,drafts,_archive}
+mkdir -p .notes/.agents/{athena,sage,archivist,forge,kindle,drafts,_archive}
 ```
 
 If the notes target directory (e.g., `~/notes/{project}/`) doesn't have `.agents/`, it will be created on first write. No explicit init step needed.

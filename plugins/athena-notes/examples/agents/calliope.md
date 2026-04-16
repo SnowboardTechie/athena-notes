@@ -304,7 +304,7 @@ These are Bryan's ongoing content areas. All viewed through "Neverending learnin
 
 ## Invocation Examples
 
-### From Muse
+### From Athena
 
 ```
 @calliope I want to write about my terminal-native AI workflow but I 

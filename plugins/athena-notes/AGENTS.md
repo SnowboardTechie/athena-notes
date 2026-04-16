@@ -9,8 +9,8 @@ This file documents the conventions agents follow in the Athena Notes system. It
 User identity lives at `~/.claude/athena/identity.md` and is populated by the `/athena-setup` slash command on first use. Agents read this file at invocation to resolve `{{USER_NAME}}`, `{{TIMEZONE}}`, `{{PERSONAL_VAULT}}`, `{{WORKING_HOURS}}`, `{{COGNITIVE_PEAK}}`, and `{{PRONOUNS}}`.
 
 **If identity is missing:**
-- Muse runs `/athena-setup` inline before proceeding with the user's request
-- Other agents stop and direct the user to muse or `/athena-setup`
+- Athena runs `/athena-setup` inline before proceeding with the user's request
+- Other agents stop and direct the user to athena or `/athena-setup`
 
 Never hard-code user-specific values in agent bodies.
 
@@ -20,7 +20,7 @@ Never hard-code user-specific values in agent bodies.
 
 ```
                               ┌─────────────┐
-                              │    MUSE     │  ← Primary thinking partner (hub)
+                              │   ATHENA    │  ← Primary thinking partner (hub)
                               └──────┬──────┘
          ┌───────────┬───────────┬───┴───┬───────────┬───────────┐
          ▼           ▼           ▼       ▼           ▼           ▼
@@ -29,14 +29,14 @@ Never hard-code user-specific values in agent bodies.
     │(recall) │ │(research)│ │(write) │ │(del) │ │(refract)│ │         │
     └────────┘ └──────────┘ └────────┘ └──────┘ └────────┘ └─────────┘
 
-Independent (invoked by user directly or by muse):
+Independent (invoked by user directly or by athena):
     ┌────────┐ ┌────────┐
     │ FORGE  │ │ KINDLE │
     │(focus) │ │(flow)  │
     └────────┘ └────────┘
 ```
 
-Scribe is **never invoked directly by users** — only by other agents. Muse gathers the context scribe needs (note type, title, related notes) before delegating.
+Scribe is **never invoked directly by users** — only by other agents. Athena gathers the context scribe needs (note type, title, related notes) before delegating.
 
 ---
 
@@ -95,7 +95,7 @@ This applies to all delegated work: code reviews, exploration results, research 
 
 ---
 
-## Capture Triggers (for muse + other hub agents)
+## Capture Triggers (for athena + other hub agents)
 
 Auto-capture these moments without asking — the point of Athena Notes is low-friction capture:
 

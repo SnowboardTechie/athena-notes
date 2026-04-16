@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "athena-notes",
-      "description": "Obsidian-native thinking and note-capture system. Hub-spoke of Claude Code agents (muse, scribe, archivist, sage, forge, and more) that captures your thinking into Obsidian vaults with zero setup friction.",
+      "description": "Obsidian-native thinking and note-capture system. Hub-spoke of Claude Code agents (athena, scribe, archivist, sage, forge, and more) that captures your thinking into Obsidian vaults with zero setup friction.",
       "category": "productivity",
       "source": "./plugins/athena-notes",
       "homepage": "https://github.com/bryan-thompsoncodes/athena-notes",

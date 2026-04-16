@@ -1,11 +1,11 @@
 ---
 name: athena-notes
-description: Note type system for Muse - templates, linking patterns, capture triggers, and vault structure
+description: Note type system for Athena - templates, linking patterns, capture triggers, and vault structure
 ---
 
 # Athena Notes - Thinking System Foundation
 
-Standardized note types and patterns for the Muse thinking system. This skill defines HOW thoughts are captured, organized, and connected.
+Standardized note types and patterns for the Athena thinking system. This skill defines HOW thoughts are captured, organized, and connected.
 
 ## CRITICAL: Notes Location
 
@@ -87,10 +87,10 @@ sparked_by: "[[source note or conversation]]"  # optional
 
 ### 2. EXPLORATION - Thinking Session
 
-Muse conversations, deep dives, question-driven exploration. The core output of thinking sessions.
+Athena conversations, deep dives, question-driven exploration. The core output of thinking sessions.
 
 **When to use:**
-- Muse session produces insights
+- Athena session produces insights
 - Working through a problem
 - Exploring options/approaches
 
@@ -102,7 +102,7 @@ type: exploration
 date: YYYY-MM-DD
 tags:
   - exploration
-  - muse
+  - athena
   - {topic}
 status: in-progress | complete
 session_context: "{what prompted this exploration}"
@@ -226,7 +226,7 @@ superseded_by: "[[newer decision]]"  # if status: superseded
 Full session capture when a thinking conversation was particularly valuable.
 
 **When to use:**
-- End of significant muse session
+- End of significant athena session
 - Conversation worth preserving in full
 - Multiple topics covered
 
@@ -238,9 +238,9 @@ type: session
 date: YYYY-MM-DD
 tags:
   - session
-  - muse
+  - athena
 duration: "{approximate length}"
-participants: [muse, bryan]
+participants: [athena, {{USER_NAME}}]
 ---
 
 # Session: {Topic or Date}
@@ -382,7 +382,7 @@ ticket: {TICKET-ID}
 
 ## Capture Triggers
 
-### When Muse Should Auto-Capture
+### When Athena Should Auto-Capture
 
 | Signal | Note Type | Action |
 |--------|-----------|--------|
@@ -395,7 +395,7 @@ ticket: {TICKET-ID}
 
 ### Capture Prompts
 
-Muse should use these internal prompts:
+Athena should use these internal prompts:
 
 ```
 IDEA CAPTURE:
@@ -453,7 +453,7 @@ When creating a new note that relates to existing notes:
 #session       → conversation records
 #thread        → connected ideas
 #task          → work tracking
-#muse          → captured by muse system
+#athena        → captured by athena system
 
 #project/{name} → project-specific
 #domain/{area}  → knowledge domain

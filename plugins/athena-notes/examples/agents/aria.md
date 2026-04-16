@@ -354,7 +354,7 @@ When auditing code, provide structured feedback:
 
 ## Example Invocations
 
-**From Muse:**
+**From Athena:**
 
 ```
 @aria Review the form at src/applications/my-app/components/MyForm.jsx for accessibility issues

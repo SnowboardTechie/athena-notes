@@ -4,7 +4,7 @@
 
 Athena Notes is a hub-spoke of specialized AI agents that help you think, research, and capture knowledge — with your notes landing directly in Obsidian vaults in Obsidian-native formats.
 
-- **Muse** is your thinking partner. Ask her anything.
+- **Athena** is your thinking partner. Ask her anything.
 - She delegates to **Scribe** (writes), **Archivist** (searches past notes), **Sage** (external research), **Pyre** (deletes), and **Prism** (refracts ideas into breakthroughs).
 - **Forge** and **Kindle** help you focus and get unstuck when flow breaks.
 - Everything writes to Obsidian using wikilinks, frontmatter, and your existing vault structure.
@@ -26,7 +26,7 @@ Athena Notes is a hub-spoke of specialized AI agents that help you think, resear
 /plugin install github:bryan-thompsoncodes/athena-notes
 ```
 
-After installing, **start a new session and talk to muse**. She will detect that Athena Notes isn't set up yet and walk you through identity setup (~2 minutes).
+After installing, **start a new session and talk to athena**. She will detect that Athena Notes isn't set up yet and walk you through identity setup (~2 minutes).
 
 Or run setup explicitly:
 
@@ -38,7 +38,7 @@ Or run setup explicitly:
 
 ## First Use
 
-On first invocation, muse will:
+On first invocation, athena will:
 
 1. Scan your existing Claude Code setup for identity clues (name, timezone, etc.)
 2. Ask 5-7 quick questions to fill in what's missing
@@ -77,15 +77,15 @@ Agents will never add `Co-authored-by: Claude` or similar to your commit message
 
 ## Usage
 
-### Thinking with muse
+### Thinking with athena
 
 Just talk to her:
 
 ```
-muse, I'm torn between JWT and session auth for this new API. help me think through it.
+athena, I'm torn between JWT and session auth for this new API. help me think through it.
 ```
 
-She'll pull past notes via archivist, maybe grab external research via sage, and capture insights as they emerge via scribe. You don't call any of those directly — muse orchestrates.
+She'll pull past notes via archivist, maybe grab external research via sage, and capture insights as they emerge via scribe. You don't call any of those directly — athena orchestrates.
 
 ### Deep work with forge
 
@@ -109,7 +109,7 @@ Kindle diagnoses the flow barrier (anxiety / boredom / distraction) and gives ta
 
 | Agent | Model | Role |
 |---|---|---|
-| muse | opus | Thinking hub, orchestrates subagents |
+| athena | opus | Thinking hub, orchestrates subagents |
 | prism | opus | Creative refractor, reveals paradoxes and breakthroughs |
 | scribe | sonnet | Note persistence (invoked by other agents only) |
 | sage | sonnet | External research (Exa/Context7/WebSearch) |

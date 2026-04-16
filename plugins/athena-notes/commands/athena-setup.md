@@ -86,7 +86,7 @@ Use AskUserQuestion for each item. Pre-fill with discovered values. User can acc
 
 **Q1: Your name**
 - Default: from CLAUDE.md, memory files, or `$USER`
-- Used by: muse, forge, kindle in direct address
+- Used by: athena, forge, kindle in direct address
 - Example: "Jane Doe"
 
 **Q2: Timezone**
@@ -119,7 +119,7 @@ Use AskUserQuestion for each item. Pre-fill with discovered values. User can acc
 
 **Q7: Pronouns / preferred address**
 - Default: name only (no pronoun)
-- Used by: muse's conversational style
+- Used by: athena's conversational style
 - Skip option: "Just use my name"
 
 ---
@@ -179,13 +179,13 @@ Re-run `/athena-setup` any time to update. Agents read this file at invocation �
 
 ## Fields
 
-- **name** — used in direct address by muse, forge, kindle
+- **name** — used in direct address by athena, forge, kindle
 - **timezone** — IANA timezone for daily notes, timestamps, working-hour detection
 - **notes_root** — root directory for all vaults
 - **personal_vault** — default vault for cross-project / personal notes
 - **working_hours** — start/end in 24-hour format; forge uses this for block planning
 - **cognitive_peak** — when you do your best analytical work; forge sequences hardest tasks here
-- **pronouns** — optional; muse uses this for natural conversational style
+- **pronouns** — optional; athena uses this for natural conversational style
 ```
 
 Also ensure `~/.claude/athena/` directory exists. Create it if missing.
@@ -213,14 +213,14 @@ under permissions.allow. You can review or edit them there any time.
 
   READ access (4 entries):
     • Read({NOTES_ROOT}/**)
-        → scribe, archivist, muse reading notes
+        → scribe, archivist, athena reading notes
     • Read(~/.claude/athena/**)
         → agents reading your identity file
 
   WRITE + EDIT access (2 entries):
     • Write({NOTES_ROOT}/**)
     • Edit({NOTES_ROOT}/**)
-        → scribe writing new notes; muse/forge/kindle writing working state
+        → scribe writing new notes; athena/forge/kindle writing working state
 
   BASH access (10 narrow patterns):
     • Bash(ls {NOTES_ROOT})         — vault discovery
@@ -325,7 +325,7 @@ After writing:
 ```
 Athena Notes is set up. Identity written to ~/.claude/athena/identity.md.
 
-Quick test: try "muse, help me think through {something on your mind}" and she'll:
+Quick test: try "athena, help me think through {something on your mind}" and she'll:
 - Pull relevant past notes (if any exist)
 - Explore the topic with you
 - Capture insights as they emerge

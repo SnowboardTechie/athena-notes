@@ -2,9 +2,9 @@
 
 Status of the port from OpenCode/OhMyOpenAgent to Claude Code plugin. Not shipped — internal doc for plugin development.
 
-**Last updated:** 2026-04-16, end of session 1.
+**Last updated:** 2026-04-16, session 2.
 
-**Current phase:** Phase A — port scribe + archivist + pyre (core Athena loop).
+**Current phase:** Phase A + B complete (scribe + archivist + pyre + sage + prism ported; muse renamed to athena). Next: Phase C — forge + kindle.
 
 **Handoff doc for next agent:** `~/notes/athena-notes/handoff-phase-a.md`
 
@@ -17,8 +17,13 @@ Status of the port from OpenCode/OhMyOpenAgent to Claude Code plugin. Not shippe
 - [x] `CLAUDE.md` — thin importer pointing to AGENTS.md
 - [x] `README.md` — install, setup, usage, license rationale
 - [x] `commands/athena-setup.md` — onboarding flow with pre-fill from existing Claude Code memory, Phase 0 intro (announces intent before reads), Phase 5 permission allowlist offer with verbatim disclosure
-- [x] Plugin installed and enabled via `claude plugin install`; validated end-to-end with Bryan (identity written, permissions allowlisted, muse loads on startup check)
-- [x] `agents/muse.md` — reference port (demonstrates all translations)
+- [x] Plugin installed and enabled via `claude plugin install`; validated end-to-end with Bryan (identity written, permissions allowlisted, hub agent loads on startup check)
+- [x] `agents/athena.md` — reference port (renamed from `muse.md`; demonstrates all translations)
+- [x] `agents/archivist.md` — haiku, read-only, vault refs generalized
+- [x] `agents/pyre.md` — haiku, tiered confirmation preserved
+- [x] `agents/scribe.md` — sonnet, identity startup check, 3-mode path resolution, workday-vault section removed, gamedev/burnt-ice/VA specifics generalized
+- [x] `agents/sage.md` — sonnet, tiered MCP → WebSearch/WebFetch fallback, cache uses Glob/Read/Write (Bash-hygiene-native from the start)
+- [x] `agents/prism.md` — opus, creative refractor preserved verbatim, frontmatter + invocation language updated for Claude Code
 - [x] `skills/agent-workspace/` — rewritten from scratch (worktrunk refs removed, vault auto-setup docs added)
 - [x] `skills/obsidian/` — copied + de-Bryan'd (vault table removed, vault discovery via identity)
 - [x] `skills/athena-notes/` — copied from `~/.claude/skills/` (identical content, no changes needed)
@@ -34,19 +39,14 @@ Status of the port from OpenCode/OhMyOpenAgent to Claude Code plugin. Not shippe
 
 ## Remaining
 
-### Agents to port (7)
+### Agents to port (2 remaining)
 
-For each: translate OpenCode frontmatter → Claude Code frontmatter, rewrite `mcp_task(...)` invocations → `Task(...)`, replace "Bryan" → `{{USER_NAME}}`, drop workday/burnt-ice vault refs, set appropriate model.
+For each: translate OpenCode frontmatter → Claude Code frontmatter, rewrite `mcp_task(...)` invocations → `Task(...)`, replace "Bryan" → `{{USER_NAME}}`, drop workday/burnt-ice vault refs, set appropriate model. Follow Bash hygiene convention (tool-native, no compound bash) — see Issue #1.
 
 | Agent | Model | Complexity | Special notes |
 |---|---|---|---|
-| archivist | haiku | Low | Simple search + summarize loop |
-| pyre | haiku | Low | Deletion with tiered confirmation. Must preserve safety protocol. |
-| scribe | sonnet | **Medium-high** | Delete "Obsidian-Specific (Workday Vault Only)" section. Simplify path resolution to 3 modes (project/direct vault/default-personal-vault). |
-| sage | sonnet | Medium | Needs graceful MCP degradation: prefer Exa/Context7/grep.app if present, fall back to WebSearch + WebFetch. |
 | forge | sonnet | Medium | Working hours + cognitive peak come from identity, not hardcoded. |
 | kindle | sonnet | Low | No significant Bryan-isms. |
-| prism | opus | Low | Creative refractor, uses extended thinking. |
 
 ### Skill cleanups (post-copy)
 
@@ -107,8 +107,8 @@ Task(subagent_type="archivist", description="...", prompt="...")
 
 - [ ] Decide if `examples/` agents need full port to Claude Code format or ship as-is with a note "these were built for OpenCode; adapt as you see fit"
 - [ ] Sprint-deliverable-update skill has HHS-specific process knowledge — ensure it's clearly flagged as example, not utility
-- [ ] After all agents ported, do one final pass to verify cross-references work (muse mentions archivist/sage/etc — all names must match)
-- [ ] First-session smoke test: install plugin locally, run `/athena-setup`, ask muse something, confirm scribe auto-capture works
+- [ ] After all agents ported, do one final pass to verify cross-references work (athena mentions archivist/sage/etc — all names must match)
+- [ ] First-session smoke test: install plugin locally, run `/athena-setup`, ask athena something, confirm scribe auto-capture works
 - [ ] Create GitHub repo `bryan-thompsoncodes/athena-notes`, push, verify `gh auth` allows `/plugin install github:...` path
 
 ---

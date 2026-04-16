@@ -10,3 +10,6 @@
 *.swp
 *.swo
 *~
+
+# Claude Code worktrees (ephemeral, not part of plugin)
+.claude/worktrees/

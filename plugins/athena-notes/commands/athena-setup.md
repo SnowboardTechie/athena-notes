@@ -8,16 +8,52 @@ You are running the Athena Notes onboarding flow. Your job: produce a valid `~/.
 
 ## Philosophy
 
+- **Tell the user what you're doing before you do it.** Never read files or run commands without first saying what and why. Users should never face a permission prompt and wonder "why is this happening?"
 - **Pre-fill, don't interrogate.** Scan existing Claude Code context first. Ask only what you can't infer.
 - **Sensible defaults.** Every question has a default the user can accept with Enter.
 - **5-7 questions max.** Anything more is a flaw in your discovery logic.
 - **Confirm before writing.** Show the final identity file and ask for approval.
+- **Show permissions verbatim.** When offering to add permissions to settings, show the exact list — never paraphrase as "necessary permissions."
 
 ---
 
-## Phase 1: Discovery (silent — don't narrate)
+## Phase 0: Introduce what's about to happen (MANDATORY FIRST OUTPUT)
 
-Before asking anything, gather signals from these sources in parallel:
+Before any file reads or bash commands, print this intro so the user understands any permission prompts they're about to see:
+
+```
+Welcome to Athena Notes setup.
+
+This will take about 2 minutes. Here's the plan:
+
+  1. I'll scan your existing Claude Code setup (CLAUDE.md, memory files) for
+     any identity info I can pre-fill — name, timezone, etc. You may see a
+     few permission prompts for reading those files. None of this data leaves
+     your machine.
+
+  2. I'll ask 5-7 short questions about anything I couldn't infer.
+
+  3. I'll show you the final identity before writing it to
+     ~/.claude/athena/identity.md.
+
+  4. I'll offer to allowlist the permissions this plugin needs so you don't
+     get interrupted every time an agent reads your notes or identity. I'll
+     show you exactly what those permissions are before adding them.
+
+Starting now.
+```
+
+Only after printing this intro do you proceed to Phase 1.
+
+---
+
+## Phase 1: Discovery
+
+Tell the user what you're doing, then gather signals from these sources in parallel:
+
+```
+Scanning for existing identity info...
+```
 
 ### 1.1 Existing Claude Code memory
 
@@ -160,41 +196,50 @@ Also ensure `~/.claude/athena/` directory exists. Create it if missing.
 
 Without this, the user will hit a permission prompt every time an agent reads their identity file, lists vaults, writes a note, or creates a `.notes/` symlink. Offer to handle it now.
 
-### 5.1 Explain before asking
+### 5.1 Explain verbatim before asking (DO NOT PARAPHRASE)
 
-Show the user exactly what you'll add and why. Don't just prompt blindly.
+**Print the block below EXACTLY as written**, substituting only `{NOTES_ROOT}` with the user's actual `notes_root` value from identity (e.g. `~/notes` or `~/obsidian`). Do NOT summarize this as "necessary permissions" or "the permissions the plugin needs" — show the actual list. Users should see every entry before approving.
 
 ```
-Athena Notes agents work across your notes folders and your identity file.
-Without permissions pre-approved, Claude Code will prompt you every time an
-agent touches those paths.
+───────────────────────────────────────────────────────────────
+Permission allowlist
 
-I can add the needed permissions to ~/.claude/settings.json so it stays quiet.
-You can always review or edit them later at that file.
+Athena Notes agents work across your notes folders and identity file.
+Without permissions pre-approved, Claude Code prompts you every time an
+agent reads a note, lists a vault, or creates a .notes symlink.
 
-Here's what I'd add:
+If you approve, I'll add these 14 entries to ~/.claude/settings.json
+under permissions.allow. You can review or edit them there any time.
 
-  Read access:
-    ~/.claude/athena/**       (identity file, plugin config)
-    {NOTES_ROOT}/**           (all your vaults and project notes)
+  READ access (4 entries):
+    • Read({NOTES_ROOT}/**)
+        → scribe, archivist, muse reading notes
+    • Read(~/.claude/athena/**)
+        → agents reading your identity file
 
-  Write + Edit access:
-    {NOTES_ROOT}/**           (scribe captures notes here)
+  WRITE + EDIT access (2 entries):
+    • Write({NOTES_ROOT}/**)
+    • Edit({NOTES_ROOT}/**)
+        → scribe writing new notes; muse/forge/kindle writing working state
 
-  Bash access (narrow patterns, only for these specific operations):
-    ls {NOTES_ROOT}            — vault discovery
-    ls {NOTES_ROOT}/*          — vault contents listing
-    ls ~/.claude/athena        — identity check
-    cat ~/.claude/athena/identity.md  — identity read
-    grep *                     — parsing identity fields
-    mkdir -p {NOTES_ROOT}/*    — auto-creating project vaults
-    mkdir -p ~/.claude/athena  — ensuring plugin dir exists
-    ln -s *                    — creating .notes symlinks in projects
+  BASH access (10 narrow patterns):
+    • Bash(ls {NOTES_ROOT})         — vault discovery
+    • Bash(ls {NOTES_ROOT}/*)       — vault contents listing
+    • Bash(ls -la {NOTES_ROOT}/*)   — vault contents with metadata
+    • Bash(ls ~/.claude/athena)     — identity dir check
+    • Bash(ls ~/.claude/athena/*)   — identity dir listing
+    • Bash(cat ~/.claude/athena/identity.md)
+                                     — reading identity via shell
+    • Bash(grep *)                  — parsing identity fields
+    • Bash(mkdir -p {NOTES_ROOT}/*) — auto-creating project vaults
+    • Bash(mkdir -p ~/.claude/athena)
+                                     — ensuring plugin dir exists
+    • Bash(ln -s *)                 — creating .notes symlinks in projects
 
-These take effect in your next session.
+Nothing outside these paths will be touched by these rules.
+Changes take effect in your next Claude Code session.
+───────────────────────────────────────────────────────────────
 ```
-
-Replace `{NOTES_ROOT}` with the actual value the user chose (e.g. `~/notes` or `~/obsidian`).
 
 ### 5.2 Ask approval
 

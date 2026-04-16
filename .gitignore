@@ -1,0 +1,12 @@
+# Override global gitignore — AGENTS.md IS the framework content here
+!AGENTS.md
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

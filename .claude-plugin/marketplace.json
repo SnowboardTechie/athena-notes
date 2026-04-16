@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "athena-notes",
+  "description": "Athena Notes — Obsidian-native thinking and note-capture system. Single-plugin marketplace for the athena-notes plugin.",
+  "owner": {
+    "name": "Bryan Thompson"
+  },
+  "plugins": [
+    {
+      "name": "athena-notes",
+      "description": "Obsidian-native thinking and note-capture system. Hub-spoke of Claude Code agents (muse, scribe, archivist, sage, forge, and more) that captures your thinking into Obsidian vaults with zero setup friction.",
+      "category": "productivity",
+      "source": "./",
+      "homepage": "https://github.com/bryan-thompsoncodes/athena-notes",
+      "license": "AGPL-3.0-or-later"
+    }
+  ]
+}

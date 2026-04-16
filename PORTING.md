@@ -2,6 +2,12 @@
 
 Status of the port from OpenCode/OhMyOpenAgent to Claude Code plugin. Not shipped — internal doc for plugin development.
 
+**Last updated:** 2026-04-16, end of session 1.
+
+**Current phase:** Phase A — port scribe + archivist + pyre (core Athena loop).
+
+**Handoff doc for next agent:** `~/notes/athena-notes/handoff-phase-a.md`
+
 ## Done
 
 - [x] Directory scaffold (`.claude-plugin/`, `agents/`, `commands/`, `skills/`, `examples/`)
@@ -10,7 +16,8 @@ Status of the port from OpenCode/OhMyOpenAgent to Claude Code plugin. Not shippe
 - [x] `AGENTS.md` — framework conventions (cross-tool portable)
 - [x] `CLAUDE.md` — thin importer pointing to AGENTS.md
 - [x] `README.md` — install, setup, usage, license rationale
-- [x] `commands/athena-setup.md` — onboarding flow with pre-fill from existing Claude Code memory
+- [x] `commands/athena-setup.md` — onboarding flow with pre-fill from existing Claude Code memory, Phase 0 intro (announces intent before reads), Phase 5 permission allowlist offer with verbatim disclosure
+- [x] Plugin installed and enabled via `claude plugin install`; validated end-to-end with Bryan (identity written, permissions allowlisted, muse loads on startup check)
 - [x] `agents/muse.md` — reference port (demonstrates all translations)
 - [x] `skills/agent-workspace/` — rewritten from scratch (worktrunk refs removed, vault auto-setup docs added)
 - [x] `skills/obsidian/` — copied + de-Bryan'd (vault table removed, vault discovery via identity)

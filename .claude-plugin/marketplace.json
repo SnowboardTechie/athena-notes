@@ -1,9 +1,10 @@
 {
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "athena-notes",
-  "description": "Athena Notes — Obsidian-native thinking and note-capture system. Single-plugin marketplace for the athena-notes plugin.",
   "owner": {
     "name": "Bryan Thompson"
+  },
+  "metadata": {
+    "description": "Single-plugin marketplace for the Athena Notes plugin — an Obsidian-native thinking and note-capture system."
   },
   "plugins": [
     {

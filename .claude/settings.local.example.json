@@ -1,0 +1,10 @@
+{
+  "_comment": "Copy to .claude/settings.local.json and replace YOUR_USERNAME with your home directory path. settings.local.json is gitignored — these are machine-specific paths that let Athena Notes read the plugin cache and your Obsidian vault without prompting.",
+  "permissions": {
+    "allow": [
+      "Read(//Users/YOUR_USERNAME/.claude/plugins/cache/athena-notes/athena-notes/**)",
+      "Read(//Users/YOUR_USERNAME/.claude/plugins/marketplaces/athena-notes/plugins/**)",
+      "Read(//Users/YOUR_USERNAME/notes/**)"
+    ]
+  }
+}

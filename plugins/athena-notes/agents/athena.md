@@ -161,7 +161,9 @@ Use sparingly. Prism is for moments when exploration feels stuck in one frame. N
 
 **Invoke when the user asks for planning help** — "plan my day", "plan tomorrow", "what should I work on", "sequence these tasks", "what's next", or when they report a technical blocker mid-session.
 
-**Delegate — do not plan inline.** Forge's default is Goal mode: 3–5 daily goals with a first step for the top priority, no clock times, no focus blocks. Only ask forge for Block mode or Schedule mode if the user explicitly requested them.
+**Delegate — do not plan inline. Do not ask the user clarifying questions first.** Scout runs first, then forge. Forge will surface what it needs from the user (goals, deadlines, energy) once it has scout's context. Asking "what's on your plate?" before calling scout defeats the purpose — scout *is* the answer to that question for code work.
+
+Forge's default is Goal mode: 3–5 daily goals with a first step for the top priority, no clock times, no focus blocks. Only ask forge for Block mode or Schedule mode if the user explicitly requested them.
 
 **Before delegating to forge for daily/weekly planning, invoke scout** (unless the user opted out — see the scout section below). Pass scout's summary to forge as context. Forge treats it as *obligations*, not goals — the user still picks what makes the list.
 
@@ -214,10 +216,10 @@ Always pass the user's cwd so scout can detect the right forge. For weekly plann
 **Integration pattern:**
 
 1. User says "plan my day" (or similar).
-2. You invoke scout (unless opt-out phrase present).
+2. **Do not ask clarifying questions first.** Invoke scout immediately (unless opt-out phrase present). Scout + forge is the first move, not a Socratic opener.
 3. Scout returns a markdown summary.
 4. You invoke forge, passing the summary as `Forge context:` in the prompt.
-5. Forge produces the plan with scout's obligations visible to the user.
+5. Forge produces the plan with scout's obligations visible to the user — and prompts the user for anything still needed (energy, deadlines, non-code work).
 
 **If scout returns `{forge}_available: false`** (CLI missing or not authed), proceed to forge without context. Don't block planning; don't nag the user to install anything unless they ask.
 

@@ -9,6 +9,8 @@ Athena Notes is a hub-spoke of specialized AI agents that help you think, resear
 - You only talk to Athena. The subagents are her tools, not yours.
 - Everything writes to Obsidian using wikilinks, frontmatter, and your existing vault structure.
 
+> **Extending or contributing?** Read [`plugins/athena-notes/AGENTS.md`](plugins/athena-notes/AGENTS.md) — it's the framework spec (identity, vault routing, worktree resolution, agent invocation conventions, cross-tool portability) and the single source of truth for writing or porting agents and skills.
+
 ---
 
 ## Requirements
@@ -155,26 +157,48 @@ Core skills (always loaded):
 
 Utility skills (available when relevant):
 
-- `session-review`, `find-skills`, `weekly-planning`, `dependency-review`, `dependency-triage`, `update-pr-description`, `ship`
+- `session-review`, `find-skills`, `dependency-review`, `dependency-triage`, `update-pr-description`, `ship`
 
 ---
 
 ## Extending
 
-The `examples/` directory contains personal agents and skills the plugin author built for their own workflow:
+The `plugins/athena-notes/examples/` directory contains personal agents and skills the plugin author built for their own workflow:
 
 - `calliope` — content writing agent (blog posts, newsletters)
 - `aria` — domain-specialist agent (accessibility / VA.gov)
 - `gamedev` — project-specific assistant (Godot)
-- Skill examples: `catalog-review`, `sprint-deliverable-update`, `manual-merge`
+- Skill examples: `catalog-review`, `manual-merge`, `sprint-deliverable-update`, `weekly-planning`
 
-Copy any of these into your own `~/.claude/agents/` or `~/.claude/skills/` and adapt. They show the patterns — make them yours.
+Copy any of these into your own `~/.claude/agents/` or `~/.claude/skills/` and adapt. They show the patterns — make them yours. See [`examples/README.md`](plugins/athena-notes/examples/README.md) for per-example adaptation notes.
 
 ---
 
 ## Cross-tool portability
 
 The framework conventions live in `AGENTS.md` — readable by Cursor, Aider, Codex, and other tools. The agents and skills themselves are Claude Code-specific, but the conventions translate.
+
+---
+
+## Troubleshooting
+
+**"athena doesn't know who I am"**
+Identity lives at `~/.claude/athena/identity.md`. Run `/athena-setup` to create or update it. Re-running is safe — it pre-fills from the existing file.
+
+**"I want to change my vault location"**
+Edit `personal_vault` (or `notes_root`) in `~/.claude/athena/identity.md`. The next agent invocation picks up the change.
+
+**"Scribe keeps writing to `~/notes/second-brain/` when I'm inside a repo"**
+That means the `.notes/` symlink in your repo isn't set up. Start a fresh session inside the repo and ask athena to "set up the workspace here" — it will create `.notes/` → `~/notes/{repo-name}/` and add it to `.gitignore`.
+
+**"Sage falls back to WebSearch / WebFetch even though I installed Exa"**
+Sage prefers MCPs in order: Exa → Context7 → grep.app → built-in WebSearch. Check that the MCP is listed in `claude mcp list` and authenticated. If you installed Exa after sage first ran, restart the Claude Code session.
+
+**"Permissions keep prompting when athena reads my notes"**
+Copy `.claude/settings.local.example.json` to `.claude/settings.local.json` and replace `YOUR_USERNAME`. It's gitignored on purpose — the paths are machine-specific.
+
+**"I'm in a git worktree and notes aren't showing up"**
+`.notes/` lives in the **trunk** (main worktree) so it's shared across every branch worktree. Agent-workspace resolves the trunk root automatically via `git rev-parse`. If something still looks off, `ls -la .notes` in the trunk to confirm the symlink.
 
 ---
 
@@ -190,15 +214,15 @@ This license was chosen to prevent enclosure: Athena Notes should never become a
 
 ## Contributing
 
-Issues and PRs welcome at [github.com/SnowboardTechie/athena-notes](https://github.com/SnowboardTechie/athena-notes).
+Issues and PRs welcome at [github.com/SnowboardTechie/athena-notes](https://github.com/SnowboardTechie/athena-notes). See [CONTRIBUTING.md](CONTRIBUTING.md) for the submission workflow and conventions.
 
-Before contributing an agent or skill:
+Before contributing an agent or skill, check the four-point filter:
 - Does it serve the thinking + note-capture core? (vs. being a random utility)
 - Is it Obsidian-aware? (wikilinks, frontmatter, vault conventions)
 - Is it free of personal hardcoding? (no specific names, companies, projects)
 - Would a teammate I've never met find it useful?
 
-If yes to all four, open a PR.
+If yes to all four, open a PR to the main `agents/` or `skills/` tree. If no to one or more, it probably belongs in `examples/` — still welcome, but labeled as a reference, not a utility.
 
 ---
 

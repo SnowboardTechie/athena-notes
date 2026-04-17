@@ -4,7 +4,7 @@ Status of the port from OpenCode/OhMyOpenAgent to Claude Code plugin. Not shippe
 
 **Last updated:** 2026-04-16, session 2.
 
-**Current phase:** Phase A + B complete (scribe + archivist + pyre + sage + prism ported; muse renamed to athena). Next: Phase C — forge + kindle.
+**Current phase:** Phases A + B + C complete. All 8 agents ported (athena + scribe + archivist + pyre + sage + prism + forge + kindle). Next: polish + ship v0.1.0.
 
 **Handoff doc for next agent:** `~/notes/athena-notes/handoff-phase-a.md`
 
@@ -24,6 +24,8 @@ Status of the port from OpenCode/OhMyOpenAgent to Claude Code plugin. Not shippe
 - [x] `agents/scribe.md` — sonnet, identity startup check, 3-mode path resolution, workday-vault section removed, gamedev/burnt-ice/VA specifics generalized
 - [x] `agents/sage.md` — sonnet, tiered MCP → WebSearch/WebFetch fallback, cache uses Glob/Read/Write (Bash-hygiene-native from the start)
 - [x] `agents/prism.md` — opus, creative refractor preserved verbatim, frontmatter + invocation language updated for Claude Code
+- [x] `agents/forge.md` — sonnet, identity startup check reads `working_hours` + `cognitive_peak`, sequences hardest task into peak window, Edit-based session logging, Task hand-off to archivist/scribe/kindle (Bash-hygiene-native)
+- [x] `agents/kindle.md` — sonnet, flow-barrier diagnosis (anxiety/boredom/distraction), tool-native only (no Bash), Task hand-off to forge
 - [x] `skills/agent-workspace/` — rewritten from scratch (worktrunk refs removed, vault auto-setup docs added)
 - [x] `skills/obsidian/` — copied + de-Bryan'd (vault table removed, vault discovery via identity)
 - [x] `skills/athena-notes/` — copied from `~/.claude/skills/` (identical content, no changes needed)
@@ -39,14 +41,9 @@ Status of the port from OpenCode/OhMyOpenAgent to Claude Code plugin. Not shippe
 
 ## Remaining
 
-### Agents to port (2 remaining)
+### Agents to port
 
-For each: translate OpenCode frontmatter → Claude Code frontmatter, rewrite `mcp_task(...)` invocations → `Task(...)`, replace "Bryan" → `{{USER_NAME}}`, drop workday/burnt-ice vault refs, set appropriate model. Follow Bash hygiene convention (tool-native, no compound bash) — see Issue #1.
-
-| Agent | Model | Complexity | Special notes |
-|---|---|---|---|
-| forge | sonnet | Medium | Working hours + cognitive peak come from identity, not hardcoded. |
-| kindle | sonnet | Low | No significant Bryan-isms. |
+All 8 agents ported. ✅
 
 ### Skill cleanups (post-copy)
 

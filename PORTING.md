@@ -106,7 +106,7 @@ Task(subagent_type="archivist", description="...", prompt="...")
 - [ ] Sprint-deliverable-update skill has HHS-specific process knowledge — ensure it's clearly flagged as example, not utility
 - [ ] After all agents ported, do one final pass to verify cross-references work (athena mentions archivist/sage/etc — all names must match)
 - [ ] First-session smoke test: install plugin locally, run `/athena-setup`, ask athena something, confirm scribe auto-capture works
-- [ ] Create GitHub repo `bryan-thompsoncodes/athena-notes`, push, verify `gh auth` allows `/plugin install github:...` path
+- [ ] Create GitHub repo `SnowboardTechie/athena-notes`, push, verify `gh auth` allows `/plugin install github:...` path
 
 ---
 
@@ -126,7 +126,7 @@ cd ~/code/athena-notes
 git init
 git add .
 git commit -m "Initial plugin scaffold"
-gh repo create bryan-thompsoncodes/athena-notes --public --source=. --remote=origin --push
+gh repo create SnowboardTechie/athena-notes --public --source=. --remote=origin --push
 ```
 
 Then set up mirrors to Forgejo and Codeberg.

@@ -414,7 +414,7 @@ Quick test: try "athena, help me think through {something on your mind}" and she
 
 Your personal vault at ~/notes/{{PERSONAL_VAULT}}/ will be auto-created the first time you capture there.
 
-Questions or issues? See README.md or open an issue at github.com/bryan-thompsoncodes/athena-notes
+Questions or issues? See README.md or open an issue at github.com/SnowboardTechie/athena-notes
 ```
 
 ---

@@ -23,7 +23,7 @@ Athena Notes is a hub-spoke of specialized AI agents that help you think, resear
 
 ```bash
 # From Claude Code
-/plugin install github:bryan-thompsoncodes/athena-notes
+/plugin install github:SnowboardTechie/athena-notes
 ```
 
 After installing, **start a new session and talk to athena**. She will detect that Athena Notes isn't set up yet and walk you through identity setup (~2 minutes).
@@ -190,7 +190,7 @@ This license was chosen to prevent enclosure: Athena Notes should never become a
 
 ## Contributing
 
-Issues and PRs welcome at [github.com/bryan-thompsoncodes/athena-notes](https://github.com/bryan-thompsoncodes/athena-notes).
+Issues and PRs welcome at [github.com/SnowboardTechie/athena-notes](https://github.com/SnowboardTechie/athena-notes).
 
 Before contributing an agent or skill:
 - Does it serve the thinking + note-capture core? (vs. being a random utility)

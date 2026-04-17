@@ -12,7 +12,7 @@
       "description": "Obsidian-native thinking and note-capture system. Hub-spoke of Claude Code agents (athena, scribe, archivist, sage, forge, and more) that captures your thinking into Obsidian vaults with zero setup friction.",
       "category": "productivity",
       "source": "./plugins/athena-notes",
-      "homepage": "https://github.com/bryan-thompsoncodes/athena-notes",
+      "homepage": "https://github.com/SnowboardTechie/athena-notes",
       "license": "AGPL-3.0-or-later"
     }
   ]

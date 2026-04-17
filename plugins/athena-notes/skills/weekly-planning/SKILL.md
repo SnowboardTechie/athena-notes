@@ -44,6 +44,15 @@ Before asking anything:
 1. Check for last week's planning note: look in `~/notes/second-brain/Journal/` for the most recent `*-weekly-plan.md`
 2. If found, read it — especially the "This Week's Rocks" and "End of Week" sections
 3. Note any incomplete rocks or carry-forward items to reference during planning
+4. **Invoke scout** for developer-forge obligations (unless the user said "skip github" / "skip forge" / "no forgejo" earlier in the session):
+
+   ```
+   Task(subagent_type="scout", prompt="Fetch forge activity for weekly planning (cwd={user_cwd})")
+   ```
+
+   Weekly planning usually happens from the Second Brain vault (not a code repo), so scout will default to GitHub. Hold scout's summary for Phase 3.
+
+   If scout returns `{forge}_available: false`, continue without — don't block the session.
 
 ### Phase 1: Vent (Clear the Noise)
 
@@ -94,10 +103,20 @@ Collect:
 
 > Surface what actually needs doing. "Will it make the boat go faster?"
 
-Ask:
+**If scout returned a summary in Phase 0, present it first** before asking the open question:
 
 ```
-What obligations or commitments do you have this week? Work deadlines, appointments, things you promised someone — anything with a real external deadline or expectation.
+Before you tell me what's on your plate — here's what {github|forgejo} is showing right now:
+
+{scout summary verbatim}
+
+Anything here you want to pull into this week's obligations?
+```
+
+Let the user opt items in or dismiss the whole block. Then ask the open question:
+
+```
+What other obligations or commitments do you have this week? Work deadlines, appointments, things you promised someone — anything with a real external deadline or expectation.
 ```
 
 This grounds the rocks in reality. Some rocks might be obligations, some might be personal goals.
@@ -209,6 +228,12 @@ Adjust language — "rest of the week" instead of "this week." Still pick 3 rock
 
 **User says they don't know what their rocks should be:**
 Pull from `~/notes/second-brain/Projects TODO.md` and present the list. Ask: "Any of these calling to you this week?"
+
+**User says "skip github" / "skip forge" / "no forgejo" (before or during Phase 0):**
+Don't invoke scout. Proceed without a forge-activity section in Phase 3.
+
+**Scout returns `{forge}_available: false`:**
+The CLI (`gh` or `tea`) is missing or not authed. Silently continue without the forge-activity block in Phase 3. Don't prompt the user to install anything.
 
 ---
 

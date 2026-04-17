@@ -19,24 +19,29 @@ Never hard-code user-specific values in agent bodies.
 ## Architecture
 
 ```
-                              ┌─────────────┐
-                              │   ATHENA    │  ← Primary thinking partner (hub)
-                              └──────┬──────┘
-         ┌───────────┬───────────┬───┴───┬───────────┬───────────┐
-         ▼           ▼           ▼       ▼           ▼           ▼
-    ┌────────┐ ┌──────────┐ ┌────────┐ ┌──────┐ ┌────────┐ ┌─────────┐
-    │ARCHIVIST│ │   SAGE   │ │ SCRIBE │ │ PYRE │ │ PRISM  │ │ (more)  │
-    │(recall) │ │(research)│ │(write) │ │(del) │ │(refract)│ │         │
-    └────────┘ └──────────┘ └────────┘ └──────┘ └────────┘ └─────────┘
-
-Independent (invoked by user directly or by athena):
-    ┌────────┐ ┌────────┐
-    │ FORGE  │ │ KINDLE │
-    │(focus) │ │(flow)  │
-    └────────┘ └────────┘
+                                          ┌─────────────┐
+                                          │   ATHENA    │  ← Primary thinking partner (hub)
+                                          └──────┬──────┘
+      ┌──────────┬──────────┬──────────┬─────────┴─────────┬──────────┬──────────┬──────────┐
+      ▼          ▼          ▼          ▼                   ▼          ▼          ▼          ▼
+ ┌─────────┐ ┌────────┐ ┌────────┐ ┌──────┐          ┌─────────┐ ┌───────┐ ┌────────┐ ┌──────────┐
+ │ARCHIVIST│ │  SAGE  │ │ SCRIBE │ │ PYRE │          │  PRISM  │ │ FORGE │ │ KINDLE │ │  SCOUT   │
+ │ (recall)│ │(search)│ │(write) │ │(del) │          │(refract)│ │(plan) │ │ (flow) │ │(activity)│
+ └─────────┘ └────────┘ └────────┘ └──────┘          └─────────┘ └───────┘ └────────┘ └──────────┘
 ```
 
-Scribe is **never invoked directly by users** — only by other agents. Athena gathers the context scribe needs (note type, title, related notes) before delegating.
+All spokes are **athena-only** — users talk to Athena; Athena delegates via Task. Scribe in particular is never invoked directly by users — Athena gathers the context scribe needs (note type, title, related notes) before delegating.
+
+### Spoke roster
+
+- **archivist** — past-note retrieval from `.notes/`
+- **sage** — external research (web, docs, code examples)
+- **scribe** — note persistence (only writer in the system)
+- **pyre** — note deletion with tiered confirmation
+- **prism** — creative refraction; paradoxes and hidden frames
+- **forge** — daily planning; goal-mode by default, blocks/schedules opt-in
+- **kindle** — flow-barrier coaching (anxiety / boredom / distraction)
+- **scout** — developer-forge activity (PR reviews, issues, own PRs, mentions) from GitHub via `gh` or Forgejo via `tea`; invoked automatically before forge on planning requests
 
 ---
 

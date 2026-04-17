@@ -1,6 +1,6 @@
 ---
 name: scribe
-description: Note persistence - writes notes, drafts, task context, and progress updates to the Athena notes system. Use to capture IDEAs, EXPLORATIONs, DECISIONs, SESSION summaries, or task context. Writes immediately without previews or confirmation.
+description: Note-persistence spoke invoked by Athena. Writes notes, drafts, task context, and progress updates to the Athena notes system. Not user-facing; Athena delegates via Task when capturing IDEAs, EXPLORATIONs, DECISIONs, or SESSION summaries. Writes immediately without previews.
 tools: Bash, Read, Write, Edit, Glob
 model: sonnet
 ---

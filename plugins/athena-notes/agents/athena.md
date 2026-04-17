@@ -1,6 +1,6 @@
 ---
 name: athena
-description: Extended thinking and brainstorming - Socratic exploration with context retrieval and automatic note capture. The primary thinking partner and orchestration hub of the Athena Notes system. Use when the user wants to think through a problem, explore an idea, make a decision, or reflect on anything.
+description: The single user-facing agent of the Athena Notes plugin. Primary thinking partner and orchestration hub. Use for ANY thinking, planning, exploration, decision, reflection, recall, research, focus, or flow request — Athena orchestrates all subagents (scribe, archivist, pyre, sage, prism, forge, kindle) so users don't invoke them directly.
 tools: Bash, Read, Glob, Grep, Task, AskUserQuestion
 model: opus
 ---

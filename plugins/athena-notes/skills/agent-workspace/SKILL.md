@@ -294,37 +294,41 @@ PROJECT_NAME=$(basename "$TRUNK_ROOT")
 
 ## Auto-Setup Protocol
 
-When an agent is invoked in a git repo and `.notes/` is missing:
+When an agent is invoked in a git repo and `.notes/` is missing. Use tool-native calls where possible; Bash is reserved for git queries, `mkdir -p`, and `ln -s` (single bare commands).
 
-1. **Resolve the trunk root** (handles worktrees automatically)
+1. **Resolve the trunk root** (handles worktrees automatically) — Bash is required for `git rev-parse`:
    ```bash
-   TRUNK_ROOT=$(resolve_trunk_root)
-   PROJECT_NAME=$(basename "$TRUNK_ROOT")
+   git rev-parse --show-toplevel
+   ```
+   Then check if it's a worktree via `git rev-parse --git-common-dir` (returns the trunk's `.git`). The parent of that path is `TRUNK_ROOT`. `PROJECT_NAME` is its basename.
+
+2. **Check for existing `.notes/` in the trunk** — use **Glob**, not `ls`:
+   ```
+   Glob(pattern="{TRUNK_ROOT}/.notes")
+   ```
+   If it returns a result, `.notes` exists. To determine whether it's a symlink vs a regular directory, try `Glob(pattern="{TRUNK_ROOT}/.notes/*")` — if that returns files, check the invoking agent's intent (symlinks transparently resolve). If you truly need to distinguish, one bare `readlink {TRUNK_ROOT}/.notes` Bash call is acceptable (no chains).
+
+3. **If missing, read `notes_root` from identity** — use **Read**, not `grep`:
+   ```
+   Read(file_path="~/.claude/athena/identity.md")
+   ```
+   Parse the `notes_root:` field in your response; expand `~` to `$HOME`.
+
+4. **Create target directory and symlink in the trunk** — Bash required (no tool equivalent). One command per call:
+   ```bash
+   mkdir -p {NOTES_ROOT}/{PROJECT_NAME}
+   ```
+   ```bash
+   ln -s {NOTES_ROOT}/{PROJECT_NAME} {TRUNK_ROOT}/.notes
    ```
 
-2. **Check for existing `.notes/` symlink in the trunk**
-   ```bash
-   ls -la "${TRUNK_ROOT}/.notes" 2>/dev/null || echo "MISSING"
+5. **Add to `.gitignore` if not present** — use **Read + Edit**, not `grep`/`echo`:
    ```
-
-3. **If missing, read notes_root from identity**
-   ```bash
-   NOTES_ROOT=$(grep '^notes_root:' ~/.claude/athena/identity.md | cut -d: -f2- | xargs)
-   NOTES_ROOT="${NOTES_ROOT/#\~/$HOME}"  # expand ~
+   Read(file_path="{TRUNK_ROOT}/.gitignore")
    ```
+   If `.notes` isn't on a line by itself, use `Edit` to append it (or `Write` if the file doesn't exist yet).
 
-4. **Create target directory and symlink in the trunk**
-   ```bash
-   mkdir -p "${NOTES_ROOT}/${PROJECT_NAME}"
-   ln -s "${NOTES_ROOT}/${PROJECT_NAME}" "${TRUNK_ROOT}/.notes"
-   ```
-
-5. **Add to `.gitignore` if not present (in trunk)**
-   ```bash
-   grep -q '^\.notes$' "${TRUNK_ROOT}/.gitignore" 2>/dev/null || echo ".notes" >> "${TRUNK_ROOT}/.gitignore"
-   ```
-
-6. **Confirm setup**
+6. **Confirm setup** to the user:
    ```
    Notes directory ready: {TRUNK_ROOT}/.notes -> {NOTES_ROOT}/{PROJECT_NAME}/
    ```
@@ -334,6 +338,12 @@ When an agent is invoked in a git repo and `.notes/` is missing:
    - Report to user: ".notes/ exists as a regular directory. The plugin expects it to be a symlink. Please move its contents or rename before continuing."
 
 **The setup is idempotent** — safe to run multiple times.
+
+### Bash hygiene in this protocol
+
+- `git rev-parse`, `mkdir -p`, `ln -s`, and (rarely) `readlink` are the only allowed Bash calls
+- Each is a single bare command — no `&&`/`||`/`|`, no `2>/dev/null`, no `cd`, absolute paths only
+- Never `ls`, `grep`, `find`, `cat`, `head`, `tail`, `echo` to file — use Glob / Grep / Read / Edit / Write
 
 ---
 

@@ -35,15 +35,10 @@ Vault locations come from `~/.claude/athena/identity.md`:
 - `notes_root` — typically `~/notes` — root directory for all vaults
 - `personal_vault` — typically `second-brain` — the default cross-project vault
 
-Agents discover additional vaults at runtime:
+Agents discover additional vaults at runtime — tool-native, no Bash:
 
-```bash
-NOTES_ROOT=$(grep '^notes_root:' ~/.claude/athena/identity.md | cut -d: -f2- | xargs)
-NOTES_ROOT="${NOTES_ROOT/#\~/$HOME}"
-
-# List all vaults
-ls -d "${NOTES_ROOT}"/*/ 2>/dev/null
-```
+1. **Read** `~/.claude/athena/identity.md` and parse the `notes_root:` field (expand `~` to `$HOME` in your response).
+2. **Glob** `{notes_root}/*/*.md` — the returned paths reveal vault directories. Deduplicate the parent folder names.
 
 No vault names are hard-coded. The personal vault is the only one with a known default; all others are user-created.
 

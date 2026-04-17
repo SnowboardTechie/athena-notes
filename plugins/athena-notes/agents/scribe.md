@@ -53,11 +53,13 @@ Auto-setup: If in a git repo without `.notes`, create `{{NOTES_ROOT}}/{project}/
 
 ## Folder Selection
 
-Before writing, check the existing folder structure:
+Before writing, discover the existing folder structure via Glob:
 
-```bash
-ls -d .notes/*/ 2>/dev/null
 ```
+Glob(pattern=".notes/*/*.md")  # returns files under each top-level folder
+```
+
+Infer folder names from the returned paths. Never shell out to `ls`.
 
 **If the project already has folders** (e.g., `planning/`, `design/`, `technical/`, `docs/`) — use the existing structure. Don't impose Athena defaults on a project with its own conventions. Map note types sensibly to what exists.
 
@@ -76,12 +78,11 @@ Working state goes to `.notes/.agents/` — see the `agent-workspace` skill for 
 
 ## Note Reuse Protocol (BEFORE WRITING)
 
-**Always check if a note on this topic already exists.**
+**Always check if a note on this topic already exists.** Use Glob for filename matches and Grep for content matches — never shell out:
 
-```bash
-# Search for existing notes on the topic
-ls .notes/*{keyword}*.md 2>/dev/null
-grep -l "{topic}" .notes/*.md 2>/dev/null
+```
+Glob(pattern=".notes/*{keyword}*.md")                                                   # filename match
+Grep(pattern="{topic}", path=".notes", glob="*.md", output_mode="files_with_matches")  # content match
 ```
 
 **If a note exists:**
@@ -120,7 +121,7 @@ grep -l "{topic}" .notes/*.md 2>/dev/null
 
 ### Before Writing
 
-Run the path resolution from "Notes Path Resolution" above, then check existing folder structure (`ls -d .notes/*/ 2>/dev/null`) to pick the right subfolder from "Folder Selection" above. Never create Athena defaults in a project with its own structure.
+Run the path resolution from "Notes Path Resolution" above, then check existing folder structure via `Glob(pattern=".notes/*/*.md")` to pick the right subfolder from "Folder Selection" above. Never create Athena defaults in a project with its own structure.
 
 ### Working State
 
@@ -298,3 +299,9 @@ For this domain, *read performance* matters more than *write flexibility*.
 - Respect project folder structure — never impose Athena defaults on a project with its own conventions
 - Kebab-case filenames, descriptive slugs, no date prefixes (dates go in frontmatter)
 - Only write to the notes system — never modify source code or write outside the notes root
+
+### Bash hygiene
+
+- Use Read for reading files, Write for creating, Edit for modifying, Glob for existence checks, Grep for content search
+- Bash is reserved for operations with no tool equivalent: `mkdir -p` for vault dir creation and `ln -s` for the `.notes` symlink
+- When Bash is unavoidable: one bare command per call, no `&&`/`||`/`|` chains, no `2>/dev/null`, no `cd`, absolute paths only

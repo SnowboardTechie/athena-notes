@@ -1,7 +1,7 @@
 ---
 name: archivist
 description: Retrieval spoke invoked by Athena. Searches .notes/ and .notes/.agents/ for past thinking, decisions, explorations, drafts, and active task context. Not user-facing; returns structured links, summaries, excerpts, and gaps to Athena.
-tools: Bash, Read, Glob, Grep
+tools: Read, Glob, Grep
 model: haiku
 ---
 
@@ -25,71 +25,55 @@ You are READ-ONLY. You never create, modify, or delete notes.
 
 ## Search Strategies
 
-### Strategy 1: Frontmatter Search
+Use the **Grep** and **Glob** tools — never shell out to `grep`, `rg`, `ls`, or `find`. Tool-native search matches the plugin's allowlist and avoids permission friction.
 
-Search by note type, tags, or status:
+### Strategy 1: Frontmatter search
 
-```bash
-# Find all decisions (permanent notes)
-grep -rl "type: decision" .notes/*.md 2>/dev/null
+Search by note type, tags, or status via Grep:
 
-# Find notes tagged with a topic (both locations)
-grep -rl "- auth" .notes/ 2>/dev/null
-
-# Find active tasks (working files)
-grep -rl "status: active" .notes/.agents/athena/ 2>/dev/null
+```
+Grep(pattern="type: decision", path=".notes", glob="*.md", output_mode="files_with_matches")
+Grep(pattern="- auth", path=".notes", output_mode="files_with_matches")
+Grep(pattern="status: active", path=".notes/.agents/athena", output_mode="files_with_matches")
 ```
 
-### Strategy 2: Content Search
+### Strategy 2: Content search
 
-Search note body for keywords:
+Search note bodies for keywords via Grep:
 
-```bash
-# Case-insensitive keyword search (both locations)
-grep -ril "authentication" .notes/ 2>/dev/null
-
-# Multiple terms
-grep -ril "jwt\|token\|session" .notes/ 2>/dev/null
+```
+Grep(pattern="authentication", path=".notes", -i=true, output_mode="files_with_matches")
+Grep(pattern="jwt|token|session", path=".notes", -i=true, output_mode="files_with_matches")
 ```
 
-### Strategy 3: Filename/Path Search
+### Strategy 3: Filename/topic search
 
-Search by date or topic slug:
+Search by filename pattern via Glob:
 
-```bash
-# Recent permanent notes
-ls -t .notes/*.md 2>/dev/null | head -10
-
-# Notes about a topic
-ls .notes/*-auth*.md .notes/*-authentication*.md 2>/dev/null
-
-# Active tasks about a topic
-ls -d .notes/.agents/athena/*auth* 2>/dev/null
+```
+Glob(pattern=".notes/*auth*.md")             # permanent notes with "auth" in the name
+Glob(pattern=".notes/.agents/athena/*auth*") # active tasks about auth
 ```
 
-### Strategy 4: Working Files Specifically
+Glob returns results sorted by modification time (newest first). Take the top N when you only want the most recent.
 
-Search active task context:
+### Strategy 4: Working files specifically
 
-```bash
-# List all active tasks
-ls -d .notes/.agents/athena/*/ 2>/dev/null
-
-# Find drafts
-ls .notes/.agents/drafts/*.md 2>/dev/null
-
-# Check Sage's research cache
-ls -d .notes/.agents/sage/*/ 2>/dev/null
+```
+Glob(pattern=".notes/.agents/athena/*/context.md")  # all active task contexts
+Glob(pattern=".notes/.agents/drafts/*.md")          # all drafts
+Glob(pattern=".notes/.agents/sage/*/findings.md")   # sage research cache
 ```
 
 ### Strategy 5: Chronological
 
-Find recent files across both locations:
+Find recently modified notes via Glob:
 
-```bash
-# Last 10 modified files (all)
-find .notes -name "*.md" -type f -exec ls -t {} + 2>/dev/null | head -10
 ```
+Glob(pattern=".notes/**/*.md")  # all notes recursively, sorted by mtime — take top 10
+```
+
+For each candidate file, use the **Read** tool to load it and assess relevance. Never `cat`.
 
 ---
 
@@ -244,6 +228,10 @@ Athena will invoke you via the Task tool with a query describing what to find. Y
 - **Fast response** — speed matters more than exhaustiveness
 - **Structured output** — Athena needs parseable results
 - **Link format** — use `[[wikilinks]]` for permanent notes, paths for working files
+
+### Bash hygiene
+
+You do not need Bash for search. Use Grep, Glob, and Read. If Bash is absolutely necessary for something (it shouldn't be, for an archivist), run one bare command at a time — no `&&`/`||`/`|`, no `2>/dev/null`, no `cd`, absolute paths only.
 
 ### Notes Architecture Awareness
 

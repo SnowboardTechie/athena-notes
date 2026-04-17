@@ -68,9 +68,9 @@ Read whatever exists. Extract: name, pronouns, timezone, working hours, vault pr
 
 ### 1.2 System signals
 
-- `echo $TZ` or `date +%Z` — timezone
-- `ls ~/notes/ 2>/dev/null` — existing vault names
-- `echo $USER` — fallback for name
+- `echo $TZ` or `date +%Z` — timezone (Bash: one bare command)
+- `Glob(pattern="~/notes/*/")` — existing vault names (Glob, not `ls`)
+- `echo $USER` — fallback for name (Bash: one bare command)
 
 ### 1.3 Existing identity file
 
@@ -192,52 +192,84 @@ Also ensure `~/.claude/athena/` directory exists. Create it if missing.
 
 ---
 
-## Phase 5: Offer to allowlist permissions (new user convenience)
+## Phase 5: Offer to configure permissions (new user convenience)
 
-Without this, the user will hit a permission prompt every time an agent reads their identity file, lists vaults, writes a note, or creates a `.notes/` symlink. Offer to handle it now.
+Without this, the user will hit a permission prompt for almost every operation. Offer to configure Claude Code's `permissions.defaultMode: "auto"` (official research-preview mode that auto-approves routine ops while still enforcing deny rules and background safety checks).
 
 ### 5.1 Explain verbatim before asking (DO NOT PARAPHRASE)
 
-**Print the block below EXACTLY as written**, substituting only `{NOTES_ROOT}` with the user's actual `notes_root` value from identity (e.g. `~/notes` or `~/obsidian`). Do NOT summarize this as "necessary permissions" or "the permissions the plugin needs" — show the actual list. Users should see every entry before approving.
+**Print the block below EXACTLY as written**, substituting only `{NOTES_ROOT}` with the user's actual `notes_root` value from identity. Do NOT summarize this as "necessary permissions" — show the actual config. Users should see every entry before approving.
 
 ```
 ───────────────────────────────────────────────────────────────
-Permission allowlist
+Permission configuration
 
-Athena Notes agents work across your notes folders and identity file.
-Without permissions pre-approved, Claude Code prompts you every time an
-agent reads a note, lists a vault, or creates a .notes symlink.
+Athena Notes needs to read, search, and write across your notes folders
+and identity file without constant prompting. The cleanest way to do
+this uses Claude Code's built-in "auto" permission mode (research preview)
+plus a narrow deny list for genuinely dangerous operations.
 
-If you approve, I'll add these 14 entries to ~/.claude/settings.json
-under permissions.allow. You can review or edit them there any time.
+If you approve, I'll set these values in ~/.claude/settings.json:
 
-  READ access (4 entries):
+  defaultMode: "auto"
+    → Auto-approves routine tool calls with background safety checks.
+      Deny rules are still enforced; auto mode does NOT disable safety.
+
+  allow — notes/identity paths (4 entries, belt and suspenders):
     • Read({NOTES_ROOT}/**)
-        → scribe, archivist, athena reading notes
     • Read(~/.claude/athena/**)
-        → agents reading your identity file
-
-  WRITE + EDIT access (2 entries):
     • Write({NOTES_ROOT}/**)
     • Edit({NOTES_ROOT}/**)
-        → scribe writing new notes; athena/forge/kindle writing working state
 
-  BASH access (10 narrow patterns):
-    • Bash(ls {NOTES_ROOT})         — vault discovery
-    • Bash(ls {NOTES_ROOT}/*)       — vault contents listing
-    • Bash(ls -la {NOTES_ROOT}/*)   — vault contents with metadata
-    • Bash(ls ~/.claude/athena)     — identity dir check
-    • Bash(ls ~/.claude/athena/*)   — identity dir listing
-    • Bash(cat ~/.claude/athena/identity.md)
-                                     — reading identity via shell
-    • Bash(grep *)                  — parsing identity fields
-    • Bash(mkdir -p {NOTES_ROOT}/*) — auto-creating project vaults
-    • Bash(mkdir -p ~/.claude/athena)
-                                     — ensuring plugin dir exists
-    • Bash(ln -s *)                 — creating .notes symlinks in projects
+  allow — read-only gh (forge uses these for daily planning, 17 entries):
+    • Bash(gh pr list:*)              • Bash(cd * && gh pr list:*)
+    • Bash(gh pr view:*)              • Bash(cd * && gh pr view:*)
+    • Bash(gh pr status)              • Bash(cd * && gh pr status)
+    • Bash(gh issue list:*)           • Bash(cd * && gh issue list:*)
+    • Bash(gh issue view:*)           • Bash(cd * && gh issue view:*)
+    • Bash(gh run list:*)             • Bash(cd * && gh run list:*)
+    • Bash(gh run view:*)             • Bash(cd * && gh run view:*)
+    • Bash(gh repo view:*)            • Bash(cd * && gh repo view:*)
+    • Bash(gh search:*)
+        cd-prefixed forms cover forge's `cd <repo> && gh ...` pattern.
+        Excludes gh api / pr create / pr merge / issue create (mutating).
 
-Nothing outside these paths will be touched by these rules.
-Changes take effect in your next Claude Code session.
+  allow — read-only tea / Forgejo CLI (mirrors gh, 18 entries):
+    • Bash(tea pulls list:*)          • Bash(cd * && tea pulls list:*)
+    • Bash(tea pulls ls:*)            • Bash(cd * && tea pulls ls:*)
+    • Bash(tea pulls show:*)          • Bash(cd * && tea pulls show:*)
+    • Bash(tea issues list:*)         • Bash(cd * && tea issues list:*)
+    • Bash(tea issues ls:*)           • Bash(cd * && tea issues ls:*)
+    • Bash(tea issues show:*)         • Bash(cd * && tea issues show:*)
+    • Bash(tea repos list:*)          • Bash(cd * && tea repos list:*)
+    • Bash(tea repos ls:*)            • Bash(cd * && tea repos ls:*)
+    • Bash(tea repos show:*)          • Bash(cd * && tea repos show:*)
+        Skip prompt-free if user has no Forgejo/Gitea remotes (entries
+        match nothing harmful). For users on GitHub-only setups, harmless.
+
+  deny (hard blocks for truly dangerous ops, 14 entries):
+    • Bash(rm -rf /)                — wipe filesystem
+    • Bash(rm -rf /*)               — wipe filesystem
+    • Bash(rm -rf ~)                — wipe home
+    • Bash(rm -rf ~/)               — wipe home
+    • Bash(rm -rf $HOME)            — wipe home
+    • Bash(rm -rf $HOME/)           — wipe home
+    • Bash(sudo:*)                  — privilege escalation
+    • Bash(curl * | sh)             — remote code execution
+    • Bash(curl * | bash)           — remote code execution
+    • Bash(wget * | sh)             — remote code execution
+    • Bash(wget * | bash)           — remote code execution
+    • Bash(dd if=/dev/*)            — disk destruction
+    • Bash(mkfs:*)                  — format disk
+    • Bash(:(){ :|: & };:)          — fork bomb
+
+Nothing in the deny list will execute under any mode. Everything else
+gets auto-approved with background safety checks. Changes take effect
+in your next Claude Code session.
+
+Note: "auto" mode is a documented Claude Code feature marked as research
+preview. If it changes behavior in a future release, you can fall back
+to `defaultMode: "default"` (standard prompting).
 ───────────────────────────────────────────────────────────────
 ```
 
@@ -246,7 +278,7 @@ Changes take effect in your next Claude Code session.
 Use AskUserQuestion:
 
 ```
-Add these permissions to ~/.claude/settings.json? [Y/n]
+Configure permissions in ~/.claude/settings.json? [Y/n]
 ```
 
 Default: yes (they just set up the plugin; they want it to work).
@@ -255,38 +287,88 @@ Default: yes (they just set up the plugin; they want it to work).
 
 1. Read `~/.claude/settings.json` (create if missing with `{}`)
 2. Parse as JSON
-3. If `permissions` key doesn't exist, create it: `{"permissions": {"allow": []}}`
-4. If `permissions.allow` doesn't exist, create it: `[]`
-5. **For each entry in the list below, add only if not already present in `permissions.allow` (dedupe by exact string match):**
+3. If `permissions` key doesn't exist, create it: `{"permissions": {}}`
+4. Set `permissions.defaultMode = "auto"` (overwrite if already set to something else — warn user)
+5. Ensure `permissions.allow` is a list; add these 39 entries if not present (dedupe by exact string match):
 
 ```
+# Notes & identity (4)
 Read({NOTES_ROOT}/**)
 Read(~/.claude/athena/**)
 Write({NOTES_ROOT}/**)
 Edit({NOTES_ROOT}/**)
-Bash(ls {NOTES_ROOT})
-Bash(ls {NOTES_ROOT}/*)
-Bash(ls -la {NOTES_ROOT}/*)
-Bash(ls ~/.claude/athena)
-Bash(ls ~/.claude/athena/*)
-Bash(cat ~/.claude/athena/identity.md)
-Bash(grep *)
-Bash(mkdir -p {NOTES_ROOT}/*)
-Bash(mkdir -p ~/.claude/athena)
-Bash(ln -s *)
+
+# Read-only gh, bare + cd-prefixed (17)
+Bash(gh pr list:*)
+Bash(gh pr view:*)
+Bash(gh pr status)
+Bash(gh issue list:*)
+Bash(gh issue view:*)
+Bash(gh run list:*)
+Bash(gh run view:*)
+Bash(gh repo view:*)
+Bash(gh search:*)
+Bash(cd * && gh pr list:*)
+Bash(cd * && gh pr view:*)
+Bash(cd * && gh pr status)
+Bash(cd * && gh issue list:*)
+Bash(cd * && gh issue view:*)
+Bash(cd * && gh run list:*)
+Bash(cd * && gh run view:*)
+Bash(cd * && gh repo view:*)
+
+# Read-only tea / Forgejo CLI, bare + cd-prefixed (18)
+Bash(tea pulls list:*)
+Bash(tea pulls ls:*)
+Bash(tea pulls show:*)
+Bash(tea issues list:*)
+Bash(tea issues ls:*)
+Bash(tea issues show:*)
+Bash(tea repos list:*)
+Bash(tea repos ls:*)
+Bash(tea repos show:*)
+Bash(cd * && tea pulls list:*)
+Bash(cd * && tea pulls ls:*)
+Bash(cd * && tea pulls show:*)
+Bash(cd * && tea issues list:*)
+Bash(cd * && tea issues ls:*)
+Bash(cd * && tea issues show:*)
+Bash(cd * && tea repos list:*)
+Bash(cd * && tea repos ls:*)
+Bash(cd * && tea repos show:*)
+```
+
+6. Ensure `permissions.deny` is a list; add these 14 entries if not present:
+
+```
+Bash(rm -rf /)
+Bash(rm -rf /*)
+Bash(rm -rf ~)
+Bash(rm -rf ~/)
+Bash(rm -rf $HOME)
+Bash(rm -rf $HOME/)
+Bash(sudo:*)
+Bash(curl * | sh)
+Bash(curl * | bash)
+Bash(wget * | sh)
+Bash(wget * | bash)
+Bash(dd if=/dev/*)
+Bash(mkfs:*)
+Bash(:(){ :|: & };:)
 ```
 
 Substitute `{NOTES_ROOT}` with the user's actual value.
 
-6. Write the updated JSON back, preserving all other existing settings. Use 2-space indentation.
-7. Report which entries were added vs which already existed:
+7. Write the updated JSON back, preserving all other existing settings (hooks, enabledPlugins, etc.). Use 2-space indentation.
+8. Report the config:
 
 ```
-Added N new permission entries.
-(M were already present — skipped.)
+Set defaultMode: "auto"
+Added N new allow entries.
+Added M new deny entries.
 
 These take effect in your next session. To review or remove later:
-  ~/.claude/settings.json  →  permissions.allow array
+  ~/.claude/settings.json  →  permissions
 ```
 
 ### 5.4 If declined: graceful acknowledgment
@@ -303,7 +385,7 @@ Don't argue or re-prompt. Move on to Phase 6.
 If the user re-runs `/athena-setup` and all entries are already present:
 
 ```
-Permissions already configured (14 entries present). Nothing to add.
+Permissions already configured (all entries present). Nothing to add.
 ```
 
 If some are present and some missing (rare, e.g., user deleted a few manually), add only the missing ones.

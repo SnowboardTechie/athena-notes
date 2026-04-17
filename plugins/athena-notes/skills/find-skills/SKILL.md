@@ -160,13 +160,13 @@ mkdir -p ~/.claude/skills/{skill-name}
 
 ## Step 4: Verify Installation
 
-After creating the skill file, confirm:
+After creating the skill file, confirm it exists using the **Read** tool:
 
-```bash
-ls ~/.claude/skills/{skill-name}/SKILL.md
+```
+Read(file_path="~/.claude/skills/{skill-name}/SKILL.md")
 ```
 
-The skill becomes available to Claude Code automatically via description-based triggering — no config needed. Start a new session to pick it up.
+If Read returns the content, installation succeeded. The skill becomes available to Claude Code automatically via description-based triggering — no config needed. Start a new session to pick it up.
 
 ---
 

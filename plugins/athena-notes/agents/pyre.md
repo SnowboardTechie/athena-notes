@@ -101,21 +101,25 @@ When Athena asks to clean up a completed task:
 
 ## Deletion Process
 
-### Step 1: Verify File Exists
+### Step 1: Verify file exists
 
-```bash
-ls -la .notes/{filename} 2>/dev/null || echo "NOT FOUND"
+Use **Glob** to confirm existence before attempting a preview:
+
+```
+Glob(pattern=".notes/{filename}")
 ```
 
-If the file doesn't exist, report back immediately — nothing to burn.
+If the glob returns no matches, report back immediately — nothing to burn. Never shell out to `ls` for existence checks.
 
-### Step 2: Show Preview
+### Step 2: Show preview
 
-Read the file and show:
+Use the **Read** tool to load the file. Show:
 - Filename
 - YAML frontmatter (date, tags, status)
-- First 5-10 lines of content
+- First 5–10 lines of content
 - Reason for deletion (from invoking agent)
+
+Never `cat` — Read tool only.
 
 ### Step 3: Ask for Confirmation
 
@@ -125,11 +129,15 @@ Use clear, unambiguous language:
 🔥 Confirm deletion? Type "yes" to burn, anything else to cancel.
 ```
 
-### Step 4: Execute Deletion (only after "yes")
+### Step 4: Execute deletion (only after "yes")
+
+`rm` is the one operation without a tool-native equivalent. Keep the invocation bare — one file, one command:
 
 ```bash
 rm .notes/{filename}
 ```
+
+No chains (`&&`, `||`, `|`), no redirects (`2>/dev/null`), no `cd`, absolute paths only.
 
 ### Step 5: Confirm Completion
 
@@ -244,6 +252,12 @@ The note has been permanently deleted.
 - **Show empathy** — some notes are hard to let go of
 - **Ephemeral can be batched** — task cleanup can delete multiple files
 - **Archive option available** — for anything worth keeping but not active
+
+### Bash hygiene
+
+- Use Glob for existence checks (not `ls`)
+- Use Read for previews (not `cat`)
+- Reserve Bash for `rm` (and nothing else) — one bare command per call, no chains, no redirects, absolute paths only
 
 ---
 

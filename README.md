@@ -4,9 +4,9 @@
 
 Athena Notes is a hub-spoke of specialized AI agents that help you think, research, and capture knowledge — with your notes landing directly in Obsidian vaults in Obsidian-native formats.
 
-- **Athena** is your thinking partner. Ask her anything.
-- She delegates to **Scribe** (writes), **Archivist** (searches past notes), **Sage** (external research), **Pyre** (deletes), and **Prism** (refracts ideas into breakthroughs).
-- **Forge** and **Kindle** help you focus and get unstuck when flow breaks.
+- **Athena** is your thinking partner. Talk to her for anything — thinking, planning, capturing, recalling, research, focus, flow.
+- Behind her, a roster of specialist subagents: **Scribe** writes, **Archivist** searches, **Sage** researches, **Pyre** deletes, **Prism** refracts ideas, **Forge** structures planning, **Kindle** coaches flow.
+- You only talk to Athena. The subagents are her tools, not yours.
 - Everything writes to Obsidian using wikilinks, frontmatter, and your existing vault structure.
 
 ---
@@ -77,46 +77,71 @@ Agents will never add `Co-authored-by: Claude` or similar to your commit message
 
 ## Usage
 
-### Thinking with athena
+Talk to Athena for everything. She decides which subagent to engage behind the scenes.
 
-Just talk to her:
+**Thinking through a problem:**
 
 ```
 athena, I'm torn between JWT and session auth for this new API. help me think through it.
 ```
 
-She'll pull past notes via archivist, maybe grab external research via sage, and capture insights as they emerge via scribe. You don't call any of those directly — athena orchestrates.
+She pulls past notes via archivist, maybe grabs external research via sage, captures insights via scribe.
 
-### Deep work with forge
-
-```
-forge, plan my deep work for today
-```
-
-Forge asks about priorities, sequences tasks by cognitive load (using your working hours and peak window from identity), and tracks blocks. Handoff to kindle if you get stuck.
-
-### Getting unstuck with kindle
+**Planning your day:**
 
 ```
-kindle, I can't start on the auth task
+athena, help me plan tomorrow
 ```
 
-Kindle diagnoses the flow barrier (anxiety / boredom / distraction) and gives tailored tactics. Handoff back to forge when you're ready to go.
+Athena delegates to forge for goal-focused planning — 3–5 daily goals with first steps. No clock times or focus blocks unless you ask for them.
+
+**Getting unstuck:**
+
+```
+athena, I can't get started on the auth task
+```
+
+Athena delegates to kindle for flow-barrier coaching (anxiety / boredom / distraction).
+
+**Capturing something specific:**
+
+```
+athena, capture this decision: we're going with httpOnly cookies for refresh tokens
+```
+
+Athena hands the full context to scribe.
+
+**Finding past thinking:**
+
+```
+athena, what have we explored about auth before?
+```
+
+Athena delegates to archivist.
+
+The pattern: you talk to Athena; Athena handles routing.
 
 ---
 
 ## The agents
 
+**User-facing:**
+
 | Agent | Model | Role |
 |---|---|---|
-| athena | opus | Thinking hub, orchestrates subagents |
-| prism | opus | Creative refractor, reveals paradoxes and breakthroughs |
-| scribe | sonnet | Note persistence (invoked by other agents only) |
-| sage | sonnet | External research (Exa/Context7/WebSearch) |
-| forge | sonnet | Deep work planning and block tracking |
-| kindle | sonnet | Flow state coaching |
-| archivist | haiku | Fast note retrieval |
-| pyre | haiku | Note deletion with confirmation |
+| athena | opus | The one agent you talk to. Hub + thinking partner. |
+
+**Subagents (Athena invokes these for you):**
+
+| Agent | Model | Role |
+|---|---|---|
+| scribe | sonnet | Writes notes, drafts, task context |
+| archivist | haiku | Retrieves past thinking |
+| sage | sonnet | External research (Exa / Context7 / grep.app / WebSearch) |
+| pyre | haiku | Deletes notes with tiered confirmation |
+| prism | opus | Creative refractor — paradoxes, unnamed concepts |
+| forge | sonnet | Daily planning (goals, first steps) |
+| kindle | sonnet | Flow-barrier coaching |
 
 ---
 

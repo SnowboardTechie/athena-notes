@@ -196,9 +196,18 @@ Also ensure `~/.claude/athena/` directory exists. Create it if missing.
 
 Without this, the user will hit a permission prompt for almost every operation. Offer to configure Claude Code's `permissions.defaultMode: "auto"` (official research-preview mode that auto-approves routine ops while still enforcing deny rules and background safety checks).
 
+### 5.0 Resolve paths to absolute before rendering
+
+**Critical.** Claude Code does not reliably expand `~` inside permission patterns — entries like `Read(~/notes/**)` silently never match, so every read still prompts. Before rendering or writing any entries, compute:
+
+- `NOTES_ROOT_ABS` — `notes_root` from identity, with `~` replaced by `$HOME` (e.g., `/Users/bryan/notes`). If already absolute, use as-is.
+- `ATHENA_HOME_ABS` — `$HOME/.claude/athena` (always absolute).
+
+Use `echo $HOME` via Bash if you need to resolve `$HOME`. All subsequent entries reference these resolved values, never `~`.
+
 ### 5.1 Explain verbatim before asking (DO NOT PARAPHRASE)
 
-**Print the block below EXACTLY as written**, substituting only `{NOTES_ROOT}` with the user's actual `notes_root` value from identity. Do NOT summarize this as "necessary permissions" — show the actual config. Users should see every entry before approving.
+**Print the block below EXACTLY as written**, substituting `{NOTES_ROOT_ABS}` and `{ATHENA_HOME_ABS}` with the resolved absolute paths from 5.0. Do NOT summarize this as "necessary permissions" — show the actual config. Users should see every entry before approving.
 
 ```
 ───────────────────────────────────────────────────────────────
@@ -215,11 +224,28 @@ If you approve, I'll set these values in ~/.claude/settings.json:
     → Auto-approves routine tool calls with background safety checks.
       Deny rules are still enforced; auto mode does NOT disable safety.
 
-  allow — notes/identity paths (4 entries, belt and suspenders):
-    • Read({NOTES_ROOT}/**)
-    • Read(~/.claude/athena/**)
-    • Write({NOTES_ROOT}/**)
-    • Edit({NOTES_ROOT}/**)
+  allow — notes/identity paths (14 entries, every tool the spokes use):
+
+    Notes vault ({NOTES_ROOT_ABS}/**):
+      • Read, Write, Edit   — load, save, update notes
+      • Glob, Grep          — find notes by filename or content
+
+    Identity file ({ATHENA_HOME_ABS}/**):
+      • Read, Write, Edit   — load/update identity on re-run
+      • Glob                — existence checks
+
+    Project-local view (.notes/**, symlink inside each repo):
+      • Read, Write, Edit, Glob, Grep
+
+  allow — Bash shapes the spokes need (8 entries):
+    • Bash(git rev-parse:*)  — resolve trunk vs. worktree
+    • Bash(mkdir:*)          — create vault directory on first use
+    • Bash(ln:*)             — create the .notes symlink
+    • Bash(readlink:*)       — inspect the .notes symlink
+    • Bash(rm:*)             — pyre file deletion
+    • Bash(echo:*)           — identity discovery ($USER, $TZ, $HOME)
+    • Bash(date:*)           — timezone discovery
+    • Bash(test:*)           — file/symlink existence checks
 
   allow — read-only gh (forge uses these for daily planning, 17 entries):
     • Bash(gh pr list:*)              • Bash(cd * && gh pr list:*)
@@ -247,7 +273,7 @@ If you approve, I'll set these values in ~/.claude/settings.json:
         Skip prompt-free if user has no Forgejo/Gitea remotes (entries
         match nothing harmful). For users on GitHub-only setups, harmless.
 
-  deny (hard blocks for truly dangerous ops, 14 entries):
+  deny (hard blocks for truly dangerous ops, 13 entries):
     • Bash(rm -rf /)                — wipe filesystem
     • Bash(rm -rf /*)               — wipe filesystem
     • Bash(rm -rf ~)                — wipe home
@@ -261,7 +287,6 @@ If you approve, I'll set these values in ~/.claude/settings.json:
     • Bash(wget * | bash)           — remote code execution
     • Bash(dd if=/dev/*)            — disk destruction
     • Bash(mkfs:*)                  — format disk
-    • Bash(:(){ :|: & };:)          — fork bomb
 
 Nothing in the deny list will execute under any mode. Everything else
 gets auto-approved with background safety checks. Changes take effect
@@ -289,14 +314,40 @@ Default: yes (they just set up the plugin; they want it to work).
 2. Parse as JSON
 3. If `permissions` key doesn't exist, create it: `{"permissions": {}}`
 4. Set `permissions.defaultMode = "auto"` (overwrite if already set to something else — warn user)
-5. Ensure `permissions.allow` is a list; add these 39 entries if not present (dedupe by exact string match):
+5. Ensure `permissions.allow` is a list; add these 57 entries if not present (dedupe by exact string match).
+
+   **Substitute `{NOTES_ROOT_ABS}` and `{ATHENA_HOME_ABS}` with the absolute values resolved in 5.0. Never write `~` into an entry.**
 
 ```
-# Notes & identity (4)
-Read({NOTES_ROOT}/**)
-Read(~/.claude/athena/**)
-Write({NOTES_ROOT}/**)
-Edit({NOTES_ROOT}/**)
+# Notes vault (5)
+Read({NOTES_ROOT_ABS}/**)
+Write({NOTES_ROOT_ABS}/**)
+Edit({NOTES_ROOT_ABS}/**)
+Glob({NOTES_ROOT_ABS}/**)
+Grep({NOTES_ROOT_ABS}/**)
+
+# Identity file (4)
+Read({ATHENA_HOME_ABS}/**)
+Write({ATHENA_HOME_ABS}/**)
+Edit({ATHENA_HOME_ABS}/**)
+Glob({ATHENA_HOME_ABS}/**)
+
+# Project-local .notes symlink view (5)
+Read(.notes/**)
+Write(.notes/**)
+Edit(.notes/**)
+Glob(.notes/**)
+Grep(.notes/**)
+
+# Bash shapes the spokes use (8)
+Bash(git rev-parse:*)
+Bash(mkdir:*)
+Bash(ln:*)
+Bash(readlink:*)
+Bash(rm:*)
+Bash(echo:*)
+Bash(date:*)
+Bash(test:*)
 
 # Read-only gh, bare + cd-prefixed (17)
 Bash(gh pr list:*)
@@ -338,7 +389,7 @@ Bash(cd * && tea repos ls:*)
 Bash(cd * && tea repos show:*)
 ```
 
-6. Ensure `permissions.deny` is a list; add these 14 entries if not present:
+6. Ensure `permissions.deny` is a list; add these 13 entries if not present:
 
 ```
 Bash(rm -rf /)
@@ -354,10 +405,9 @@ Bash(wget * | sh)
 Bash(wget * | bash)
 Bash(dd if=/dev/*)
 Bash(mkfs:*)
-Bash(:(){ :|: & };:)
 ```
 
-Substitute `{NOTES_ROOT}` with the user's actual value.
+Note: a fork-bomb entry like `Bash(:(){ :|: & };:)` is omitted intentionally — Claude Code's settings schema rejects empty parentheses inside the bash pattern, so it fails validation on write.
 
 7. Write the updated JSON back, preserving all other existing settings (hooks, enabledPlugins, etc.). Use 2-space indentation.
 8. Report the config:

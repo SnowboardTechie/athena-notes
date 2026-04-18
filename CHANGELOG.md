@@ -8,10 +8,8 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 - `CONTRIBUTING.md` — submission workflow, four-point filter, frontmatter conventions.
 - `CHANGELOG.md` — this file.
 - `plugins/athena-notes/examples/README.md` — per-example adaptation guide.
-- README Troubleshooting section covering identity, vault routing, sage MCP fallbacks, permission prompts, and worktree `.notes/` resolution.
+- README Troubleshooting section covering identity, vault routing, sage MCP fallbacks, permission prompts, and worktree `.notes/` resolution. The "permissions keep prompting" bullet points users at `/athena-setup` Phase 5, which already writes a resolved, absolute allowlist to `~/.claude/settings.json` — so no project-local template is needed.
 - README link to `AGENTS.md` as the framework spec for contributors.
-- `.claude/settings.local.example.json` — template contributors can copy.
-- `.gitignore` entry for `.claude/settings.local.json` so contributors aren't dependent on a global gitignore.
 
 ### Changed
 - Example agents (`calliope`, `aria`, `gamedev`) migrated from OpenCode frontmatter to Claude Code format (`name`, `description`, `tools` as comma string, `model`). Each description now flags its personal/domain-specific scope.

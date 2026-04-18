@@ -195,7 +195,7 @@ That means the `.notes/` symlink in your repo isn't set up. Start a fresh sessio
 Sage prefers MCPs in order: Exa → Context7 → grep.app → built-in WebSearch. Check that the MCP is listed in `claude mcp list` and authenticated. If you installed Exa after sage first ran, restart the Claude Code session.
 
 **"Permissions keep prompting when athena reads my notes"**
-Copy `.claude/settings.local.example.json` to `.claude/settings.local.json` and replace `YOUR_USERNAME`. It's gitignored on purpose — the paths are machine-specific.
+Run `/athena-setup`. Phase 5 offers to configure `permissions.defaultMode: "auto"` in `~/.claude/settings.json` with a resolved, absolute allowlist covering your notes, identity file, and the Bash shapes the spokes use. You'll see the exact config before it's written. If you prefer manual control, skip Phase 5 and approve-and-remember each path on first prompt instead.
 
 **"I'm in a git worktree and notes aren't showing up"**
 `.notes/` lives in the **trunk** (main worktree) so it's shared across every branch worktree. Agent-workspace resolves the trunk root automatically via `git rev-parse`. If something still looks off, `ls -la .notes` in the trunk to confirm the symlink.

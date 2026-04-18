@@ -13,6 +13,3 @@
 
 # Claude Code worktrees (ephemeral, not part of plugin)
 .claude/worktrees/
-
-# Local, machine-specific permission allowlist — see .claude/settings.local.example.json
-.claude/settings.local.json

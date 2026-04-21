@@ -19,7 +19,7 @@ Personal agents and skills Bryan built on top of Athena Notes. They are **refere
 | [catalog-review](skills/catalog-review/) | Review catalog dependency update PRs with TypeSpec/lockfile/audit awareness | Remove if you don't use TypeSpec or catalog-style monorepos. |
 | [manual-merge](skills/manual-merge/) | Guided manual merge workflow for a specific repo layout | Adjust to your branching conventions. |
 | [sprint-deliverable-update](skills/sprint-deliverable-update/) | Draft sprint-update comments on HHS-style deliverable issues | Replace HHS deliverable structure with your own ticket/sprint format. |
-| [weekly-planning](skills/weekly-planning/) | Guided ADHD-friendly weekly planning Q&A using the VOMIT framework (Vent / Obligations / Milestones / Investments / Tethers) against a `second-brain` vault | Replace the VOMIT phases, vault path, and Weekly Planning template with your own weekly-review process. |
+| [weekly-planning](skills/weekly-planning/) | Guided ADHD-friendly weekly planning Q&A using the VOMIT framework (Vent / Obligations / Milestones / Investments / Tethers) against a `second-brain` vault | Replace the VOMIT phases, the hardcoded `~/notes/second-brain/` vault path (edit **both** the SKILL.md body and the Weekly Planning template), and the template itself with your own weekly-review process. |
 
 ## How to use an example
 

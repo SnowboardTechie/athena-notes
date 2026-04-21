@@ -39,6 +39,8 @@ Agent and skill bodies should read cleanly as Markdown instructions even to a hu
 
 This project never adds `Co-authored-by: Claude` or similar trailers. You're the author.
 
+Heads-up for Claude Code users: some default workflows inject a `Co-Authored-By: Claude` trailer automatically. If you see one on a commit you're about to push, strip it first (e.g., `git commit --amend` and delete the trailer line, or configure your setup to skip it). PRs with AI attribution trailers will be asked to rewrite before merge.
+
 ## Frontmatter shape
 
 ### Agent

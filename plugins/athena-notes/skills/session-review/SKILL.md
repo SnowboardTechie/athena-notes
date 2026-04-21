@@ -80,12 +80,12 @@ Before drafting anything, check for prior art in **both** places so you don't pr
 2. **`.notes/`** — for each candidate destined for `.notes/`, invoke `@archivist` to check whether a note on this topic already exists:
 
    ```
-   Task(subagent_type="archivist", prompt="Check .notes/ for existing notes about {topic}. Return matches with type, path, and a 1-line summary. If nothing matches, say so.")
+   Task(subagent_type="archivist", prompt="Check .notes/ for existing notes about {topic}. Scope: published notes, not .agents/ working files. Return matches with type, path, and a 1-line summary. If nothing matches, say so.")
    ```
 
    If archivist returns a match, treat the candidate as an **update** to that note, not a new one. Draft it using the Update template below.
 
-Run archivist lookups in parallel (one Task call per candidate) — this step should add seconds, not minutes.
+Run archivist lookups in parallel — emit all Task calls in one assistant message so they run concurrently, not one per turn. This step should add seconds, not minutes.
 
 ### Step 3: Categorize
 

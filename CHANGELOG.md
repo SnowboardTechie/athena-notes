@@ -16,6 +16,9 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 - `weekly-planning` skill moved from `plugins/athena-notes/skills/` to `plugins/athena-notes/examples/skills/` — it's built around Bryan's personal VOMIT framework and a fixed `second-brain` vault path, which makes it a reference example, not a general utility. SKILL.md now has a disclaimer at the top.
 - `sprint-deliverable-update` example skill SKILL.md now flags its HHS/Simpler Grants conventions explicitly at the top.
 
+### Fixed
+- `session-review` skill now checks `.notes/` for existing notes on each candidate topic (via `@archivist`) before drafting, and supports proposing **updates** to existing notes instead of silently creating duplicates. Previously the dedup rule only covered `AGENTS.md`, so repeated session reviews produced parallel notes on the same subject. Output templates gain an "update" variant; Step 6 gains a scribe call shape for edits.
+
 ### Removed
 - `PORTING.md` — internal tracker from the OpenCode → Claude Code port. The port is done; the file was stale (GitHub repo already exists, "remaining" items all landed). Historical context preserved in git history.
 

@@ -44,9 +44,20 @@ Good sessions produce knowledge that shouldn't live only in your head. This skil
 
 Read back through the session. Look for moments where something was discovered, decided, or clarified. Ignore routine task execution. Flag 3-5 candidates max.
 
-### Step 2: Read existing AGENTS.md
+### Step 2: Read existing context
 
-Check the project's AGENTS.md (if it exists) before drafting anything. Understand the current sections. Skip any learning that's already captured there.
+Before drafting anything, check for prior art in **both** places so you don't propose duplicates or orphan the existing knowledge:
+
+1. **AGENTS.md** — read it (if it exists). Understand the current sections. Skip any learning already captured there.
+2. **`.notes/`** — for each candidate destined for `.notes/`, invoke `@archivist` to check whether a note on this topic already exists:
+
+   ```
+   Task(subagent_type="archivist", prompt="Check .notes/ for existing notes about {topic}. Return matches with type, path, and a 1-line summary. If nothing matches, say so.")
+   ```
+
+   If archivist returns a match, treat the candidate as an **update** to that note, not a new one. Draft it using the Update template below.
+
+Run archivist lookups in parallel (one Task call per candidate) — this step should add seconds, not minutes.
 
 ### Step 3: Categorize
 
@@ -54,21 +65,29 @@ Map each candidate to a row in the table above. If it doesn't fit any row, it pr
 
 ### Step 4: Draft inline
 
-Write out proposed content for each item using the templates below. Keep drafts concise — one table row for AGENTS.md, a filled template for .notes/.
+Write out proposed content for each item using the templates below. Keep drafts concise — one table row for AGENTS.md, a filled template for a new `.notes/` note, or a targeted patch for an update.
 
 ### Step 5: APPROVAL GATE
 
 Present all drafts to the user and stop. Do not proceed until you receive explicit approval. The user may approve all, some, or none.
 
-### Step 6: Write approved .notes/ items
+### Step 6: Write or update approved .notes/ items
 
-For each approved .notes/ item, invoke @scribe:
+For each approved `.notes/` item, invoke `@scribe`. Use the shape that matches the draft:
+
+**New note:**
 
 ```
 Task(subagent_type="scribe", prompt="Write a {TYPE} note titled '{title}'. Content: {draft content}")
 ```
 
-Scribe writes immediately on invocation — no preview, no confirmation. Only call it after the user approves.
+**Update to an existing note:**
+
+```
+Task(subagent_type="scribe", prompt="Update existing note at {path}. Change: {one-line description}. Apply this content: {exact text, with section header if targeting a specific section}")
+```
+
+Scribe writes (or edits) immediately on invocation — no preview, no confirmation. Only call it after the user approves.
 
 ### Step 7: Present AGENTS.md copy-paste
 
@@ -92,7 +111,7 @@ For each approved AGENTS.md item, show the final markdown block. Never write to 
 *Copy the above into your AGENTS.md*
 ```
 
-### .notes/ Draft
+### .notes/ Draft (new note)
 
 ```markdown
 ### Proposed .notes/ Entry
@@ -105,6 +124,22 @@ For each approved AGENTS.md item, show the final markdown block. Never write to 
 *Approve to have @scribe write this note*
 ```
 
+### .notes/ Draft (update to existing note)
+
+Use this variant when archivist (Step 2) surfaced an existing note on the same topic.
+
+```markdown
+### Proposed .notes/ Update
+
+**Target:** [[{existing-note-name}]] ({type})
+**Path:** `{path returned by archivist}`
+**Change:** {one-line summary — e.g., "add insight to Open Questions", "append new option to alternatives considered"}
+
+{exact text to append or replace, with the section header it belongs under}
+
+*Approve to have @scribe apply this update*
+```
+
 ---
 
 ## Edge Cases
@@ -113,7 +148,7 @@ For each approved AGENTS.md item, show the final markdown block. Never write to 
 
 **No AGENTS.md in project:** Skip the AGENTS.md section entirely. Still offer .notes/ drafts if applicable.
 
-**Duplicate learning:** If the insight already exists in AGENTS.md, skip it. Don't propose adding something that's already there.
+**Duplicate learning:** If the insight already exists in AGENTS.md, skip it. If an existing `.notes/` note on the same topic is found in Step 2, propose an **update** to that note instead of a new one — never silently create a second note on the same subject.
 
 **Very long session:** Don't try to be comprehensive. Pick the 3-5 most significant moments and document those. A shorter, sharper review beats an exhaustive one.
 

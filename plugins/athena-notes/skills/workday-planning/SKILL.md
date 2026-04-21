@@ -145,7 +145,7 @@ If missing, bootstrap asks the user which folder to use (default `Daily`) and wr
    - `{{NOTES_ROOT}}` (fall back to `~/notes`).
 2. Read `~/.claude/athena/planning-sources.md` frontmatter's top-level `output_folder` (fall back to `Daily`). If the file is missing, defer to Phase 1 bootstrap.
 3. **TZ validation.** Before shelling, check `{{TIMEZONE}}` matches `^(UTC|[A-Za-z][A-Za-z0-9_+-]*/[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z][A-Za-z0-9_+-]*)?)$` (IANA shape: `Region/City` or `Region/Country/City`, or bare `UTC`). Abbreviations like `EST` or `PT` fail this check — they also don't handle DST correctly. On mismatch, warn once (`⚠️ Identity TZ "{value}" is not an IANA zone — falling back to system TZ. Fix via /athena-setup.`) and proceed with the unset `TZ` env var so `date` uses the system default. This is also the injection guard: a validated value is safe to interpolate into the `TZ=...` shell command.
-4. Compute today's day-of-week in the resolved timezone via `date` (Bash: one bare command, e.g. `TZ="{{TIMEZONE}}" date +%A` when validated, or plain `date +%A` on fallback).
+4. Compute today's day-of-week in the resolved timezone via `date`: `TZ="{{TIMEZONE}}" date +%A` when validated, or plain `date +%A` on fallback. If the validated-TZ invocation exits non-zero (shape-valid but the zone doesn't exist on this system, e.g. `America/Fakeville`), re-run the command without `TZ` and emit the same fallback warning as step 3 before continuing.
 5. Mode:
    - `--mode=<x>` flag wins.
    - Else: **Mon** → `week-prep`; **Tue–Thu** → `day`; **Fri** → `week-wrap`; **Sat/Sun** → `day` (tell the user it's a weekend, ask if they want to proceed anyway).

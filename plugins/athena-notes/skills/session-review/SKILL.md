@@ -119,7 +119,7 @@ Scribe writes (or edits) immediately on invocation — no preview, no confirmati
 
 ### Step 7: Write approved AGENTS.md items
 
-After user approval, apply the edit directly to AGENTS.md using the Edit tool. Fit content into existing sections (CONVENTIONS, ANTI-PATTERNS, WHERE TO LOOK, NOTES) — never create new sections. If none of those sections exists in the user's AGENTS.md, fall back to presenting the markdown block for manual placement. If the user explicitly asks for copy-paste instead of a direct edit, present the markdown block and skip the write.
+After user approval, apply the edit directly to AGENTS.md using the Edit tool. Match section headings case-insensitively (so `## Conventions`, `## CONVENTIONS`, and `## conventions` all target the same section) and fit content into the existing section (CONVENTIONS, ANTI-PATTERNS, WHERE TO LOOK, NOTES) — never create new sections. If none of those sections exists in the user's AGENTS.md, fall back to presenting the markdown block for manual placement. If the user explicitly asks for copy-paste instead of a direct edit, present the markdown block and skip the write.
 
 ---
 

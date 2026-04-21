@@ -8,6 +8,11 @@ description: >
 
 # Sprint Deliverable Update
 
+> **Example skill.** Built around HHS/Simpler Grants deliverable-issue conventions (tagging
+> `@user`, bolded deliverable names as sub-headings, "Criteria completed" H2). Copy to
+> `~/.claude/skills/` or into your own plugin and adapt — replace the tagged reviewer, the
+> deliverable-naming rules, and the template to match your sprint process.
+
 Write a sprint update comment on an individual deliverable issue (e.g., #7309, #7311,
 #6195). This is the per-deliverable update that the team posts at the end of each sprint.
 

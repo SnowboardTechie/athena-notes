@@ -5,6 +5,12 @@ description: Guided weekly planning session for ADHD - Q&A flow that fills out t
 
 # Weekly Planning — Guided Session
 
+> **Example skill.** Built around Bryan's personal weekly-planning process — the VOMIT
+> framework (Vent → Obligations → Milestones → Investments → Tethers), a fixed `second-brain`
+> vault path, and an ADHD-shaped Q&A flow. Copy to `~/.claude/skills/` or into your own
+> plugin and adapt — replace the VOMIT phases, vault path, and template with your own
+> weekly-review process.
+
 A structured Q&A session that walks Bryan through his weekly planning. Uses the VOMIT system as the process backbone, outputs a filled Weekly Planning note in the Second Brain vault.
 
 ## When to Use

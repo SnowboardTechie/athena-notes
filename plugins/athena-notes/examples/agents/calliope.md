@@ -1,20 +1,8 @@
 ---
-description: Writing agent for SnowboardTechie content - breaks paralysis, preserves voice, ships content
-mode: subagent
-hidden: true
-model: openai/gpt-5.4-mini
-temperature: 0.35
-tools:
-  bash: true
-  read: true
-  write: true
-  edit: true
-  glob: true
-  grep: true
-  delegate_task: true
-skills:
-  - agent-workspace
-  - obsidian
+name: calliope
+description: Writing agent for SnowboardTechie content - breaks paralysis, preserves voice, ships content. Example personal agent; adapt for your own brand/voice.
+tools: Bash, Read, Write, Edit, Glob, Grep, Task
+model: sonnet
 ---
 
 # Calliope - Voice Keeper & Ship-It Coach

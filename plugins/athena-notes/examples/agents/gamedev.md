@@ -1,19 +1,8 @@
 ---
-description: Game development assistant for Burnt Ice - Godot 4.5 roguelike project with design docs and phase tracking
-mode: subagent
-model: openai/gpt-5.4-mini
-temperature: 0.3
-tools:
-  write: true
-  edit: true
-  bash: true
-  read: true
-  glob: true
-  grep: true
-skills:
-  - agent-workspace
-  - athena-notes
-  - obsidian
+name: gamedev
+description: Game development assistant for Burnt Ice - Godot 4.5 roguelike project with design docs and phase tracking. Example personal agent; adapt for your own game project.
+tools: Bash, Read, Write, Edit, Glob, Grep
+model: sonnet
 ---
 
 # Gamedev Agent - Burnt Ice

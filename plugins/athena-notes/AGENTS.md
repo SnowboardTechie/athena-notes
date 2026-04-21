@@ -130,6 +130,7 @@ Scribe writes immediately on invocation. No previews, no confirmation prompts.
 - **Atomic commits.** Small, focused commits grouped by concern, not by time.
 - **Never commit unverified work.** Confirm builds pass, tests pass, no regressions before committing.
 - **Feature branches only.** Never commit directly to `main`/`master` unless the user explicitly says so (rare — only in dotfile-style repos).
+- **`main` is protected in this repo.** `SnowboardTechie/athena-notes` rejects direct pushes to `main`; every change lands via PR. Even when the user says "commit to main", the mechanical path is: feature branch → PR → merge. Don't attempt `git push origin main` — it will fail with "Changes must be made through a pull request." Route the work through a short-lived branch and open a PR instead; that satisfies the user's intent within the repo's rules.
 
 ---
 

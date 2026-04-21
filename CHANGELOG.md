@@ -4,15 +4,12 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
-_No unreleased changes._
-
-## [0.2.1] — 2026-04-21
-
 ### Changed
 - `plugins/athena-notes/AGENTS.md` gains three new conventions under existing sections:
   - **Vault reads must filter dot-prefixed dirs** (under *Working State vs Permanent Notes*) — skills reading markdown via file globs must drop any path with a `.`-prefixed segment to match Obsidian's UI semantics and prevent feedback loops from agent working files like `.agents/forge/today.md`.
   - **`main` is protected** (under *Git & Commits*) — direct pushes to `main` are rejected; all changes land via PR, even when the user says "commit to main".
-  - **Versioning CI gates PRs** (under *Git & Commits*) — any change under versionable paths (`agents/`, `commands/`, `skills/`, `AGENTS.md`, `CLAUDE.md`, `.claude-plugin/`) must bump `plugin.json` and add a matching `CHANGELOG.md` section before PR open, or `version-check` CI fails.
+  - **Changelog-first, release-on-bump** (replaces the interim "Versioning CI gates PRs" rule) — every PR touching a versionable path updates `CHANGELOG.md`; non-release PRs accumulate under `[Unreleased]`, release PRs promote `[Unreleased]` under a new `## [x.y.z]` heading and bump `plugin.json`. Aligns with [Keep a Changelog](https://keepachangelog.com) instead of releasing on every commit.
+- `.github/workflows/version-check.yml` — split into two modes: non-release PRs just require `CHANGELOG.md` in the diff; release PRs (version bumped) keep the full footer/section checks. Repo URL now read from `${{ github.repository }}` so forks don't silently break CI.
 
 ## [0.2.0] — 2026-04-21
 
@@ -53,7 +50,6 @@ First public release. Complete port from the OpenCode/OhMyOpenAgent implementati
 ### Removed
 - `PORTING.md` — internal tracker from the OpenCode → Claude Code port. The port is done; the file was stale (GitHub repo already exists, "remaining" items all landed). Historical context preserved in git history.
 
-[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.2.1...HEAD
-[0.2.1]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.2.1
+[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.2.0
 [0.1.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.1.0

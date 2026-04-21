@@ -130,7 +130,9 @@ Scribe writes immediately on invocation. No previews, no confirmation prompts.
 - **Atomic commits.** Small, focused commits grouped by concern, not by time.
 - **Never commit unverified work.** Confirm builds pass, tests pass, no regressions before committing.
 - **Feature branches + PR only.** Never commit directly to `main`/`master`. In this repo (`SnowboardTechie/athena-notes`), `main` is branch-protected — direct pushes are rejected with "Changes must be made through a pull request." Even when the user says "commit to main," the mechanical path is: feature branch → `gh pr create` → merge. That satisfies the user's intent within the repo's rules.
-- **Versioning CI gates PRs.** Before opening a PR, check whether your diff touches any *versionable path*:
+- **Changelog-first, release-on-bump.** This repo follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + SemVer. Version bumps happen on *release* PRs, not on every change. `version-check` CI enforces both halves.
+
+  **Versionable paths** (changes here require a `CHANGELOG.md` update; everything else is exempt):
   - `plugins/athena-notes/agents/*`
   - `plugins/athena-notes/commands/*`
   - `plugins/athena-notes/skills/*`
@@ -139,14 +141,16 @@ Scribe writes immediately on invocation. No previews, no confirmation prompts.
   - `plugins/athena-notes/.claude-plugin/*`
   - repo-root `.claude-plugin/*`
 
-  If yes, **all** of the following must be true before `gh pr create`:
-  1. `plugins/athena-notes/.claude-plugin/plugin.json` `version` is bumped.
-  2. `CHANGELOG.md` has a matching `## [x.y.z]` section.
-  3. `CHANGELOG.md` is modified in the PR diff.
-  4. `CHANGELOG.md` footers include `[x.y.z]: https://github.com/SnowboardTechie/athena-notes/releases/tag/vx.y.z`.
-  5. `CHANGELOG.md` `[Unreleased]` footer compares against `vx.y.z...HEAD` (retarget on every release).
+  **Non-release PR (the common case).** Add a bullet under `## [Unreleased]` in `CHANGELOG.md` describing the change. Do **not** bump `plugin.json`. CI just needs `CHANGELOG.md` in the diff.
 
-  Miss any and `version-check` CI fails. Anything outside the versionable list is exempt — including README, CONTRIBUTING, CHANGELOG, LICENSE, and `.github/` — because the check is an allowlist on versionable paths, not a denylist on docs. See `.github/workflows/version-check.yml` for the exact rules.
+  **Release PR (when cutting `vX.Y.Z`).** All of the following, in the same PR:
+  1. Bump `plugins/athena-notes/.claude-plugin/plugin.json` `version` → `X.Y.Z`.
+  2. Promote `[Unreleased]` contents under a new `## [X.Y.Z] — YYYY-MM-DD` heading; reset `[Unreleased]` to `_No unreleased changes._`.
+  3. Add footer: `[X.Y.Z]: https://github.com/SnowboardTechie/athena-notes/releases/tag/vX.Y.Z`.
+  4. Retarget: `[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/vX.Y.Z...HEAD`.
+  5. **After merge**, create the tag + GitHub release: `gh release create vX.Y.Z --target <merge-sha> --title "vX.Y.Z — <summary>" --notes-file <notes>`. Without this step the footer link 404s.
+
+  Files outside the versionable list — README, CONTRIBUTING, CHANGELOG itself (when it's the only thing touched), LICENSE, `.github/` — are exempt from the CHANGELOG requirement. See `.github/workflows/version-check.yml` for the exact rules.
 
 ---
 

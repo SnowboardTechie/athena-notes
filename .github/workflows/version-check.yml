@@ -13,10 +13,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify version + changelog bump for plugin changes
+      - name: Verify CHANGELOG + (on release) version bump for plugin changes
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REPO_URL: https://github.com/${{ github.repository }}
         run: |
           set -euo pipefail
 
@@ -25,9 +26,9 @@ jobs:
           echo "$changed_files"
           echo
 
-          # Paths that require a version bump when touched.
+          # Paths that require a CHANGELOG update when touched.
           # Docs-only (README, CONTRIBUTING, CHANGELOG itself, LICENSE, .github/) do not.
-          needs_bump=false
+          needs_changelog=false
           while IFS= read -r f; do
             case "$f" in
               plugins/athena-notes/agents/*|\
@@ -37,19 +38,26 @@ jobs:
               plugins/athena-notes/CLAUDE.md|\
               plugins/athena-notes/.claude-plugin/*|\
               .claude-plugin/*)
-                needs_bump=true
+                needs_changelog=true
                 echo "Touches versionable path: $f"
                 ;;
             esac
           done <<< "$changed_files"
 
-          if [ "$needs_bump" = false ]; then
-            echo "No versionable paths changed — skipping version-bump check."
+          if [ "$needs_changelog" = false ]; then
+            echo "No versionable paths changed — skipping changelog check."
             exit 0
           fi
 
           echo
-          echo "Versionable changes detected. Verifying version bump + CHANGELOG entry."
+          echo "Versionable changes detected. Verifying CHANGELOG update."
+
+          # Every versionable PR must touch CHANGELOG.md — either a bullet under
+          # [Unreleased] (non-release PR) or a promoted section (release PR).
+          if ! echo "$changed_files" | grep -Fxq "CHANGELOG.md"; then
+            echo "::error file=CHANGELOG.md::CHANGELOG.md was not modified. Add a bullet under '## [Unreleased]', or cut a release (bump plugin.json + promote [Unreleased])."
+            exit 1
+          fi
 
           manifest="plugins/athena-notes/.claude-plugin/plugin.json"
           base_version=$(git show "$BASE_SHA:$manifest" | jq -r '.version')
@@ -59,20 +67,31 @@ jobs:
           echo "Head version: $head_version"
 
           if [ "$base_version" = "$head_version" ]; then
-            echo "::error file=$manifest::Version unchanged ($head_version). Bump $manifest 'version' field and add a CHANGELOG.md entry."
-            exit 1
+            echo "Non-release PR — CHANGELOG update is sufficient (accumulating under [Unreleased])."
+            echo "OK — version unchanged at $head_version, CHANGELOG touched."
+            exit 0
           fi
 
-          # Ensure CHANGELOG.md has a section for the new version.
+          # Release PR: full Keep-a-Changelog checks.
+          echo "Release PR detected ($base_version -> $head_version). Verifying release shape."
+
+          # Keep-a-Changelog section for the new version must exist.
           if ! grep -Fq "## [$head_version]" CHANGELOG.md; then
-            echo "::error file=CHANGELOG.md::No '## [$head_version]' section found. Add a CHANGELOG.md entry for version $head_version."
+            echo "::error file=CHANGELOG.md::No '## [$head_version]' section found. Promote [Unreleased] contents under a '## [$head_version]' heading dated today."
             exit 1
           fi
 
-          # Ensure CHANGELOG.md itself changed in this PR.
-          if ! echo "$changed_files" | grep -Fxq "CHANGELOG.md"; then
-            echo "::error file=CHANGELOG.md::CHANGELOG.md was not modified. Add an entry describing the changes in version $head_version."
+          # Footer link for the new version tag must exist.
+          if ! grep -Fq "[$head_version]: $REPO_URL/releases/tag/v$head_version" CHANGELOG.md; then
+            echo "::error file=CHANGELOG.md::Missing footer link '[$head_version]: $REPO_URL/releases/tag/v$head_version'. Add it alongside the existing version links."
             exit 1
           fi
 
-          echo "OK — $base_version -> $head_version, CHANGELOG updated."
+          # [Unreleased] footer must retarget to the new version.
+          if ! grep -Fq "[Unreleased]: $REPO_URL/compare/v$head_version...HEAD" CHANGELOG.md; then
+            echo "::error file=CHANGELOG.md::'[Unreleased]' footer link must compare against v$head_version...HEAD. Update it when you cut a release."
+            exit 1
+          fi
+
+          echo "OK — release PR: $base_version -> $head_version, CHANGELOG promoted with correct footers."
+          echo "Reminder: after merge, create the git tag + GitHub release (e.g., 'gh release create v$head_version') so the footer link resolves."

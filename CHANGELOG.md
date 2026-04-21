@@ -4,7 +4,15 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Added
+- `.github/PULL_REQUEST_TEMPLATE.md` — prompts PR authors to pick a changelog mode (non-release / release / exempt) and surfaces the post-merge `gh release create` step so release PRs don't ship without a tag.
+
+### Changed
+- `plugins/athena-notes/AGENTS.md` gains three new conventions under existing sections:
+  - **Vault reads must filter dot-prefixed dirs** (under *Working State vs Permanent Notes*) — skills reading markdown via file globs must drop any path with a `.`-prefixed segment to match Obsidian's UI semantics and prevent feedback loops from agent working files like `.agents/forge/today.md`.
+  - **`main` is protected** (under *Git & Commits*) — direct pushes to `main` are rejected; all changes land via PR, even when the user says "commit to main".
+  - **Changelog-first, release-on-bump** (replaces the interim "Versioning CI gates PRs" rule) — every PR touching a versionable path updates `CHANGELOG.md`; non-release PRs accumulate under `[Unreleased]`, release PRs promote `[Unreleased]` under a new `## [x.y.z]` heading and bump `plugin.json`. Aligns with [Keep a Changelog](https://keepachangelog.com) instead of releasing on every commit.
+- `.github/workflows/version-check.yml` — split into two modes: non-release PRs just require `CHANGELOG.md` in the diff; release PRs (version bumped) keep the full footer/section checks. Repo URL now read from `${{ github.repository }}` so forks don't silently break CI.
 
 ## [0.2.0] — 2026-04-21
 

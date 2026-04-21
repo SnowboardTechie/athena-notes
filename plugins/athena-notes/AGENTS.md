@@ -84,6 +84,12 @@ Agents resolve the **trunk root** (not the current worktree) before any `.notes/
 
 Working files live under `.notes/.agents/{agent-name}/` and are cleaned up when tasks complete. The `.agents/` prefix hides them from Obsidian's default view.
 
+### Vault reads must filter dot-prefixed dirs
+
+Skills that read markdown files from user vaults via file globs (Obsidian sources, wiki links, bulk scans) **must exclude any path with a segment starting with `.`**. This mirrors Obsidian's own UI semantics (hidden dirs: `.obsidian/`, `.trash/`, and the plugin's own `.agents/` working state).
+
+Why it matters: `.agents/` holds files like `forge/today.md` — feeding an agent's own output back in as planning context creates a silent feedback loop that degrades over days. Shell globs don't filter dotfiles by default; post-filter the result list unless the source explicitly opts in (e.g., an `include_hidden: true` config field).
+
 ---
 
 ## Subagent Output Verification (mandatory)
@@ -123,7 +129,28 @@ Scribe writes immediately on invocation. No previews, no confirmation prompts.
 - **No AI attribution in commits.** Never add `Co-authored-by: Claude`, `Co-Authored-By: Claude Code`, `Generated with`, or similar. The human is the sole author.
 - **Atomic commits.** Small, focused commits grouped by concern, not by time.
 - **Never commit unverified work.** Confirm builds pass, tests pass, no regressions before committing.
-- **Feature branches only.** Never commit directly to `main`/`master` unless the user explicitly says so (rare — only in dotfile-style repos).
+- **Feature branches + PR only.** Never commit directly to `main`/`master`. In this repo (`SnowboardTechie/athena-notes`), `main` is branch-protected — direct pushes are rejected with "Changes must be made through a pull request." Even when the user says "commit to main," the mechanical path is: feature branch → `gh pr create` → merge. That satisfies the user's intent within the repo's rules.
+- **Changelog-first, release-on-bump.** This repo follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + SemVer. Version bumps happen on *release* PRs, not on every change. `version-check` CI enforces both halves.
+
+  **Versionable paths** (changes here require a `CHANGELOG.md` update; everything else is exempt):
+  - `plugins/athena-notes/agents/*`
+  - `plugins/athena-notes/commands/*`
+  - `plugins/athena-notes/skills/*`
+  - `plugins/athena-notes/AGENTS.md`
+  - `plugins/athena-notes/CLAUDE.md`
+  - `plugins/athena-notes/.claude-plugin/*`
+  - repo-root `.claude-plugin/*`
+
+  **Non-release PR (the common case).** Add a bullet under `## [Unreleased]` in `CHANGELOG.md` describing the change. Do **not** bump `plugin.json`. CI just needs `CHANGELOG.md` in the diff.
+
+  **Release PR (when cutting `vX.Y.Z`).** All of the following, in the same PR:
+  1. Bump `plugins/athena-notes/.claude-plugin/plugin.json` `version` → `X.Y.Z`.
+  2. Promote `[Unreleased]` contents under a new `## [X.Y.Z] — YYYY-MM-DD` heading; reset `[Unreleased]` to `_No unreleased changes._`.
+  3. Add footer: `[X.Y.Z]: https://github.com/SnowboardTechie/athena-notes/releases/tag/vX.Y.Z`.
+  4. Retarget: `[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/vX.Y.Z...HEAD`.
+  5. **After merge**, create the tag + GitHub release: `gh release create vX.Y.Z --target <merge-sha> --title "vX.Y.Z — <summary>" --notes-file <notes>`. Without this step the footer link 404s.
+
+  Files outside the versionable list — README, CONTRIBUTING, CHANGELOG itself (when it's the only thing touched), LICENSE, `.github/` — are exempt from the CHANGELOG requirement. See `.github/workflows/version-check.yml` for the exact rules.
 
 ---
 

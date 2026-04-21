@@ -15,6 +15,7 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 - Example agents (`calliope`, `aria`, `gamedev`) migrated from OpenCode frontmatter to Claude Code format (`name`, `description`, `tools` as comma string, `model`). Each description now flags its personal/domain-specific scope.
 - `weekly-planning` skill moved from `plugins/athena-notes/skills/` to `plugins/athena-notes/examples/skills/` — it's built around Bryan's personal VOMIT framework and a fixed `second-brain` vault path, which makes it a reference example, not a general utility. SKILL.md now has a disclaimer at the top.
 - `sprint-deliverable-update` example skill SKILL.md now flags its HHS/Simpler Grants conventions explicitly at the top.
+- `session-review` skill tightened with a Signal Test — every candidate now has to pass four gates (novel, project-specific, future-actionable, readable in six months) before being drafted. Removed the "3-5 insights" quota that pushed toward padding; zero survivors is now explicitly the normal outcome. Added guardrails against prose-heavy narratives and quota-hitting.
 
 ### Fixed
 - `session-review` skill now checks `.notes/` for existing notes on each candidate topic (via `@archivist`) before drafting, and supports proposing **updates** to existing notes instead of silently creating duplicates. Previously the dedup rule only covered `AGENTS.md`, so repeated session reviews produced parallel notes on the same subject. Output templates gain an "update" variant; Step 6 gains a scribe call shape for edits.

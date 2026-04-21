@@ -4,7 +4,20 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+## [0.1.0] — 2026-04-21
+
+First public release. Complete port from the OpenCode/OhMyOpenAgent implementation, plus a polish pass to get the repo ready for external contributors.
+
 ### Added
+- Hub-spoke agent roster: `athena` (hub), `scribe`, `archivist`, `sage`, `pyre`, `prism`, `forge`, `kindle`, `scout`.
+- `/athena-setup` onboarding command with pre-fill from existing Claude Code memory.
+- Core skills: `obsidian`, `athena-notes`, `agent-workspace`.
+- Utility skills: `session-review`, `find-skills`, `dependency-review`, `dependency-triage`, `update-pr-description`, `ship`.
+- Example agents and skills under `plugins/athena-notes/examples/`.
+- Framework spec at `plugins/athena-notes/AGENTS.md` (cross-tool portable).
+- Claude Code `plugin.json` manifest, marketplace metadata, AGPL-3.0-or-later license.
 - `CONTRIBUTING.md` — submission workflow, four-point filter, frontmatter conventions.
 - `CHANGELOG.md` — this file.
 - `plugins/athena-notes/examples/README.md` — per-example adaptation guide.
@@ -22,19 +35,6 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ### Removed
 - `PORTING.md` — internal tracker from the OpenCode → Claude Code port. The port is done; the file was stale (GitHub repo already exists, "remaining" items all landed). Historical context preserved in git history.
-
-## [0.1.0] — 2026-04-17
-
-First public release. Complete port from the OpenCode/OhMyOpenAgent implementation.
-
-### Added
-- Hub-spoke agent roster: `athena` (hub), `scribe`, `archivist`, `sage`, `pyre`, `prism`, `forge`, `kindle`, `scout`.
-- `/athena-setup` onboarding command with pre-fill from existing Claude Code memory.
-- Core skills: `obsidian`, `athena-notes`, `agent-workspace`.
-- Utility skills: `session-review`, `find-skills`, `dependency-review`, `dependency-triage`, `update-pr-description`, `ship`.
-- Example agents and skills under `plugins/athena-notes/examples/`.
-- Framework spec at `plugins/athena-notes/AGENTS.md` (cross-tool portable).
-- Claude Code `plugin.json` manifest, marketplace metadata, AGPL-3.0-or-later license.
 
 [Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.1.0

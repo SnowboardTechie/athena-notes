@@ -77,7 +77,7 @@ Run each candidate against the four questions above. Drop any that don't pass al
 Before drafting anything, check for prior art in **both** places so you don't propose duplicates or orphan the existing knowledge:
 
 1. **AGENTS.md** — read it (if it exists). Understand the current sections. Skip any learning already captured there.
-2. **`.notes/`** — for each candidate destined for `.notes/`, invoke `@archivist` to check whether a note on this topic already exists:
+2. **`.notes/`** — for each surviving candidate that could plausibly land in `.notes/` (architectural decisions, explorations, key insights — the bottom three rows of the categorization table below), invoke `@archivist` to check whether a note on this topic already exists. If a candidate is unambiguously an AGENTS.md row (convention, anti-pattern, where-to-look), skip the archivist call — `.notes/` isn't its destination.
 
    ```
    Task(subagent_type="archivist", prompt="Check .notes/ for existing notes about {topic}. Scope: published notes, not .agents/ working files. Return matches with type, path, and a 1-line summary. If nothing matches, say so.")

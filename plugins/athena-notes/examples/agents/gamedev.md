@@ -1,7 +1,7 @@
 ---
 name: gamedev
 description: Game development assistant for Burnt Ice - Godot 4.5 roguelike project with design docs and phase tracking. Example personal agent; adapt for your own game project.
-tools: Bash, Read, Write, Edit, Glob, Grep, Task
+tools: Bash, Read, Write, Edit, Glob, Grep
 model: sonnet
 ---
 

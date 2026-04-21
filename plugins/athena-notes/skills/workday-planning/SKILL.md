@@ -1,6 +1,6 @@
 ---
 name: workday-planning
-description: Plan the workday (and on Mondays, the week / on Fridays, the wrap-up) by pulling context from the user's planning sources — Google Docs, GitHub issues, Obsidian notes, URLs — then getting goals from forge and writing the day's plan to the user's personal vault. Sources live in a user-owned config at ~/.claude/athena/planning-sources.md that the skill bootstraps on first use.
+description: Plan the workday by pulling context from user-configured sources (Google Docs, GitHub, Obsidian, URLs), handing synthesis to forge, and writing the day's plan to the personal vault. Day-of-week adaptive (Mon = week-prep, Fri = week-wrap). Triggers on "plan my day", "plan the workday", "morning plan", or the `/plan-workday` slash command.
 ---
 
 # Workday Planning
@@ -71,8 +71,8 @@ skill only reads the frontmatter; this body is for the user's eyes.
 | `type`            | Required fields                       | Optional fields       | Fetched via                                              |
 |-------------------|---------------------------------------|-----------------------|----------------------------------------------------------|
 | `google-doc`      | `id` (or `url`), `label`              | `scan`                | Drive MCP `read_file_content`                            |
-| `github-issues`   | `repo`, `filter` (gh search)          | `scan`                | `gh issue list --repo <r> -S "<f>"`                      |
-| `github-prs`      | `repo`, `filter` (gh search)          | `scan`                | `gh pr list --repo <r> -S "<f>"`                         |
+| `github-issues`   | `repo`, `filter` (gh search)          | `scan`                | `gh issue list --repo <r> --search "<f>"`                |
+| `github-prs`      | `repo`, `filter` (gh search)          | `scan`                | `gh pr list --repo <r> --search "<f>"`                   |
 | `github-project`  | `owner`, `number` (project number)    | `status`, `limit`     | `gh project item-list <n> --owner <o> --format json`     |
 | `obsidian`        | `vault`, `path` (glob)                | `scan`, `include_hidden` | Glob + Read                                           |
 | `url`             | `url`, `label`                        | `scan`                | WebFetch                                                 |
@@ -84,6 +84,8 @@ If `status` is provided, filter returned items to that exact status string (e.g.
 **`obsidian` note — hidden-dir exclusion.** Obsidian hides dot-prefixed directories (`.obsidian/`, `.trash/`, `.agents/`, etc.) from its UI. The skill mirrors that semantic: glob matches **exclude** any path component starting with `.` by default. This matters because `.agents/` holds agent working files (e.g., `.agents/forge/today.md`) — feeding forge's own plan back in as planning context creates a feedback loop. Set `include_hidden: true` on the source to override, only when you actually want to scan agent state.
 
 **Filter mechanism.** `Glob` does not skip dot-prefixed directories on its own. After the glob returns, post-filter the result list: drop any path where **any** segment (split on `/`) starts with `.`. Apply this filter unless the source sets `include_hidden: true`. Example: `second-brain/Journal/.trash/old.md` has a `.trash` segment → drop; `second-brain/Journal/2026-04-21.md` has no dot-prefixed segment → keep.
+
+If the user's glob itself targets a dotted directory (e.g., `path: ".trash/*"`), they must also set `include_hidden: true` — otherwise every match is filtered out.
 
 ### Scan modes
 
@@ -138,16 +140,17 @@ If missing, bootstrap asks the user which folder to use (default `Daily`) and wr
 ### Phase 0 — Resolve mode, vault, and output path
 
 1. Read `~/.claude/athena/identity.md`. Resolve:
-   - `{{TIMEZONE}}` — must be an IANA zone string (e.g. `America/New_York`, `Europe/London`). Fall back to system TZ if missing. Abbreviations like `EST` or `PT` won't handle DST correctly — if identity has one, treat it as a config error and ask the user to re-run `/athena-setup` before proceeding.
+   - `{{TIMEZONE}}` — must be an IANA zone string (e.g. `America/New_York`, `Europe/London`, `UTC`). **Validate before using** (see below). If missing or invalid, warn and fall back to system TZ — don't block planning on a config nit.
    - `{{PERSONAL_VAULT}}` (fall back to `second-brain`).
    - `{{NOTES_ROOT}}` (fall back to `~/notes`).
 2. Read `~/.claude/athena/planning-sources.md` frontmatter's top-level `output_folder` (fall back to `Daily`). If the file is missing, defer to Phase 1 bootstrap.
-3. Compute today's day-of-week in the resolved timezone via `date` (Bash: one bare command, e.g. `TZ="{{TIMEZONE}}" date +%A`).
-4. Mode:
+3. **TZ validation.** Before shelling, check `{{TIMEZONE}}` matches `^(UTC|[A-Za-z][A-Za-z0-9_+-]*/[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z][A-Za-z0-9_+-]*)?)$` (IANA shape: `Region/City` or `Region/Country/City`, or bare `UTC`). Abbreviations like `EST` or `PT` fail this check — they also don't handle DST correctly. On mismatch, warn once (`⚠️ Identity TZ "{value}" is not an IANA zone — falling back to system TZ. Fix via /athena-setup.`) and proceed with the unset `TZ` env var so `date` uses the system default. This is also the injection guard: a validated value is safe to interpolate into the `TZ=...` shell command.
+4. Compute today's day-of-week in the resolved timezone via `date` (Bash: one bare command, e.g. `TZ="{{TIMEZONE}}" date +%A` when validated, or plain `date +%A` on fallback).
+5. Mode:
    - `--mode=<x>` flag wins.
    - Else: **Mon** → `week-prep`; **Tue–Thu** → `day`; **Fri** → `week-wrap`; **Sat/Sun** → `day` (tell the user it's a weekend, ask if they want to proceed anyway).
-5. Compute output path: `{{NOTES_ROOT}}/{{PERSONAL_VAULT}}/{{output_folder}}/{YYYY-MM-DD}-daily-plan.md`. Create the output directory if missing (silent; don't ask). If `output_folder` is `.`, write at vault root with the date-prefixed filename.
-6. Print one line: `Mode: {mode} (today is {Monday 2026-04-21}) → will write {output path}`.
+6. Compute output path: `{{NOTES_ROOT}}/{{PERSONAL_VAULT}}/{{output_folder}}/{YYYY-MM-DD}-daily-plan.md`. Create the output directory if missing (silent; don't ask). If `output_folder` is `.`, write at vault root with the date-prefixed filename.
+7. Print one line: `Mode: {mode} (today is {Monday 2026-04-21}) → will write {output path}`.
 
 ### Phase 1 — Load or bootstrap `planning-sources.md`
 
@@ -175,7 +178,9 @@ Use AskUserQuestion. Options:
 - **Edit sources** — open `planning-sources.md` for editing; abort this run.
 - **Abort** — stop the skill.
 
-Do not silently skip. The user asked for halt-and-ask on failure.
+If two or more sources failed, add a fifth option on the second-and-subsequent prompts: **Skip all remaining failures** — mark every outstanding failed source as skipped (footer-logged) and jump to Phase 3.
+
+Do not silently skip without the user's go-ahead. The user asked for halt-and-ask on failure.
 
 ### Phase 3 — Synthesize per project
 
@@ -208,11 +213,13 @@ Prepend this before the daily plan:
 
 ### Last week
 {1-3 lines on last week's wins/drops. To locate the prior week's forge
-session archive, delegate to archivist (`Task(subagent_type="archivist",
-prompt="Locate most recent forge session archive in .notes/.agents/forge/sessions/
-and return its content")`) — don't resolve .notes/ paths directly, archivist handles
-worktree + project-vault routing. If archivist returns no match, use
-"No prior week on record."}
+session archive, delegate to archivist with the **list of configured
+project names from Phase 1** so it knows which `.notes/` roots to search:
+`Task(subagent_type="archivist", prompt="Search these projects' .notes/.agents/forge/sessions/
+directories for the most recent forge session archive: {comma-separated project
+names}. Return its content, or 'no match' if none found.")`. Don't resolve
+.notes/ paths directly — archivist handles worktree + project-vault routing.
+If archivist returns no match, use "No prior week on record."}
 
 ### This week's shape
 {2-4 lines synthesizing cross-project commitments, deadlines, and stated
@@ -328,7 +335,7 @@ sources: {N sources, M succeeded}
 - Generated by workday-planning skill on {YYYY-MM-DD HH:MM {TZ}}
 ```
 
-Write via the Write tool. If the file already exists (user ran planning twice the same day), show a diff-style summary and ask whether to overwrite, merge, or keep existing.
+Write via the Write tool. If the file already exists (user ran planning twice the same day), show a one-line summary of what would change and ask **Overwrite** or **Keep existing** (2-choice). No merge option — merging two plans has too many undefined cases (which goals win? which synthesis?) and would hide the fact that a plan was regenerated.
 
 ### Phase 8 — Present
 

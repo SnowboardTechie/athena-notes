@@ -4,6 +4,9 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added
+- `.github/PULL_REQUEST_TEMPLATE.md` — prompts PR authors to pick a changelog mode (non-release / release / exempt) and surfaces the post-merge `gh release create` step so release PRs don't ship without a tag.
+
 ### Changed
 - `plugins/athena-notes/AGENTS.md` gains three new conventions under existing sections:
   - **Vault reads must filter dot-prefixed dirs** (under *Working State vs Permanent Notes*) — skills reading markdown via file globs must drop any path with a `.`-prefixed segment to match Obsidian's UI semantics and prevent feedback loops from agent working files like `.agents/forge/today.md`.

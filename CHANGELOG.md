@@ -53,6 +53,7 @@ First public release. Complete port from the OpenCode/OhMyOpenAgent implementati
 ### Removed
 - `PORTING.md` — internal tracker from the OpenCode → Claude Code port. The port is done; the file was stale (GitHub repo already exists, "remaining" items all landed). Historical context preserved in git history.
 
-[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.2.1
 [0.2.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.2.0
 [0.1.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.1.0

@@ -75,4 +75,17 @@ jobs:
             exit 1
           fi
 
-          echo "OK — $base_version -> $head_version, CHANGELOG updated."
+          # Keep-a-Changelog footer links must be updated for the new release:
+          #   - a reference link for [x.y.z] pointing at the release tag
+          #   - [Unreleased] retargeted to compare against the new version
+          if ! grep -Fq "[$head_version]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v$head_version" CHANGELOG.md; then
+            echo "::error file=CHANGELOG.md::Missing footer link '[$head_version]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v$head_version'. Add it alongside the existing version links."
+            exit 1
+          fi
+
+          if ! grep -Fq "[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v$head_version...HEAD" CHANGELOG.md; then
+            echo "::error file=CHANGELOG.md::'[Unreleased]' footer link must compare against v$head_version...HEAD. Update it when you cut a new release."
+            exit 1
+          fi
+
+          echo "OK — $base_version -> $head_version, CHANGELOG updated (sections + footers)."

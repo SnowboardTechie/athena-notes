@@ -129,9 +129,24 @@ Scribe writes immediately on invocation. No previews, no confirmation prompts.
 - **No AI attribution in commits.** Never add `Co-authored-by: Claude`, `Co-Authored-By: Claude Code`, `Generated with`, or similar. The human is the sole author.
 - **Atomic commits.** Small, focused commits grouped by concern, not by time.
 - **Never commit unverified work.** Confirm builds pass, tests pass, no regressions before committing.
-- **Feature branches only.** Never commit directly to `main`/`master` unless the user explicitly says so (rare — only in dotfile-style repos).
-- **`main` is protected in this repo.** `SnowboardTechie/athena-notes` rejects direct pushes to `main`; every change lands via PR. Even when the user says "commit to main", the mechanical path is: feature branch → PR → merge. Don't attempt `git push origin main` — it will fail with "Changes must be made through a pull request." Route the work through a short-lived branch and open a PR instead; that satisfies the user's intent within the repo's rules.
-- **Versioning CI gates PRs.** Before opening a PR, check whether your diff touches any *versionable path*: `plugins/athena-notes/agents/*`, `commands/*`, `skills/*`, `AGENTS.md`, `CLAUDE.md`, `.claude-plugin/*`, or repo-root `.claude-plugin/*`. If yes, three things must all be true before `gh pr create`: (1) `plugins/athena-notes/.claude-plugin/plugin.json` `version` is **bumped**, (2) `CHANGELOG.md` has a matching `## [x.y.z]` section, and (3) `CHANGELOG.md` itself appears in the PR diff (editing a pre-existing stub section counts, but the file must be modified). Miss any of the three and `version-check` CI fails. Anything outside the versionable list is exempt — including docs like README, CONTRIBUTING, CHANGELOG, LICENSE, and `.github/` — because the check is an allowlist on versionable paths, not a denylist on docs. See `.github/workflows/version-check.yml` for the exact rules.
+- **Feature branches + PR only.** Never commit directly to `main`/`master`. In this repo (`SnowboardTechie/athena-notes`), `main` is branch-protected — direct pushes are rejected with "Changes must be made through a pull request." Even when the user says "commit to main," the mechanical path is: feature branch → `gh pr create` → merge. That satisfies the user's intent within the repo's rules.
+- **Versioning CI gates PRs.** Before opening a PR, check whether your diff touches any *versionable path*:
+  - `plugins/athena-notes/agents/*`
+  - `plugins/athena-notes/commands/*`
+  - `plugins/athena-notes/skills/*`
+  - `plugins/athena-notes/AGENTS.md`
+  - `plugins/athena-notes/CLAUDE.md`
+  - `plugins/athena-notes/.claude-plugin/*`
+  - repo-root `.claude-plugin/*`
+
+  If yes, **all** of the following must be true before `gh pr create`:
+  1. `plugins/athena-notes/.claude-plugin/plugin.json` `version` is bumped.
+  2. `CHANGELOG.md` has a matching `## [x.y.z]` section.
+  3. `CHANGELOG.md` is modified in the PR diff.
+  4. `CHANGELOG.md` footers include `[x.y.z]: https://github.com/SnowboardTechie/athena-notes/releases/tag/vx.y.z`.
+  5. `CHANGELOG.md` `[Unreleased]` footer compares against `vx.y.z...HEAD` (retarget on every release).
+
+  Miss any and `version-check` CI fails. Anything outside the versionable list is exempt — including README, CONTRIBUTING, CHANGELOG, LICENSE, and `.github/` — because the check is an allowlist on versionable paths, not a denylist on docs. See `.github/workflows/version-check.yml` for the exact rules.
 
 ---
 

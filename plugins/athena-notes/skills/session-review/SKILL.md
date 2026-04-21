@@ -117,9 +117,9 @@ Task(subagent_type="scribe", prompt="Update existing note at {path}. Change: {on
 
 Scribe writes (or edits) immediately on invocation — no preview, no confirmation. Only call it after the user approves.
 
-### Step 7: Present AGENTS.md copy-paste
+### Step 7: Write approved AGENTS.md items
 
-For each approved AGENTS.md item, show the final markdown block. Never write to AGENTS.md directly. The user manages that file.
+After user approval, apply the edit directly to AGENTS.md using the Edit tool. Match section headings case-insensitively (so `## Conventions`, `## CONVENTIONS`, and `## conventions` all target the same section) and fit content into the existing section (CONVENTIONS, ANTI-PATTERNS, WHERE TO LOOK, NOTES) — never create new sections. If none of those sections exists in the user's AGENTS.md, fall back to presenting the markdown block for manual placement. If the user explicitly asks for copy-paste instead of a direct edit, present the markdown block and skip the write.
 
 ---
 
@@ -136,7 +136,7 @@ For each approved AGENTS.md item, show the final markdown block. Never write to 
 | {context} | {guidance} |
 ```
 
-*Copy the above into your AGENTS.md*
+*Approve to have this added to AGENTS.md*
 ```
 
 ### .notes/ Draft (new note)
@@ -185,7 +185,7 @@ Use this variant when archivist (Step 2) surfaced an existing note on the same t
 ## Guardrails
 
 - Do NOT invoke @scribe until the user explicitly approves the draft
-- Do NOT write to AGENTS.md directly — always present as copy-paste markdown
+- Do NOT write to AGENTS.md (or .notes/) until the user explicitly approves the draft
 - Do NOT fabricate learnings — every item must trace to a specific moment in the conversation
 - Do NOT create new AGENTS.md sections — fit content into existing structure
 - Do NOT handle worktree path resolution — that's @scribe's job via the agent-workspace skill

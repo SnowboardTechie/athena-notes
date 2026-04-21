@@ -6,6 +6,15 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 _No unreleased changes._
 
+## [0.2.0] — 2026-04-21
+
+### Added
+- `workday-planning` skill (`plugins/athena-notes/skills/workday-planning/`) and `/plan-workday` slash command. Pulls live context from user-configured sources (Google Docs, GitHub issues/PRs, GitHub Projects V2 boards, Obsidian notes, URLs), synthesizes it, gets goals from `forge`, and writes the day's plan to the personal vault. Day-of-week adaptive (Mon = week-prep, Tue–Thu = daily, Fri = week-wrap); `--mode` override available.
+- User-owned config at `~/.claude/athena/planning-sources.md` (YAML frontmatter), bootstrapped by the skill on first run — matches the `identity.md` + `/athena-setup` pattern.
+
+### Changed
+- `session-review` skill now applies approved AGENTS.md additions via direct `Edit` after explicit user approval, instead of presenting a copy-paste block. The user can still opt into copy-paste mode by asking for it. Guardrails updated to gate on approval rather than on the write mechanism.
+
 ## [0.1.0] — 2026-04-21
 
 First public release. Complete port from the OpenCode/OhMyOpenAgent implementation, plus a polish pass to get the repo ready for external contributors.
@@ -36,5 +45,6 @@ First public release. Complete port from the OpenCode/OhMyOpenAgent implementati
 ### Removed
 - `PORTING.md` — internal tracker from the OpenCode → Claude Code port. The port is done; the file was stale (GitHub repo already exists, "remaining" items all landed). Historical context preserved in git history.
 
-[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.2.0
 [0.1.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.1.0

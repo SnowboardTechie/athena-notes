@@ -84,6 +84,12 @@ Agents resolve the **trunk root** (not the current worktree) before any `.notes/
 
 Working files live under `.notes/.agents/{agent-name}/` and are cleaned up when tasks complete. The `.agents/` prefix hides them from Obsidian's default view.
 
+### Vault reads must filter dot-prefixed dirs
+
+Skills that read markdown files from user vaults via file globs (Obsidian sources, wiki links, bulk scans) **must exclude any path with a segment starting with `.`**. This mirrors Obsidian's own UI semantics (hidden dirs: `.obsidian/`, `.trash/`, and the plugin's own `.agents/` working state).
+
+Why it matters: `.agents/` holds files like `forge/today.md` — feeding an agent's own output back in as planning context creates a silent feedback loop that degrades over days. Shell globs don't filter dotfiles by default; post-filter the result list unless the source explicitly opts in (e.g., an `include_hidden: true` config field).
+
 ---
 
 ## Subagent Output Verification (mandatory)

@@ -36,27 +36,27 @@ User-owned, editable by hand, bootstrapped by this skill on first run. Format:
 ---
 output_folder: Daily         # where daily plans land inside the personal vault. Default: Daily
 projects:
-  - name: Simpler Grants
+  - name: Project Alpha
     sources:
       - type: google-doc
-        id: 1Ilfpwne4dklpOZc0B27nRCZ5g0CZiNS4eKb_OVyeZzc
-        label: P&D Bikerack
+        id: 1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789AbCdEfG
+        label: Sprint Bikerack
         scan: most-recent:2      # current + prior sprint blocks
       - type: github-project
-        owner: HHS
-        number: 17
+        owner: example-org
+        number: 1
         status: "In progress"    # optional: filter to one status column
       - type: github-issues
-        repo: HHS/simpler-grants-protocol
+        repo: example-org/example-repo
         filter: "assignee:@me state:open"
       - type: obsidian
         vault: second-brain
         path: "Journal/*-weekly-plan.md"
         scan: most-recent
-  - name: Athena Notes
+  - name: Project Beta
     sources:
       - type: github-issues
-        repo: SnowboardTechie/athena-notes
+        repo: example-org/another-repo
         filter: "state:open"
 ---
 
@@ -136,11 +136,11 @@ If missing, bootstrap asks the user which folder to use (default `Daily`) and wr
 ### Phase 0 — Resolve mode, vault, and output path
 
 1. Read `~/.claude/athena/identity.md`. Resolve:
-   - `{{TIMEZONE}}` (fall back to system TZ if missing).
+   - `{{TIMEZONE}}` — must be an IANA zone string (e.g. `America/New_York`, `Europe/London`). Fall back to system TZ if missing. Abbreviations like `EST` or `PT` won't handle DST correctly — if identity has one, treat it as a config error and ask the user to re-run `/athena-setup` before proceeding.
    - `{{PERSONAL_VAULT}}` (fall back to `second-brain`).
    - `{{NOTES_ROOT}}` (fall back to `~/notes`).
 2. Read `~/.claude/athena/planning-sources.md` frontmatter's top-level `output_folder` (fall back to `Daily`). If the file is missing, defer to Phase 1 bootstrap.
-3. Compute today's day-of-week in the resolved timezone via `date` (Bash: one bare command).
+3. Compute today's day-of-week in the resolved timezone via `date` (Bash: one bare command, e.g. `TZ="{{TIMEZONE}}" date +%A`).
 4. Mode:
    - `--mode=<x>` flag wins.
    - Else: **Mon** → `week-prep`; **Tue–Thu** → `day`; **Fri** → `week-wrap`; **Sat/Sun** → `day` (tell the user it's a weekend, ask if they want to proceed anyway).
@@ -155,9 +155,9 @@ If missing, bootstrap asks the user which folder to use (default `Daily`) and wr
    - **Present and populated** → parse the YAML frontmatter into a project list.
 2. Print one line: `Loaded N projects, M total sources.`
 
-### Phase 2 — Fetch sources (parallel, halt on failure)
+### Phase 2 — Fetch sources (parallel; halt-and-ask per failure after collection)
 
-Fetch every source in parallel (one tool call per source, batched in a single message). On any failure:
+Fetch every source in parallel (one tool call per source, batched in a single message). Wait for all results, then for each failure halt and prompt the user before continuing to Phase 3:
 
 ```
 ⚠️ Source failed: {project} / {label or type}
@@ -242,16 +242,42 @@ Task(
 
   IMPORTANT: return goals as text only. Do NOT write to .notes/.agents/forge/today.md
   — the workday-planning skill owns the canonical daily plan file and will persist it
-  to the personal vault (~/notes/{personal_vault}/Journal/).
+  to the personal vault at {output path from Phase 0}.
   """
 )
 ```
 
-Capture forge's goal list for Phase 5.5.
+Capture forge's goal list for Phase 7 (write).
 
-### Phase 5.5 — Write the daily plan
+> **Note — tracked in [#6](https://github.com/SnowboardTechie/athena-notes/issues/6).** The prompt-level "don't write today.md" override is a temporary coupling. Once forge accepts an output-path parameter, this skill will pass the resolved path instead of instructing forge to skip its default write.
 
-Assemble the Journal file at the output path from Phase 0 with this structure:
+### Phase 6 — [Friday only] Week-wrap overlay
+
+Compute this **before** the Phase 7 write so the overlay can be embedded in the final file. Use the template:
+
+```markdown
+## 🏁 Week Wrap — Week of {YYYY-MM-DD}
+
+### Wins
+{Pull from .notes/.agents/forge/wins.md entries since Monday, plus any
+completed items surfaced in Phase 3 synthesis.}
+
+### Dropped
+{Carry-overs from earlier this week that didn't land. Ask the user to
+confirm if not obvious from forge archive.}
+
+### Carry forward to next week
+{What goes onto next Monday's week-prep. User picks.}
+
+### Patterns
+{One line the user wants to remember — what worked or didn't. Optional.}
+```
+
+Ask the user to fill in any sections the archive can't answer. Keep it short; this is a weekly cap, not a retrospective.
+
+### Phase 7 — Write the daily plan
+
+Assemble the daily plan file at the output path from Phase 0 with this structure:
 
 ```markdown
 ---
@@ -283,7 +309,7 @@ sources: {N sources, M succeeded}
 
 {Phase 3 per-project blocks — for reference / deeper dive if needed}
 
-{If Friday: paste the Phase 6 week-wrap overlay here}
+{If Friday: paste the Phase 6 week-wrap overlay here, computed before this write}
 
 ---
 
@@ -296,31 +322,7 @@ sources: {N sources, M succeeded}
 
 Write via the Write tool. If the file already exists (user ran planning twice the same day), show a diff-style summary and ask whether to overwrite, merge, or keep existing.
 
-### Phase 6 — [Friday only] Week-wrap overlay
-
-After forge returns, append:
-
-```markdown
-## 🏁 Week Wrap — Week of {YYYY-MM-DD}
-
-### Wins
-{Pull from .notes/.agents/forge/wins.md entries since Monday, plus any
-completed items surfaced in Phase 3 synthesis.}
-
-### Dropped
-{Carry-overs from earlier this week that didn't land. Ask the user to
-confirm if not obvious from forge archive.}
-
-### Carry forward to next week
-{What goes onto next Monday's week-prep. User picks.}
-
-### Patterns
-{One line the user wants to remember — what worked or didn't. Optional.}
-```
-
-Ask the user to fill in any sections the archive can't answer. Keep it short; this is a weekly cap, not a retrospective.
-
-### Phase 7 — Present
+### Phase 8 — Present
 
 Print in this order:
 
@@ -369,21 +371,35 @@ For each project:
 
 ### Step 3 — Sources per project
 
-Loop per project. Use AskUserQuestion:
+Loop per project. AskUserQuestion caps at 4 options per call — pre-group the 7 source types into two tiered questions so the user doesn't face an ad-hoc split each loop.
+
+**Call 1 — pick a category:**
 
 ```
-question: "Add a source for {project}? (pick type, or 'done')"
+question: "Add a source for {project}? (pick a category, or 'done')"
 options:
-  - label: "Google Doc"         description: "Paste a docs.google.com URL or doc ID"
-  - label: "GitHub issues"      description: "Repo + filter (e.g. 'assignee:@me state:open')"
-  - label: "GitHub PRs"         description: "Repo + filter"
-  - label: "GitHub Project"     description: "Projects V2 board (owner + project number)"
-  - label: "Obsidian note(s)"   description: "Vault + path/glob"
-  - label: "URL"                description: "Any web page"
+  - label: "GitHub"       description: "Issues, PRs, or a Projects V2 board"
+  - label: "Documents"    description: "Google Doc, URL, or Obsidian note(s)"
   - label: "Done with this project"
 ```
 
-AskUserQuestion supports 4 options per call; split into two sequential questions if all labels won't fit.
+**Call 2 — pick the specific type** (only if category chosen above):
+
+If "GitHub":
+```
+options:
+  - label: "GitHub issues"    description: "Repo + filter (e.g. 'assignee:@me state:open')"
+  - label: "GitHub PRs"       description: "Repo + filter"
+  - label: "GitHub Project"   description: "Projects V2 board (owner + project number)"
+```
+
+If "Documents":
+```
+options:
+  - label: "Google Doc"       description: "Paste a docs.google.com URL or doc ID"
+  - label: "Obsidian note(s)" description: "Vault + path/glob"
+  - label: "URL"              description: "Any web page"
+```
 
 Follow-up prompts by type:
 
@@ -453,7 +469,7 @@ If no TTY / user not present, a source failure should still abort (not silently 
 
 ## Dependencies
 
-- **forge** — goal-mode planning; owns `today.md`
+- **forge** — goal-mode planning; owns `today.md`. This skill currently instructs forge via prompt to skip the `today.md` write; tracked for replacement with an output-path parameter in [#6](https://github.com/SnowboardTechie/athena-notes/issues/6).
 - **scout** — (optional) forge activity summary; forge invokes scout automatically when planning
 - **Drive MCP** (optional) — required only if `google-doc` sources are configured
 - **`gh`** (optional) — required only if `github-*` sources are configured

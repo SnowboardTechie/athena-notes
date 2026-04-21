@@ -6,6 +6,14 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 _No unreleased changes._
 
+## [0.2.1] — 2026-04-21
+
+### Changed
+- `plugins/athena-notes/AGENTS.md` gains three new conventions under existing sections:
+  - **Vault reads must filter dot-prefixed dirs** (under *Working State vs Permanent Notes*) — skills reading markdown via file globs must drop any path with a `.`-prefixed segment to match Obsidian's UI semantics and prevent feedback loops from agent working files like `.agents/forge/today.md`.
+  - **`main` is protected** (under *Git & Commits*) — direct pushes to `main` are rejected; all changes land via PR, even when the user says "commit to main".
+  - **Versioning CI gates PRs** (under *Git & Commits*) — any change under versionable paths (`agents/`, `commands/`, `skills/`, `AGENTS.md`, `CLAUDE.md`, `.claude-plugin/`) must bump `plugin.json` and add a matching `CHANGELOG.md` section before PR open, or `version-check` CI fails.
+
 ## [0.2.0] — 2026-04-21
 
 ### Added

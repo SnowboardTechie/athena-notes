@@ -131,6 +131,7 @@ Scribe writes immediately on invocation. No previews, no confirmation prompts.
 - **Never commit unverified work.** Confirm builds pass, tests pass, no regressions before committing.
 - **Feature branches only.** Never commit directly to `main`/`master` unless the user explicitly says so (rare — only in dotfile-style repos).
 - **`main` is protected in this repo.** `SnowboardTechie/athena-notes` rejects direct pushes to `main`; every change lands via PR. Even when the user says "commit to main", the mechanical path is: feature branch → PR → merge. Don't attempt `git push origin main` — it will fail with "Changes must be made through a pull request." Route the work through a short-lived branch and open a PR instead; that satisfies the user's intent within the repo's rules.
+- **Versioning CI gates PRs.** Before opening a PR, check whether your diff touches any *versionable path*: `plugins/athena-notes/agents/*`, `commands/*`, `skills/*`, `AGENTS.md`, `CLAUDE.md`, `.claude-plugin/*`, or repo-root `.claude-plugin/*`. If yes, you must **bump** `plugins/athena-notes/.claude-plugin/plugin.json` `version` and **add** a matching `## [x.y.z]` section to `CHANGELOG.md` with the same version number and a brief description. Do this *before* `gh pr create` — otherwise the `version-check` CI fails and the PR can't merge. See `.github/workflows/version-check.yml` for the exact rules; docs-only paths (README, CONTRIBUTING, CHANGELOG, LICENSE, `.github/`) are exempt.
 
 ---
 

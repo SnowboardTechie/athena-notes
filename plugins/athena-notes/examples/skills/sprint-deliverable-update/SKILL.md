@@ -9,7 +9,7 @@ description: >
 # Sprint Deliverable Update
 
 > **Example skill.** Built around HHS/Simpler Grants deliverable-issue conventions (tagging
-> `@juchang111`, bolded deliverable names as sub-headings, "Criteria completed" H2). Copy to
+> `@user`, bolded deliverable names as sub-headings, "Criteria completed" H2). Copy to
 > `~/.claude/skills/` or into your own plugin and adapt — replace the tagged reviewer, the
 > deliverable-naming rules, and the template to match your sprint process.
 

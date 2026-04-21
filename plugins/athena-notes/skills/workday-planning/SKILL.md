@@ -83,6 +83,8 @@ If `status` is provided, filter returned items to that exact status string (e.g.
 
 **`obsidian` note — hidden-dir exclusion.** Obsidian hides dot-prefixed directories (`.obsidian/`, `.trash/`, `.agents/`, etc.) from its UI. The skill mirrors that semantic: glob matches **exclude** any path component starting with `.` by default. This matters because `.agents/` holds agent working files (e.g., `.agents/forge/today.md`) — feeding forge's own plan back in as planning context creates a feedback loop. Set `include_hidden: true` on the source to override, only when you actually want to scan agent state.
 
+**Filter mechanism.** `Glob` does not skip dot-prefixed directories on its own. After the glob returns, post-filter the result list: drop any path where **any** segment (split on `/`) starts with `.`. Apply this filter unless the source sets `include_hidden: true`. Example: `second-brain/Journal/.trash/old.md` has a `.trash` segment → drop; `second-brain/Journal/2026-04-21.md` has no dot-prefixed segment → keep.
+
 ### Scan modes
 
 - `most-recent` (default) — for docs with sprint/date headings, grab the top-most section; for obsidian globs, grab the newest file; for issue lists, updated in the last 7 days.
@@ -205,9 +207,12 @@ Prepend this before the daily plan:
 ## 📅 Week Prep — Week of {YYYY-MM-DD}
 
 ### Last week
-{1-3 lines on last week's wins/drops, pulled from the most recent forge
-session archive in .notes/.agents/forge/sessions/ if present, else "No
-prior week on record."}
+{1-3 lines on last week's wins/drops. To locate the prior week's forge
+session archive, delegate to archivist (`Task(subagent_type="archivist",
+prompt="Locate most recent forge session archive in .notes/.agents/forge/sessions/
+and return its content")`) — don't resolve .notes/ paths directly, archivist handles
+worktree + project-vault routing. If archivist returns no match, use
+"No prior week on record."}
 
 ### This week's shape
 {2-4 lines synthesizing cross-project commitments, deadlines, and stated
@@ -259,8 +264,11 @@ Compute this **before** the Phase 7 write so the overlay can be embedded in the 
 ## 🏁 Week Wrap — Week of {YYYY-MM-DD}
 
 ### Wins
-{Pull from .notes/.agents/forge/wins.md entries since Monday, plus any
-completed items surfaced in Phase 3 synthesis.}
+{Delegate to archivist to pull entries from .notes/.agents/forge/wins.md
+since Monday (`Task(subagent_type="archivist", prompt="Return entries from
+.notes/.agents/forge/wins.md dated since {last Monday YYYY-MM-DD}")`) —
+archivist owns .notes/ path resolution. Combine with any completed items
+surfaced in Phase 3 synthesis.}
 
 ### Dropped
 {Carry-overs from earlier this week that didn't land. Ask the user to
@@ -357,8 +365,7 @@ Where should daily plans live inside ~/notes/{personal_vault}/?
   - Daily          (default, temporal bucket)
   - Work           (work-day plans, separate from personal projects)
   - Projects       (broader — covers any project work)
-  - Vault root     (flat, date-prefixed filenames at the vault root)
-  - Custom         (user types a folder name)
+  - Custom         (user types a folder name; enter "." for flat at vault root)
 ```
 
 Save the choice as `output_folder` at the top of the frontmatter.
@@ -448,6 +455,10 @@ Fall back to presenting the Phase 3 synthesis + a manual "what will you tackle t
 
 **Source config references an unknown type:**
 Halt with: `Unknown source type '{x}' in {project}. Edit ~/.claude/athena/planning-sources.md and rerun.` Don't guess.
+
+**Malformed YAML frontmatter in `planning-sources.md`:**
+If parsing fails, halt with the parser error and the offending line if available:
+`Could not parse frontmatter in ~/.claude/athena/planning-sources.md: {error}. Fix the file or run /plan-workday --edit-sources.` Do NOT fall back to bootstrap — that would overwrite the user's in-progress edit. Do NOT guess at the intended shape.
 
 **Drive MCP not authed (Google Doc fails):**
 Treat as a source failure in Phase 2. The halt-and-ask prompt will let the user fix auth and retry, skip the source, or abort.

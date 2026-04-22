@@ -8,6 +8,7 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 - `.github/PULL_REQUEST_TEMPLATE.md` — prompts PR authors to pick a changelog mode (non-release / release / exempt) and surfaces the post-merge `gh release create` step so release PRs don't ship without a tag.
 
 ### Changed
+- `archivist` agent gains a first-class `scope:` keyword (`published` | `working` | `both`, default `both`) that callers place on the first line of the prompt to narrow the search. `session-review` Step 2 now leads with `scope: published` instead of the prior prose-level "Scope: published notes, not .agents/ working files." override — removes the silent-drift risk flagged in [#3](https://github.com/SnowboardTechie/athena-notes/issues/3). Backward-compatible: callers that omit the keyword get the existing both-locations behavior.
 - `plugins/athena-notes/AGENTS.md` gains three new conventions under existing sections:
   - **Vault reads must filter dot-prefixed dirs** (under *Working State vs Permanent Notes*) — skills reading markdown via file globs must drop any path with a `.`-prefixed segment to match Obsidian's UI semantics and prevent feedback loops from agent working files like `.agents/forge/today.md`.
   - **`main` is protected** (under *Git & Commits*) — direct pushes to `main` are rejected; all changes land via PR, even when the user says "commit to main".

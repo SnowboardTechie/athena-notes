@@ -80,8 +80,12 @@ Before drafting anything, check for prior art in **both** places so you don't pr
 2. **`.notes/`** — for each surviving candidate that could plausibly land in `.notes/` (architectural decisions, explorations, key insights — the bottom three rows of the categorization table below), invoke `@archivist` to check whether a note on this topic already exists. If a candidate is unambiguously an AGENTS.md row (convention, anti-pattern, where-to-look), skip the archivist call — `.notes/` isn't its destination.
 
    ```
-   Task(subagent_type="archivist", prompt="Check .notes/ for existing notes about {topic}. Scope: published notes, not .agents/ working files. Return matches with type, path, and a 1-line summary. If nothing matches, say so.")
+   Task(subagent_type="archivist", prompt="scope: published
+
+Check for existing notes about {topic}. Return matches with type, path, and a 1-line summary. If nothing matches, say so.")
    ```
+
+   The `scope: published` keyword is archivist's first-class way to restrict the search to `.notes/` and exclude `.notes/.agents/` working files — see the *Scope* section of `plugins/athena-notes/agents/archivist.md`. It replaces an earlier prose-level "Scope:" override that relied on archivist interpreting the sentence.
 
    If archivist returns a match, treat the candidate as an **update** to that note, not a new one. Draft it using the Update template below.
 

@@ -152,6 +152,19 @@ Scribe writes immediately on invocation. No previews, no confirmation prompts.
 
   Files outside the versionable list — README, CONTRIBUTING, CHANGELOG itself (when it's the only thing touched), LICENSE, `.github/` — are exempt from the CHANGELOG requirement. See `.github/workflows/version-check.yml` for the exact rules.
 
+- **GitHub Actions hardening baseline.** Every workflow under `.github/workflows/` ships with both of these blocks at the top level:
+
+  ```yaml
+  permissions:
+    contents: read          # or the narrowest set the job actually needs
+
+  concurrency:
+    group: {workflow-name}-${{ github.ref }}
+    cancel-in-progress: true
+  ```
+
+  Default-token least-privilege and ref-level run de-duplication. `docs-lint.yml` conforms; `version-check.yml` predates the rule and is a backfill candidate.
+
 ---
 
 ## PR Review Comments

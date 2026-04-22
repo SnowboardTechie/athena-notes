@@ -37,6 +37,22 @@ If no `scope:` line is present, search both. This is the legacy default and keep
 
 The keyword is a first-class parameter — do **not** rely on prose wording like "published notes only" or "ignore .agents/" to narrow scope. A caller that wants a narrowed search must use the keyword; otherwise honor the both-by-default behavior.
 
+### Example
+
+A narrowed call is a `scope:` line, a blank line, then the query:
+
+```
+scope: published
+
+Check for existing notes about JWT refresh tokens. Return matches with type, path, and a 1-line summary.
+```
+
+An un-narrowed call omits the keyword entirely:
+
+```
+Find any past notes about authentication, OAuth, or JWT.
+```
+
 ---
 
 ## Search Strategies
@@ -199,6 +215,9 @@ If search finds nothing:
 ## Search Query
 "{query}"
 
+## Search Method
+- Scope applied: {published | working | both}
+
 ## Found Context
 
 No notes found matching this query.
@@ -208,6 +227,8 @@ No notes found matching this query.
 - Consider creating an IDEA note to seed future thinking
 - Try broader search terms: {suggestions}
 ```
+
+Always include `Scope applied:` even on empty results — it distinguishes "nothing matched under `scope: published`" from "nothing matched anywhere (`scope: both`)".
 
 ---
 

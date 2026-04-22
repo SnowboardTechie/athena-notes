@@ -3,8 +3,6 @@ name: Docs lint
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
 
 jobs:
   trailing-slash-links:
@@ -16,12 +14,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Links in this repo should point at a concrete .md file, not a directory.
-          # Trailing-slash directory links render on GitHub but break in Obsidian
-          # preview, some IDEs, and some CI doc tooling.
-          #
-          # Pattern: markdown link ](target/) where target is NOT an external URL,
-          # a mailto:, or a bare fragment anchor.
+          # Rule and rationale: CONTRIBUTING.md → Docs conventions.
+          # Pattern matches ](target/) where target is not an external URL,
+          # mailto:, or bare fragment anchor.
           pattern='\]\((?!https?://|mailto:|#)[^)]*/\)'
 
           if rg --pcre2 --type md -n "$pattern" .; then

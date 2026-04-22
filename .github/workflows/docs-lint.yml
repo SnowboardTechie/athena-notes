@@ -1,0 +1,32 @@
+name: Docs lint
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  trailing-slash-links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flag relative trailing-slash links in Markdown
+        run: |
+          set -euo pipefail
+
+          # Links in this repo should point at a concrete .md file, not a directory.
+          # Trailing-slash directory links render on GitHub but break in Obsidian
+          # preview, some IDEs, and some CI doc tooling.
+          #
+          # Pattern: markdown link ](target/) where target is NOT an external URL,
+          # a mailto:, or a bare fragment anchor.
+          pattern='\]\((?!https?://|mailto:|#)[^)]*/\)'
+
+          if rg --pcre2 --type md -n "$pattern" .; then
+            echo "::error::Found relative trailing-slash Markdown links. Link to the concrete .md file instead (see CONTRIBUTING.md → Docs conventions)."
+            exit 1
+          fi
+
+          echo "OK — no relative trailing-slash links found."

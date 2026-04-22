@@ -35,6 +35,12 @@ Every agent that needs `{{USER_NAME}}`, `{{TIMEZONE}}`, `{{NOTES_ROOT}}`, `{{WOR
 
 Agent and skill bodies should read cleanly as Markdown instructions even to a human (or to Cursor, Aider, Codex). Frontmatter is Claude-Code-specific, but the prose that follows shouldn't assume a specific runtime.
 
+### Docs conventions
+
+Markdown links to files in this repo point at the actual `.md` file, not the directory. For skills, that's `skills/{name}/SKILL.md`; for agents, `agents/{name}.md`. Trailing-slash directory links (e.g., `skills/foo/`) render on GitHub but break in Obsidian preview, some IDEs, and some CI doc tooling. External URLs (`https://…/`) are exempt and keep their native shape.
+
+A small CI check ([`.github/workflows/docs-lint.yml`](.github/workflows/docs-lint.yml)) enforces the rule.
+
 ### No AI attribution in commits
 
 This project never adds `Co-authored-by: Claude` or similar trailers. You're the author.

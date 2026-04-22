@@ -4,6 +4,13 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-lint-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   trailing-slash-links:
     runs-on: ubuntu-latest

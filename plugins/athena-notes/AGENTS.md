@@ -43,6 +43,17 @@ All spokes are **athena-only** — users talk to Athena; Athena delegates via Ta
 - **kindle** — flow-barrier coaching (anxiety / boredom / distraction)
 - **scout** — developer-forge activity (PR reviews, issues, own PRs, mentions) from GitHub via `gh` or Forgejo via `tea`; invoked automatically before forge on planning requests
 
+### When to add a new spoke (subagent) vs. keep work in a skill
+
+A new spoke is warranted only when at least one applies:
+
+1. **Context isolation** — the work reads many files or produces large synthesis that would bloat main context.
+2. **Parallelism** — independent units that can fan out (spawn N spokes in parallel, each returning its own artifact).
+3. **Reusability** — multiple skills, or Athena itself, would invoke the same worker.
+4. **Specialized persona** — a distinct prompt/frame improves the output (not just tool-level calls).
+
+If none apply, the work stays in the invoking skill. Interactive multi-turn flows (user Q&A loops, triage) are the wrong shape for spokes — spokes return a single artifact, not a conversation. MCPs and skills cover architectures that look agent-shaped but aren't: MCP for tool surfaces exposed to many agents; skill for user-facing orchestration.
+
 ---
 
 ## Notes System

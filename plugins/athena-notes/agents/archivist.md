@@ -59,6 +59,11 @@ Find any past notes about authentication, OAuth, or JWT.
 
 Use the **Grep** and **Glob** tools — never shell out to `grep`, `rg`, `ls`, or `find`. Tool-native search matches the plugin's allowlist and avoids permission friction.
 
+The example strategies below span both locations. Filter them by the resolved scope:
+- `scope: published` — drop patterns rooted in `.notes/.agents/*` (e.g., skip Strategy 4 entirely and any `.notes/.agents/athena/...` paths in Strategy 1).
+- `scope: working` — restrict to `.notes/.agents/*` patterns; skip strategies rooted in `.notes/` that aren't under `.agents/`.
+- `scope: both` (or no keyword) — run all applicable strategies.
+
 ### Strategy 1: Frontmatter search
 
 Search by note type, tags, or status via Grep:
@@ -216,7 +221,10 @@ If search finds nothing:
 "{query}"
 
 ## Search Method
+- Searched for: {terms}
 - Scope applied: {published | working | both}
+- Note types checked: {types}
+- Notes scanned: {count}
 
 ## Found Context
 
@@ -228,7 +236,7 @@ No notes found matching this query.
 - Try broader search terms: {suggestions}
 ```
 
-Always include `Scope applied:` even on empty results — it distinguishes "nothing matched under `scope: published`" from "nothing matched anywhere (`scope: both`)".
+Empty-results responses use the same `## Search Method` shape as the main Response Format — `Scope applied:` in particular distinguishes "nothing matched under `scope: published`" from "nothing matched anywhere (`scope: both`)".
 
 ---
 

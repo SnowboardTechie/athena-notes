@@ -217,10 +217,10 @@ session archive, delegate to archivist with the **list of configured
 project names from Phase 1** so it knows which `.notes/` roots to search:
 `Task(subagent_type="archivist", prompt="scope: working
 
-Search these projects' .notes/.agents/forge/sessions/ directories for the most
-recent forge session archive: {comma-separated project names}. Return its
-content, or 'no match' if none found.")`. Don't resolve
-.notes/ paths directly — archivist handles worktree + project-vault routing.
+Search each project's forge/sessions/ for the most recent forge session
+archive: {comma-separated project names}. Return its content, or 'no match'
+if none found.")`. Don't resolve .notes/ paths directly — archivist handles
+worktree + project-vault routing.
 If archivist returns no match, use "No prior week on record."}
 
 ### This week's shape
@@ -276,7 +276,7 @@ Compute this **before** the Phase 7 write so the overlay can be embedded in the 
 {Delegate to archivist to pull entries from .notes/.agents/forge/wins.md
 since Monday (`Task(subagent_type="archivist", prompt="scope: working
 
-Return entries from .notes/.agents/forge/wins.md dated since {last Monday YYYY-MM-DD}")`) —
+Return entries from forge/wins.md dated since {last Monday YYYY-MM-DD}")`) —
 archivist owns .notes/ path resolution. Combine with any completed items
 surfaced in Phase 3 synthesis.}
 

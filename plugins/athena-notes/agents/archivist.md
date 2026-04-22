@@ -37,14 +37,6 @@ If no `scope:` line is present, search both. This is the legacy default and keep
 
 The keyword is a first-class parameter — do **not** rely on prose wording like "published notes only" or "ignore .agents/" to narrow scope. A caller that wants a narrowed search must use the keyword; otherwise honor the both-by-default behavior.
 
-Example caller invocation with scope:
-
-```
-Task(subagent_type="archivist", prompt="scope: published
-
-Check for existing notes about authentication. Return matches...")
-```
-
 ---
 
 ## Search Strategies
@@ -107,7 +99,7 @@ When asked to find context:
 
 ### Step 1: Parse the Query
 
-Identify:
+If the first non-empty line is a `scope:` directive, consume it — don't treat it as a topic. Then identify:
 - **Topics** — what subjects to search for
 - **Types** — what note types are relevant (idea, exploration, decision, etc.)
 - **Time** — any time constraints (recent, last week, etc.)
@@ -182,6 +174,7 @@ Always return results in this structure:
 
 ## Search Method
 - Searched for: {terms}
+- Scope applied: {published | working | both}
 - Note types checked: {types}
 - Notes scanned: {count}
 

@@ -85,7 +85,7 @@ Before drafting anything, check for prior art in **both** places so you don't pr
 Check for existing notes about {topic}. Return matches with type, path, and a 1-line summary. If nothing matches, say so.")
    ```
 
-   The `scope: published` keyword is archivist's first-class way to restrict the search to `.notes/` and exclude `.notes/.agents/` working files — see the *Scope* section of `plugins/athena-notes/agents/archivist.md`. It replaces an earlier prose-level "Scope:" override that relied on archivist interpreting the sentence.
+   Use the `scope:` keyword (not prose like "published notes only") to narrow archivist's search — see the *Scope* section of `plugins/athena-notes/agents/archivist.md`.
 
    If archivist returns a match, treat the candidate as an **update** to that note, not a new one. Draft it using the Update template below.
 

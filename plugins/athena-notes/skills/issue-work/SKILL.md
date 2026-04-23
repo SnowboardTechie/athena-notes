@@ -331,9 +331,7 @@ Phase 4 hands off to the [`pr-self-review`](../pr-self-review/SKILL.md) skill in
 
 Invoke it via the `Skill` tool (not by running commands). The skill writes `review-{lens}.md` files and a final `summary.md` into the state dir, matching the shape Phase 4.3 reads below. When it returns, `summary.md` is ready.
 
-If `/pr-self-review` is unavailable for some reason (installation drift, user pinned an older plugin version), fall back to a single-pass three-lens review spawned directly from here: three parallel `impl-reviewer` Task calls with `lens`, `diff_range: {base}...HEAD`, `worktree_path`, `plan_path`, and `output_path: .../review-{lens}.md`; then synthesize `summary.md` inline. This is a safety-net path — prefer the skill.
-
-Set `progress.md` `status: reviewed` after the skill returns (or after the fallback synthesis completes).
+Set `progress.md` `status: reviewed` after the skill returns.
 
 ### 4.3 Present to user and ask for ship approval
 
@@ -394,11 +392,11 @@ Detailed recipes that load on demand:
 ## Related Agents
 
 - `ticket-analyst` — Phase 1 fetch + digest (model: haiku)
-- `impl-reviewer` — Phase 4 parallel reviewer with `lens` argument; carries its own lens prompts inline (model: sonnet). Invoked via `/pr-self-review`; kept reachable directly as a Phase 4.1 fallback.
+- `impl-reviewer` — Phase 4 parallel reviewer with `lens` argument; carries its own lens prompts inline (model: sonnet). Invoked via `/pr-self-review`.
 
 ## Related Skills
 
-- `pr-self-review` — Phase 4 delegates here for the three-lens review + triage loop. Required at runtime; the Phase 4.1 fallback only fires when the skill is missing from the environment.
+- `pr-self-review` — Phase 4 delegates here for the three-lens review + triage loop.
 - `ship` — Phase 4.3 hands off here on `ship it` for push + PR creation + template fill + label application.
 
 ### Optional Delegation

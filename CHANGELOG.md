@@ -6,6 +6,7 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ### Changed
 - `AGENTS.md` — new **Command files vs. skill auto-registration** subsection under Skill Authoring. Codifies when to add a `commands/<name>.md` file alongside a skill (full implementation, differently-named alias) and when not to (same-name shim). Surfaced in [#49](https://github.com/SnowboardTechie/athena-notes/pull/49).
+- `session-review` skill — now scans today's daily plan for tracked items resolved in the session and proposes in-place edits alongside AGENTS.md / `.notes/` drafts. Adds a categorization row, a new Step 1.6 scan (path resolved from `~/.claude/athena/identity.md` + `planning-sources.md` frontmatter, same convention as `workday-planning`), a Daily-plan output template, and Step 8 for the direct `Edit` write. Daily-plan edits bypass the Signal Test, so a zero-insight session can still close a planned loop. Resolves [#51](https://github.com/SnowboardTechie/athena-notes/issues/51).
 
 ## [0.4.2] — 2026-04-23
 

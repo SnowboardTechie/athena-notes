@@ -10,14 +10,7 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 - `.github/PULL_REQUEST_TEMPLATE.md` — prompts PR authors to pick a changelog mode (non-release / release / exempt) and surfaces the post-merge `gh release create` step so release PRs don't ship without a tag.
 
 ### Fixed
-- `impl-reviewer` agent frontmatter now declares `Write` in `tools:` — without it, Phase 4 parallel reviewers couldn't write their `review-{lens}.md` output files.
-- `issue-work` skill "Things This Skill Does NOT Do" list no longer says "Open PRs automatically" / "Push branches automatically" — both became false when Phase 4.3 was rewritten to delegate to `/ship` on approval. Replaced with "Ship without explicit approval — Phase 4.3's ship gate is mandatory."
-- `issue-work` Phase 2.1 Explore agents now write to `explore-{area-slug}.md` (per-agent) instead of sharing `explore.md` — eliminates the interleaved-write race when two Explores run in parallel.
-- `issue-create` Stage 4.1 Forgejo dedup check — hit a non-existent endpoint (`/repos/{owner}/{repo}/issues/search` isn't a Gitea/Forgejo route) and `.data[:3]` assumed a wrapped response. Now calls `/repos/{owner}/{repo}/issues?q=...` (the per-repo list with `q` filter) and slices the bare-array response with `.[:3]`.
-- `issue-create` Stage 4.2 GitHub post — `${milestone:+--milestone "$milestone"}` was unquoted and word-split on milestone titles containing spaces. Now built as an array (`milestone_flag=(…)`) and expanded quoted, matching the `label_flags` pattern.
-- `issue-create` Stage 4.2 Forgejo post — `LABELS_JSON` defaulted to empty string when no labels were selected, which crashed `json.loads('')` inside the payload heredoc. Now defaults to `"[]"`.
 - `ship` Step 6 — instruction to "remove lines starting with `>`" missed this repo's own PR template, which uses `<!-- … -->` HTML comments. The rule now covers both comment styles.
-- `issue-work` `references/repo-resolution.md` — `$HOME/code/*/*/.git` was listed in both "One directory deeper" and "Alternate parents" sections. Dedupe'd to the former.
 
 ### Changed
 - `ship` skill — Step 6 (Fill Description) now has an explicit source-of-truth priority: if the invoker passes a review/summary artifact, read it first and use its findings as the authoritative source for narrative sections. Previously, `/ship` filled sections from commit history only, which meant `issue-work`'s Phase 4 review summary never informed the PR body.

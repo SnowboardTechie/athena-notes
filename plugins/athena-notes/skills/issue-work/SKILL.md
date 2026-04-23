@@ -104,15 +104,23 @@ DEFAULT_BRANCH=$(gh repo view {owner}/{repo} --json defaultBranchRef --jq .defau
 **Then run the rest of the pre-flight:**
 
 ```bash
-gh auth status                                            # GitHub auth
-[[ -n "${FORGEJO_TOKEN:-$GITEA_TOKEN}" ]]                 # Forgejo auth (only if forgejo ticket)
-git -C "$TRUNK" fetch origin "$DEFAULT_BRANCH"            # fetch the actual default branch
+# GitHub auth — stop if not logged in
+gh auth status || { echo "Run: gh auth login"; exit 1; }
+
+# Forgejo auth (only if forgejo ticket) — stop if no token in env
+if [[ "$forge" == "forgejo" && -z "${FORGEJO_TOKEN:-${GITEA_TOKEN:-}}" ]]; then
+  echo "Set FORGEJO_TOKEN (or GITEA_TOKEN) in your shell env" >&2
+  exit 1
+fi
+
+# Fetch the actual default branch
+git -C "$TRUNK" fetch origin "$DEFAULT_BRANCH"
 
 # Working tree clean? (modified or staged — ignore untracked)
 git -C "$TRUNK" status --porcelain | grep -E '^[ MADRC]'
 ```
 
-If the trunk is dirty (modified/staged, not just untracked), stop and offer: stash / commit / abort. Do not silently stash.
+If either auth check fails, stop and surface the error to the user — do not proceed to worktree creation. If the trunk is dirty (modified/staged, not just untracked), stop and offer: stash / commit / abort. Do not silently stash.
 
 ### 1.6 Create worktree
 
@@ -305,7 +313,7 @@ Tests: {pass/fail summary}
 Lint/typecheck: {summary}
 ```
 
-When implementation is complete and green, keep `status: implementing` until Phase 4 finishes.
+Do not advance `status` when tests go green — Phase 4 bumps it to `reviewed` after self-review completes. Leave it at `implementing` until then.
 
 ---
 
@@ -395,7 +403,7 @@ Present the review outcome inline in this order:
 | Ticket is a PR (review work, not new work) | Skip worktree creation; `gh pr checkout {N}` in trunk or fetch branch; swap Phase 3 for "review against plan"; Phase 4 reviewers still run |
 | Tests fail 3× | Stop; surface last failure output; ask user |
 | Critical review findings | Present prominently; recommend fix-before-ship; never auto-ship |
-| User amends plan after approval | Overwrite `plan.md`; reset status `planned`; re-enter ExitPlanMode |
+| User amends plan after approval | Overwrite `plan.md`; reset status `planned`; re-present inline and await approval again (see Phase 2.4) |
 | Repo not cloned locally | Ask before `gh repo clone` to `~/code/{repo}` |
 | Forgejo ticket | `ticket-analyst` uses REST API; everything else identical |
 | Pasted raw text (no URL) | Skip fetch; ask user for repo; `context.md` has only Body |

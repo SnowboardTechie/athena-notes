@@ -184,16 +184,16 @@ Use `AskUserQuestion` with `multiSelect: true`. Include a "none" option and a fr
 #### Milestone
 
 ```bash
-# GitHub
+# GitHub — title is enough; gh issue create --milestone takes a title
 gh api "repos/{owner}/{repo}/milestones?state=open" --jq '[.[] | .title]'
 
-# Forgejo
-tea api "/repos/{owner}/{repo}/milestones?state=open" | jq '[.[] | .title]'
+# Forgejo — keep id alongside title; the POST body wants an integer id
+tea api "/repos/{owner}/{repo}/milestones?state=open" | jq '[.[] | {id, title}]'
 ```
 
 If the list is empty, silently skip.
 
-Use `AskUserQuestion` single-select with "(none)" as a default option.
+Use `AskUserQuestion` single-select with "(none)" as a default option. On the Forgejo path, after the user picks a title, look up its `id` from the response above for Stage 4.2's `milestone` payload field.
 
 ---
 
@@ -288,8 +288,19 @@ tea api "/repos/$owner/$repo/issues/search?q=$(jq -rn --arg q "$title_keywords" 
 
 ```bash
 # Skip the first ---...--- block; keep everything after it.
+# Only skip the leading blank line that conventionally follows the closing ---.
+# A naive "skip line after the second ---" eats the first body line when the
+# draft writer omits the blank separator.
 BODY_FILE=$(mktemp)
-awk 'BEGIN{n=0} /^---$/{n++; if(n<=2) next} n>=2 && !p{p=1; next} p{print}' "$DRAFT_PATH" > "$BODY_FILE"
+awk '
+  BEGIN { n = 0; started = 0 }
+  !started && /^---$/ { n++; if (n <= 2) next }
+  !started && n >= 2 {
+    if ($0 == "") next   # eat one blank line (conventional), then start printing
+    started = 1
+  }
+  started { print }
+' "$DRAFT_PATH" > "$BODY_FILE"
 ```
 
 **GitHub:**

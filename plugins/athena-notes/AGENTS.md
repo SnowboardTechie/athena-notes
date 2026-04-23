@@ -225,6 +225,20 @@ Pattern: before emitting the final YAML, read the existing file, extract every t
 
 Surfaced in [#39](https://github.com/SnowboardTechie/athena-notes/issues/39) / [#40](https://github.com/SnowboardTechie/athena-notes/pull/40); implemented as `workday-planning/SKILL.md` Bootstrap Flow Step 0.
 
+### Command files vs. skill auto-registration
+
+A plugin skill at `skills/<name>/SKILL.md` is auto-registered as both `/<name>` and `/athena-notes:<name>` by Claude Code — no command file required. Adding a `commands/<name>.md` file with the **same name** as a skill shadows that auto-registration and breaks the bare form (`/<name>` returns "Unknown command"), while the namespaced form keeps working.
+
+Decide by role:
+
+| `commands/<name>.md` role | Same-name skill exists? | Keep the command file? |
+|---|---|---|
+| Full implementation (the command IS the logic) | No | Yes — it's the only surface |
+| Alias to a differently-named skill (e.g., `/plan-workday` → `workday-planning`) | No (different name) | Yes — it's a user-facing shortcut |
+| Shim that just re-invokes a same-named skill | Yes | **No** — delete it; auto-reg handles both forms |
+
+Surfaced in [#49](https://github.com/SnowboardTechie/athena-notes/pull/49) (v0.4.2) after `/issue-create` failed across every worktree despite shipping both a command file and a skill. Removing the shims restored the bare form without regressing the namespaced form.
+
 ---
 
 ## PR Review Comments

@@ -54,6 +54,15 @@ A new spoke is warranted only when at least one applies:
 
 If none apply, the work stays in the invoking skill. Interactive multi-turn flows (user Q&A loops, triage) are the wrong shape for spokes — spokes return a single artifact, not a conversation. MCPs and skills cover architectures that look agent-shaped but aren't: MCP for tool surfaces exposed to many agents; skill for user-facing orchestration.
 
+### Parallel agents write to distinct output paths
+
+When spawning parallel Task or Explore agents, each agent needs its own output destination — never a shared file that multiple agents append to. Concurrent appends interleave silently and corrupt the output; file locking isn't reliable across agent boundaries. Two safe shapes:
+
+- **File-per-agent** — the orchestrator picks a unique filename per agent (e.g., `explore-{area-slug}.md`); each agent writes its single file; the orchestrator reads them back for synthesis. See [issue-work/SKILL.md](skills/issue-work/SKILL.md) Phase 2.1.
+- **Return-by-message** — each agent returns its findings in the Task result; the orchestrator synthesizes into a single file. See [session-review/SKILL.md](skills/session-review/SKILL.md) Step 2.
+
+Do not instruct parallel agents to "append to `shared.md` under a `## Area: {name}` heading" — that shape invites the anti-pattern the *Parallelism* criterion above is describing.
+
 ---
 
 ## Notes System
@@ -177,6 +186,36 @@ Scribe writes immediately on invocation. No previews, no confirmation prompts.
   ```
 
   Default-token least-privilege and ref-level run de-duplication. `docs-lint.yml` conforms; `version-check.yml` predates the rule and is a backfill candidate.
+
+---
+
+## Skill Authoring
+
+### Positive prompts for approval gates
+
+When a skill reaches an action gate (open a PR, publish a note, post to Slack, send an email), script the question positively — ask what the skill wants to do and list the accepted replies. Don't state the prohibition and leave the orchestrator to invent the prompt shape.
+
+Write:
+
+> Ask: *"Ready to push and open the draft PR? [yes / wait]"*. Wait for explicit approval. Treat silence or ambiguity as a re-prompt, not as approval.
+
+Not:
+
+> Do not auto-open the PR. User approves ship.
+
+Prohibitions leave the orchestrator to fill the positive shape, which often lands as a silent stop — the user has to pull the thread ("why did you stop?") to get moving. Discovered in [#10](https://github.com/SnowboardTechie/athena-notes/issues/10) / [#31](https://github.com/SnowboardTechie/athena-notes/pull/31); `issue-work/SKILL.md` Phase 4.3 was rewritten from the negative form to the positive form.
+
+### Per-user config vs per-project state vs plugin-local
+
+Three storage surfaces. The decision rule is: "does this vary by user?" → `~/.claude/athena/`. "Does this vary by project?" → `.notes/.agents/{skill}/`. "Neither?" → ship it in the plugin body.
+
+| Surface | Varies by | Examples |
+|---|---|---|
+| `~/.claude/athena/*.md` | User (name, vault path, working hours, source lists) | `identity.md` (via `/athena-setup`), `planning-sources.md` (via `/plan-workday`) |
+| `.notes/.agents/{skill}/` | Project (per-repo caches, drafts, session context) | `.notes/.agents/drafts/`, `.notes/.agents/issue-create/type-ids.md` |
+| Plugin body (`SKILL.md`, `references/`) | Neither — ships with the plugin | Static instruction text, example templates |
+
+Per-user config files are bootstrapped by the owning skill on first use (prompt → write → proceed), matching the `/athena-setup` pattern. Per-project state uses the worktree-aware trunk-resolution protocol from [agent-workspace/SKILL.md](skills/agent-workspace/SKILL.md).
 
 ---
 

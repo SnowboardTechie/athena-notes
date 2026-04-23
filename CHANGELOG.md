@@ -4,6 +4,8 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-04-22
+
 ### Added
 - `issue-create` skill (`plugins/athena-notes/skills/issue-create/`) and `/issue-create` slash command. Q&A-driven drafting of GitHub/Forgejo issues: detects forge and repo, scans `.github/ISSUE_TEMPLATE/` for field-based templates or falls back to a six-section default structure, asks clarifying questions, writes a draft to `.notes/.agents/drafts/` for review, runs a best-effort dedup check, posts via `gh issue create`, sets the template's `type:` via the GraphQL `updateIssueIssueType` mutation (with per-repo ID cache + verify-and-retry), archives the draft on success, and offers to hand off to `/issue-work`. Addresses [#10](https://github.com/SnowboardTechie/athena-notes/issues/10).
 - `issue-work` skill (`plugins/athena-notes/skills/issue-work/`) migrated into the plugin, with `ticket-analyst` and `impl-reviewer` agents. Four-phase workflow (intake → plan → implement → self-review) for taking a ticket URL to review-ready implementation. `impl-reviewer` now carries its three lens prompts (correctness / security / simplicity) inline so the plugin is self-contained — no hard dependency on external `code-review` / `security-review` / `simplify` skills. Phase 4.3 ends with an explicit ship prompt that delegates to the `ship` skill on approval (instead of rolling its own `git push` + `gh pr create`), so PRs get template-based descriptions, Forgejo API support, and label application for free.
@@ -24,6 +26,8 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 - `.github/workflows/version-check.yml` — split into two modes: non-release PRs just require `CHANGELOG.md` in the diff; release PRs (version bumped) keep the full footer/section checks. Repo URL now read from `${{ github.repository }}` so forks don't silently break CI.
 - `plugins/athena-notes/AGENTS.md` — adds **When to add a new spoke (subagent) vs. keep work in a skill** subsection under *Architecture*. Four criteria (context isolation, parallelism, reusability, specialized persona); interactive multi-turn flows explicitly called out as the wrong shape for spokes; MCP and skill contrasted as the alternatives for tool surfaces and user-facing orchestration respectively. Codifies the rubric applied when scoping [#28](https://github.com/SnowboardTechie/athena-notes/issues/28) and reviewing [#23](https://github.com/SnowboardTechie/athena-notes/issues/23).
 - `plugins/athena-notes/AGENTS.md` — adds **Fixed is for previously-shipped behavior only** clause inside the *Changelog-first, release-on-bump* convention. Mid-PR iteration (fixes to code added on the same branch) folds into the **Added**/**Changed** bullet for the new feature; **Fixed** is reserved for changes to behavior users could have seen in a prior release. Readers of a release changelog never experienced the pre-fix state, so a separate Fixed bullet is noise; squash-merge preserves the iteration trail in `git log`.
+- `plugins/athena-notes/AGENTS.md` — adds **Parallel agents write to distinct output paths** subsection under *Architecture*. Codifies the file-per-agent (e.g., `explore-{area-slug}.md`) and return-by-message shapes as the two safe patterns; calls out shared-file-with-heading append as the anti-pattern. Discovered during [#31](https://github.com/SnowboardTechie/athena-notes/pull/31) and resolves [#36](https://github.com/SnowboardTechie/athena-notes/issues/36).
+- `plugins/athena-notes/AGENTS.md` — new **Skill Authoring** top-level section with two subsections. *Positive prompts for approval gates*: skills at action gates (open PR, post note, send message) script the question positively with accepted replies, rather than stating a prohibition and leaving the orchestrator to invent the prompt shape — resolves [#33](https://github.com/SnowboardTechie/athena-notes/issues/33). *Per-user config vs per-project state vs plugin-local*: three-surface storage model (`~/.claude/athena/` for user config, `.notes/.agents/{skill}/` for project state, plugin body for static content) with a decision rule and worked examples — resolves [#32](https://github.com/SnowboardTechie/athena-notes/issues/32). Both were discovered in the [#31](https://github.com/SnowboardTechie/athena-notes/pull/31) review pass.
 
 ## [0.2.0] — 2026-04-21
 
@@ -64,6 +68,7 @@ First public release. Complete port from the OpenCode/OhMyOpenAgent implementati
 ### Removed
 - `PORTING.md` — internal tracker from the OpenCode → Claude Code port. The port is done; the file was stale (GitHub repo already exists, "remaining" items all landed). Historical context preserved in git history.
 
-[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.3.0
 [0.2.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.2.0
 [0.1.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.1.0

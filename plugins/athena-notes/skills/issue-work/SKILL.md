@@ -176,7 +176,7 @@ Prompt template for each Explore agent:
 > - Test locations and conventions in this area
 > - Any gotchas or non-obvious coupling
 >
-> Write your findings to `~/.claude/issue-work/{owner}-{repo}-{N}/explore.md` (append if a second Explore is running — use a `## Area: {name}` heading).
+> Write your findings to `~/.claude/issue-work/{owner}-{repo}-{N}/explore-{area-slug}.md` where `{area-slug}` is a short kebab-case tag for your assigned scope (e.g., `frontend`, `api`, `migration`). One file per agent — never share a file between Explore agents, since parallel appends can interleave and corrupt the output.
 
 ### 2.2 External research (conditional, inline)
 
@@ -208,7 +208,7 @@ updated: {iso8601}
 
 ## Problem
 
-{2–3 sentences from context.md + explore.md}
+{2–3 sentences from context.md + explore-*.md}
 
 ## Approach
 

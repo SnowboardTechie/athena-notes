@@ -12,6 +12,8 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 ### Fixed
 - `impl-reviewer` agent frontmatter now declares `Write` in `tools:` — without it, Phase 4 parallel reviewers couldn't write their `review-{lens}.md` output files.
 - `issue-work` skill "Things This Skill Does NOT Do" list no longer says "Open PRs automatically" / "Push branches automatically" — both became false when Phase 4.3 was rewritten to delegate to `/ship` on approval. Replaced with "Ship without explicit approval — Phase 4.3's ship gate is mandatory."
+- `issue-work` Phase 2.1 Explore agents now write to `explore-{area-slug}.md` (per-agent) instead of sharing `explore.md` — eliminates the interleaved-write race when two Explores run in parallel.
+- `issue-create` Stage 1.1 forge detection no longer includes a personal-brand substring (`snowboardtechie`); Forgejo matching is limited to `forgejo`/`gitea`/`codeberg` with the existing "unknown forge → ask user" fallback handling any other instance.
 
 ### Changed
 - `ship` skill — Step 6 (Fill Description) now has an explicit source-of-truth priority: if the invoker passes a review/summary artifact, read it first and use its findings as the authoritative source for narrative sections. Previously, `/ship` filled sections from commit history only, which meant `issue-work`'s Phase 4 review summary never informed the PR body.

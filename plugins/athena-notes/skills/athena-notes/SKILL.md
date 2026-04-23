@@ -401,7 +401,7 @@ attendees:
 tags:
   - meeting
   - {topic}
-source: pasted | granola | otter | other
+source: pasted | other
 ---
 
 # Meeting: {Title}

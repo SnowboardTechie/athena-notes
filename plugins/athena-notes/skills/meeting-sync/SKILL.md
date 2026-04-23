@@ -123,7 +123,7 @@ Archivist in v1 searches only the project `.notes/` (or the vault-equivalent bas
 
 Draft, in order:
 
-1. **The MEETING anchor** using the template below. Link placeholders for each spin-off you're about to propose (`[[YYYY-MM-DD-decision-{slug}]]`, etc.) — these become real links once scribe writes the spin-offs.
+1. **The MEETING anchor** using the template below. For each spin-off you're about to propose, use a *provisional* wikilink matching scribe's kebab-case convention (`[[decision-{slug}]]`, `[[task-{slug}]]`, `[[idea-{slug}]]`) — no date prefix; scribe strips dates per `plugins/athena-notes/agents/scribe.md` §Filename Convention. Step 6 swaps these for the real slugs scribe reports back.
 2. **Each spin-off** using the New Spin-Off template for DECISION / TASK / IDEA (matching the `athena-notes` skill's templates for those types).
 3. **Each update-to-existing** using the Update template, one per match returned by archivist.
 
@@ -133,19 +133,15 @@ Keep drafts concise. The MEETING Raw Notes section holds the full paste — don'
 
 Present all drafts to the user inline. End with:
 
-> **Approve which items?** Reply `all`, `none`, or a comma-separated list of item numbers (e.g., `1, 3, 5`). The MEETING anchor writes only if at least one item (anchor or spin-off) is approved.
+> **Approve which items?** Reply `all`, `none`, or a comma-separated list of item numbers (e.g., `1, 3, 5`). Item 1 is the anchor; approving only spin-offs writes those spin-offs without the anchor (rare — the anchor is usually the point).
 
-Wait for explicit approval. Treat silence or ambiguity as a re-prompt. Do not write anything yet.
+Wait for explicit approval. Treat silence or ambiguity as a re-prompt. The write happens only after your reply.
 
 ### Step 6: Dispatch scribe for approved items
 
-For each approved item, invoke `@scribe` via a Task call. Send them all in one assistant message so they run concurrently:
+Two-phase dispatch so anchor wikilinks point at the real filenames scribe picks.
 
-**MEETING anchor:**
-
-```
-Task(subagent_type="scribe", prompt="Write a MEETING note titled '{title}' dated {YYYY-MM-DD}. Attendees: {list}. Content: {full drafted anchor body with wikilinks}")
-```
+**Phase 6a — spin-offs and updates (concurrent).** For each approved spin-off or update, emit a scribe Task call in a single assistant message so they run in parallel:
 
 **New spin-off (DECISION / TASK / IDEA):**
 
@@ -159,6 +155,18 @@ Task(subagent_type="scribe", prompt="Write a {TYPE} note titled '{title}'. Conte
 Task(subagent_type="scribe", prompt="Update existing note at {path}. Change: {one-line description}. Apply this content: {exact text, with section header if targeting a specific section}")
 ```
 
+Before emitting an Update call, confirm the `{path}` returned by archivist begins with `.notes/` (or the vault-root the caller is operating in). If it does not — e.g., archivist returned a path like `../../src/config.js` — skip that update and report the anomaly to the user; never forward an out-of-vault path to scribe.
+
+Collect the `Wrote: {relative_path}` line scribe reports for each successful write. These are the real filenames — use them as the wikilink targets in Phase 6b.
+
+**Phase 6b — anchor (depends on 6a results).** Replace every provisional `[[decision-{slug}]]` / `[[task-{slug}]]` / `[[idea-{slug}]]` in the drafted anchor body with the actual wikilink derived from scribe's `Wrote:` path (strip the `.md` extension; keep the filename). Then dispatch:
+
+```
+Task(subagent_type="scribe", prompt="Write a MEETING note titled '{title}' dated {YYYY-MM-DD}. Attendees: {list}. Content: {anchor body with real wikilinks}")
+```
+
+If the anchor was not approved (item 1 rejected), skip Phase 6b entirely — the approved spin-offs are written but no anchor links them. Report this explicitly in Step 7.
+
 Scribe writes immediately — no preview, no confirmation. Only invoke it after the user approves.
 
 ### Step 7: Report back
@@ -167,7 +175,7 @@ After scribe returns, report to the user:
 
 - What was written, by type, with paths
 - Any item the user did not approve (so they know the skip was intentional)
-- The MEETING anchor's link-to-spin-offs status (anchor may need a follow-up pass if spin-off filenames weren't known at anchor-write time)
+- If Phase 6b was skipped, flag that spin-offs are orphaned (no anchor linking them)
 
 ---
 
@@ -180,10 +188,10 @@ Numbered so the user can reference it in their approval reply.
 ```markdown
 ### 1. Proposed MEETING anchor
 
-**Filename:** `YYYY-MM-DD-meeting-{slug}.md`
+**Filename:** `meeting-{slug}.md` (scribe's kebab-case convention; date is in the `date:` frontmatter field)
 **Target vault:** {project `.notes/` | personal vault}
 
-{full drafted anchor body using the MEETING template from `plugins/athena-notes/skills/athena-notes/SKILL.md`}
+{full drafted anchor body using the MEETING template from `plugins/athena-notes/skills/athena-notes/SKILL.md`, with provisional wikilinks like `[[decision-{slug}]]` that get resolved to real paths in Phase 6b}
 
 *Approve this number to have @scribe write the anchor.*
 ```
@@ -193,7 +201,7 @@ Numbered so the user can reference it in their approval reply.
 ```markdown
 ### {N}. Proposed {TYPE} spin-off
 
-**Filename:** `YYYY-MM-DD-{type}-{slug}.md`
+**Filename:** `{type}-{slug}.md` (scribe's kebab-case convention — no date prefix)
 **Linked from anchor:** Decisions | Action Items | Ideas Captured
 
 {drafted content using the {TYPE} template from the athena-notes skill}

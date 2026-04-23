@@ -404,8 +404,7 @@ Present the review outcome inline in this order:
 
 ## Things This Skill Does NOT Do
 
-- Open PRs automatically (the user runs `gh pr create` when ready)
-- Push branches automatically
+- Ship without explicit approval — Phase 4.3's ship gate is mandatory; silence is not consent. On `ship it` the skill hands off to `/ship`, which handles the push + PR creation.
 - Modify files outside the worktree and the state dir
 - Add AI signatures to commits or PRs
 - Skip hooks (`--no-verify`) or bypass signing

@@ -1,7 +1,7 @@
 ---
 name: impl-reviewer
 description: Independent reviewer agent that reviews a diff through a single lens (correctness, security, or simplicity). Invoked by the `issue-work` skill to run three reviewers in parallel against a just-finished implementation before returning it to the user. Not user-facing. Self-contained — lens prompts are inline; no delegation to external skills.
-tools: Bash, Read, Grep, Glob
+tools: Bash, Read, Write, Grep, Glob
 model: sonnet
 ---
 

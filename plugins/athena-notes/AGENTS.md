@@ -54,6 +54,15 @@ A new spoke is warranted only when at least one applies:
 
 If none apply, the work stays in the invoking skill. Interactive multi-turn flows (user Q&A loops, triage) are the wrong shape for spokes — spokes return a single artifact, not a conversation. MCPs and skills cover architectures that look agent-shaped but aren't: MCP for tool surfaces exposed to many agents; skill for user-facing orchestration.
 
+### Parallel agents write to distinct output paths
+
+When spawning parallel Task or Explore agents, each agent needs its own output destination — never a shared file that multiple agents append to. Concurrent appends interleave silently and corrupt the output; file locking isn't reliable across agent boundaries. Two safe shapes:
+
+- **File-per-agent** — the orchestrator picks a unique filename per agent (e.g., `explore-{area-slug}.md`); each agent writes its single file; the orchestrator reads them back for synthesis. See [issue-work/SKILL.md](skills/issue-work/SKILL.md) Phase 2.1.
+- **Return-by-message** — each agent returns its findings in the Task result; the orchestrator synthesizes into a single file. See [session-review/SKILL.md](skills/session-review/SKILL.md) Step 2.
+
+Do not instruct parallel agents to "append to `shared.md` under a `## Area: {name}` heading" — that shape invites the anti-pattern the *Parallelism* criterion above is describing.
+
 ---
 
 ## Notes System

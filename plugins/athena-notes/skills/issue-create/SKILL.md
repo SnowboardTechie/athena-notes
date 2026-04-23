@@ -163,7 +163,7 @@ Ask via conversational turns (open-ended answer space). Use the user's initial f
 
 Match answers to template fields by label. If the template has a field that none of the answers cover, ask an additional targeted question. If the template has a field that's already covered by an answer, don't re-ask.
 
-### 2.2 Metadata via `AskUserQuestion`
+### 2.2 Metadata collection
 
 #### Labels
 
@@ -199,17 +199,19 @@ Use `AskUserQuestion` single-select with "(none)" as a default option. On the Fo
 
 Forgejo has no Projects equivalent — skip this subsection entirely on the Forgejo path.
 
-Query Projects **linked to this repo** (not the owner-scoped list, which surfaces boards unrelated to this repo):
+Query Projects **linked to this repo** (not the owner-scoped list, which surfaces boards unrelated to this repo). Pass `owner` / `name` as GraphQL variables rather than inlining them into the query body — matches the variable-binding form used by the issue-type queries in Stage 4.3/4.4:
 
 ```bash
 gh api graphql -f query='
-  query {
-    repository(owner: "'"$owner"'", name: "'"$repo"'") {
+  query($owner: String!, $name: String!) {
+    repository(owner: $owner, name: $name) {
       projectsV2(first: 20) {
-        nodes { number title closed }
+        nodes { title closed }
       }
     }
-  }' --jq '[.data.repository.projectsV2.nodes[] | select(.closed == false) | .title]'
+  }' \
+  -f owner="$owner" -f name="$repo" \
+  --jq '[.data.repository.projectsV2.nodes[] | select(.closed == false) | .title]'
 ```
 
 Branch on the result:
@@ -217,8 +219,6 @@ Branch on the result:
 - **Zero open linked projects** → skip silently. No prompt, no flag.
 - **Exactly one open linked project** → attach it automatically. One linked project is unambiguous, so no prompt. Capture the title for Stage 4.2's `--project` flag.
 - **Two or more open linked projects** → `AskUserQuestion` single-select with each title plus `(none)`. Capture the selection (empty when `(none)`).
-
-`repository.projectsV2` returns the subset linked to this specific repo. `gh project list --owner X` would surface every board the owner has, most of which are unrelated — don't use it here.
 
 ---
 
@@ -526,6 +526,7 @@ Show the user:
 
 Labels: {applied}
 Milestone: {applied or "—"}
+Project: {attached or "—"}
 Type: {set or "—" or "⚠ not set, retry manually"}
 
 Archived draft: {archive path}
@@ -545,6 +546,7 @@ Then ask: "Start working on this now?" If yes, invoke the `issue-work` skill wit
 | Template has `title:` prefix | Pre-fill user's title suggestion with the prefix |
 | Template has required fields | Don't post with empty answers; re-ask |
 | `gh auth status` fails | Stop. Tell user to `gh auth login` |
+| `gh issue create --project` errors on scope | Surface the error and tell user to run `gh auth refresh -s project` and retry — the `project` OAuth scope is separate from the default `gh` token scopes |
 | Forgejo token missing | Stop. Tell user token source (tea config) |
 | No labels / no milestones in repo | Skip the `AskUserQuestion` prompts silently |
 | User edits draft mid-Stage 3 | Re-render from user's edits; continue iteration |

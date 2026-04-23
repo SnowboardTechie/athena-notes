@@ -9,7 +9,7 @@ _No unreleased changes._
 ## [0.4.1] — 2026-04-23
 
 ### Changed
-- `issue-create` skill — GitHub path now attaches new issues to repo-linked GitHub Projects (V2). Queries `repository.projectsV2` filtered to open projects; zero linked projects skips silently, exactly one linked project auto-attaches, two or more prompts via `AskUserQuestion` single-select with `(none)` available. Uses the repo-scoped graphql query rather than `gh project list --owner X` so org-level boards unrelated to this repo stay out of the prompt. Wires into the existing `gh issue create` invocation via a new `project_flag` array; Forgejo has no Projects equivalent and skips entirely. Draft frontmatter gains a `project:` field for traceability.
+- `issue-create` skill — new issues are now attached to open GitHub Projects linked to the target repo. Auto-attaches when exactly one linked project exists, prompts when more than one, skips silently when none. Forgejo path is unchanged (no Projects equivalent).
 
 ## [0.4.0] — 2026-04-22
 

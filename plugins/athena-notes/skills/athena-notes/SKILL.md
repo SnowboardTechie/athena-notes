@@ -380,6 +380,67 @@ ticket: {TICKET-ID}
 
 ---
 
+### 7. MEETING - Meeting Anchor
+
+Anchor note for a single meeting. Captures attendees, context, and the raw paste; links out to DECISION / TASK / IDEA spin-offs created from the same meeting. Produced by the `meeting-sync` skill, which decomposes a pasted meeting blob into this anchor plus the spin-offs.
+
+**When to use:**
+- Meeting produced a mix of decisions, action items, and ideas worth preserving distinctly
+- You want one findable record of the meeting itself (attendees, date, context) alongside the spin-offs
+- Paste contains structure the skill can decompose — decisions, action items, open questions
+
+**Filename:** `YYYY-MM-DD-meeting-{slug}.md`
+
+```markdown
+---
+type: meeting
+date: YYYY-MM-DD
+attendees:
+  - "{name}"
+  - "{name}"
+tags:
+  - meeting
+  - {topic}
+source: pasted | other
+---
+
+# Meeting: {Title}
+
+## Attendees
+
+- {name} ({role, optional})
+- {name}
+
+## Context
+
+{Why this meeting happened, what it was about — 1-3 sentences}
+
+## Decisions
+
+- [[YYYY-MM-DD-decision-{slug}]] — {one-line summary}
+- {inline decision with no spin-off, if small enough}
+
+## Action Items
+
+- [ ] [[YYYY-MM-DD-task-{slug}]] — {owner}: {action}
+- [ ] {owner}: {action} (inline, if no spin-off)
+
+## Open Questions
+
+- {question raised, not yet answered}
+
+## Ideas Captured
+
+- [[YYYY-MM-DD-idea-{slug}]] — {one-line summary}
+
+## Raw Notes
+
+> [!note]- Original paste
+> {the full paste, collapsed}
+```
+
+---
+
 ## Capture Triggers
 
 ### When Athena Should Auto-Capture
@@ -392,6 +453,7 @@ ticket: {TICKET-ID}
 | Session ending, was valuable | SESSION | @scribe session summary |
 | Same topic 3+ times | THREAD | @scribe thread note |
 | Checking ticket/PR status | TASK | @scribe update/create task note |
+| Meeting notes pasted with attendees/date | MEETING | `/meeting-sync` — anchor + spin-offs |
 
 ### Capture Prompts
 
@@ -415,6 +477,9 @@ THREAD DETECTION:
 
 TASK UPDATE:
 "Checking work status. I'll update the task note with current state."
+
+MEETING SYNC:
+"Meeting notes pasted. I'll route the decisions, actions, and ideas into the right places via /meeting-sync."
 ```
 
 ---

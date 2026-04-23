@@ -184,8 +184,60 @@ target: idea | exploration | decision  # What it might become
 |---|---|
 | Idea forming | Create draft in `drafts/` |
 | Draft ready | Promote to `.notes/` via scribe |
+| Draft posted / promoted | Archive to `_archive/{domain}/` with canonical-artifact footer (see Archive Pattern below) |
 | Draft abandoned | Delete via pyre |
-| Draft stale (>14 days) | Review — promote or delete |
+| Draft stale (>14 days) | Review — promote, archive, or delete |
+
+---
+
+## Archive Pattern
+
+When a draft or task artifact reaches a "done" state — posted as an issue, promoted to a permanent note, shipped as a PR — the working file should be **archived**, not deleted. The archive preserves the thinking that led to the canonical artifact, which is useful for retros and future grep.
+
+### Path convention
+
+```
+.notes/.agents/_archive/{domain}/{YYYY-MM-DD}-{slug}.md          # single file
+.notes/.agents/_archive/{domain}/{YYYY-MM-DD}-{slug}/             # multi-file work
+```
+
+- `{domain}` — the skill or workflow that produced the artifact (e.g., `issue-create`, `weekly-planning`, `session-review`). Keeps archives browsable by skill.
+- `{YYYY-MM-DD}` — the date the artifact was posted/promoted, in the user's local timezone. Makes chronological browsing trivial.
+- `{slug}` — the same slug used in the original `drafts/` filename (lowercased title, non-alphanumerics → `-`).
+
+### Footer convention
+
+Archived files should end with a minimal "where this went" footer so the file explains itself without reaching for context:
+
+```markdown
+---
+Posted: https://github.com/owner/repo/issues/123
+```
+
+Or for promoted notes:
+
+```markdown
+---
+Promoted: [[my-published-note]]
+```
+
+One canonical artifact per archive file. If the draft produced multiple outputs (e.g., an idea split into two tickets), record both with separate lines.
+
+### When to archive vs. delete
+
+| Condition | Action |
+|---|---|
+| Draft posted/promoted successfully | Archive |
+| Draft explicitly abandoned by user | Delete via pyre |
+| Half-finished scratch work the user says to drop | Delete via pyre |
+| Draft older than 14 days and never promoted | Review with user — promote, archive, or delete |
+| Task context for completed work (`athena/{task-slug}/`) | Archive if there are non-trivial insights; otherwise delete |
+
+**Default to archive** when a draft produced an artifact. Deletion is reserved for work the user has explicitly walked away from.
+
+### Pyre integration
+
+`pyre` is the only agent that should delete files under `.agents/`. Its standard tiered-confirmation rules apply to `_archive/` too — archived work is no less sensitive than an active draft just because it's been moved.
 
 ---
 

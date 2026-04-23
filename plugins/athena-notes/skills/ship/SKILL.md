@@ -27,7 +27,7 @@ Follows the "Wrapping Up" flow from the `worktrunk` skill. Load it for full deta
 remote_url=$(git remote get-url origin 2>/dev/null)
 if [[ "$remote_url" == *"github.com"* ]]; then
   forge="github"
-elif [[ "$remote_url" == *"forgejo"* || "$remote_url" == *"gitea"* || "$remote_url" == *"snowboardtechie"* ]]; then
+elif [[ "$remote_url" == *"forgejo"* || "$remote_url" == *"gitea"* || "$remote_url" == *"codeberg"* || "$remote_url" == *"snowboardtechie"* ]]; then
   forge="forgejo"
 else
   echo "No supported forge detected — use wt merge instead"
@@ -116,7 +116,12 @@ for candidate in \
 done
 ```
 
-**If a template exists:** Read it and use its sections as the structure for the PR body. Fill each section with relevant content. Remove instruction/placeholder text (lines starting with `>`). Do not leave empty sections — write `N/A` if a section doesn't apply.
+**Source-of-truth priority when filling sections:**
+
+1. If the invoker passes a **review / summary artifact** (e.g., `issue-work` hands off its `~/.claude/issue-work/{owner}-{repo}-{N}/summary.md`, or the user cites a plan document) — read it first and use its findings + rationale as the authoritative source for Summary, Test-plan, and any other narrative sections. The artifact is *why* this PR exists; the diff is *what*.
+2. Otherwise, derive from the commit history + diff.
+
+**If a template exists:** Read it and use its sections as the structure for the PR body. Fill each section with relevant content per the priority above. Strip instruction/placeholder text before posting — templates commonly use either `> ` blockquotes or `<!-- ... -->` HTML comments (this repo's `.github/PULL_REQUEST_TEMPLATE.md` uses the HTML-comment style), so remove both. Do not leave empty sections — write `N/A` if a section doesn't apply.
 
 **If no template exists:** Write a comprehensive PR description covering:
 - Summary of changes (what and why)

@@ -4,6 +4,8 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-04-22
+
 ### Added
 - `issue-create` skill (`plugins/athena-notes/skills/issue-create/`) and `/issue-create` slash command. Q&A-driven drafting of GitHub/Forgejo issues: detects forge and repo, scans `.github/ISSUE_TEMPLATE/` for field-based templates or falls back to a six-section default structure, asks clarifying questions, writes a draft to `.notes/.agents/drafts/` for review, runs a best-effort dedup check, posts via `gh issue create`, sets the template's `type:` via the GraphQL `updateIssueIssueType` mutation (with per-repo ID cache + verify-and-retry), archives the draft on success, and offers to hand off to `/issue-work`. Addresses [#10](https://github.com/SnowboardTechie/athena-notes/issues/10).
 - `issue-work` skill (`plugins/athena-notes/skills/issue-work/`) migrated into the plugin, with `ticket-analyst` and `impl-reviewer` agents. Four-phase workflow (intake → plan → implement → self-review) for taking a ticket URL to review-ready implementation. `impl-reviewer` now carries its three lens prompts (correctness / security / simplicity) inline so the plugin is self-contained — no hard dependency on external `code-review` / `security-review` / `simplify` skills. Phase 4.3 ends with an explicit ship prompt that delegates to the `ship` skill on approval (instead of rolling its own `git push` + `gh pr create`), so PRs get template-based descriptions, Forgejo API support, and label application for free.
@@ -64,6 +66,7 @@ First public release. Complete port from the OpenCode/OhMyOpenAgent implementati
 ### Removed
 - `PORTING.md` — internal tracker from the OpenCode → Claude Code port. The port is done; the file was stale (GitHub repo already exists, "remaining" items all landed). Historical context preserved in git history.
 
-[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.3.0
 [0.2.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.2.0
 [0.1.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.1.0

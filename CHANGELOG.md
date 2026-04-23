@@ -6,6 +6,7 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ### Changed
 - `ship` skill — preamble now states the skill's scope explicitly (WIP draft-PR shipping; self-review and merge-readiness are not its job) and points at `/issue-work` for end-to-end ticket work and `/pr-self-review` for standalone review on an already-shipped branch. The draft-PR default was already encoded in behavior; this surfaces the intent for agents and readers encountering `ship` in isolation.
+- `issue-create` skill — Stage 2.2 label step now pre-checks suggested labels based on the Stage 2 answers, using name-substring matching (`quick win`/`easy`/`low-hanging`, `docs`/`documentation`, `new-skill`, `feature`/`enhancement`, `bug`, `question`/`help wanted`). Pre-checks still go through `AskUserQuestion` so the user can uncheck any that miss. `good first issue` is explicitly excluded from auto-suggestion because it carries external-discoverability semantics on GitHub.
 
 ## [0.4.1] — 2026-04-23
 

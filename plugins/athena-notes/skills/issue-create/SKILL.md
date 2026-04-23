@@ -181,6 +181,21 @@ On the Forgejo path, after the user picks label names, map each back to its inte
 
 Use `AskUserQuestion` with `multiSelect: true`. Include a "none" option and a free-text "other" option.
 
+**Pre-check label suggestions based on the Stage 2 answers before presenting the question.** The template's `labels:` field (if any) always pre-checks. On top of that, infer from the draft's content using these signals — they apply to any repo's label set, so match by name substring (case-insensitive):
+
+| Signal from Q&A | Label name contains | Rationale |
+|---|---|---|
+| Scope is one file or a handful of lines; no cross-cutting concerns; no new abstractions; implementation hints fit in a sentence | `quick win`, `easy`, `low-hanging` | Small, self-contained — catch these so they're findable later when you want a focused session |
+| Only changes files under `docs/`, `README`, or `*.md` | `docs`, `documentation` | Pure documentation change |
+| Proposes or adds a new skill (mentions `SKILL.md`, skill directory, new capability) | `new-skill` | Matches this plugin's convention |
+| User-visible new behavior, not a fix | `feature`, `enhancement` | Pick whichever exists; prefer `feature` if both |
+| Existing behavior is broken / regresses | `bug` | Unambiguous |
+| Body needs external input before implementation is scoped | `question`, `help wanted` | Pick `question` if it exists, else `help wanted` |
+
+Do **not** pre-check `good first issue` from a "this is small" signal alone — that label has external discoverability semantics (newcomer search on GitHub) and should only be used when the issue is genuinely suitable for a first-time contributor to the repo. Leave it for the user to add manually.
+
+Pre-checked labels still go through `AskUserQuestion` — the user sees them as checked defaults and can uncheck any that miss.
+
 #### Milestone
 
 ```bash

@@ -319,49 +319,21 @@ Do not advance `status` when tests go green — Phase 4 bumps it to `reviewed` a
 
 ## Phase 4 — Self-Review
 
-### 4.1 Spawn 3 parallel `impl-reviewer` agents
+### 4.1 Delegate to `/pr-self-review`
 
-Send a **single message with 3 Task tool calls**. Each gets:
+Phase 4 hands off to the [`pr-self-review`](../pr-self-review/SKILL.md) skill in its `pre-pr` mode — same three parallel `impl-reviewer` agents, plus a pre-review context fetch (related open issues in this repo + related `.notes/` decisions/explorations) and a per-finding triage loop (`accept` / `push-back` / `issue` / `skip`) so easy nits get cleared in-pass instead of piling up in a list. The worktree, branch, and state dir already exist; pass them in:
 
-- `lens`: `correctness` | `security` | `simplicity`
-- `diff_range`: `{base}...HEAD`
-- `worktree_path`: absolute
+- `mode`: `pre-pr`
+- `state_dir`: `~/.claude/issue-work/{owner}-{repo}-{N}/`
+- `worktree_path`: the absolute path from `progress.md`
+- `base_branch`: the value from `progress.md` `base:`
 - `plan_path`: `~/.claude/issue-work/{owner}-{repo}-{N}/plan.md`
-- `output_path`: `~/.claude/issue-work/{owner}-{repo}-{N}/review-{lens}.md`
 
-### 4.2 Synthesize summary.md
+Invoke it via the `Skill` tool (not by running commands). The skill writes `review-{lens}.md` files and a final `summary.md` into the state dir, matching the shape Phase 4.3 reads below. When it returns, `summary.md` is ready.
 
-After all three return, read their files and write:
+If `/pr-self-review` is unavailable for some reason (installation drift, user pinned an older plugin version), fall back to a single-pass three-lens review spawned directly from here: three parallel `impl-reviewer` Task calls with `lens`, `diff_range: {base}...HEAD`, `worktree_path`, `plan_path`, and `output_path: .../review-{lens}.md`; then synthesize `summary.md` inline. This is a safety-net path — prefer the skill.
 
-```markdown
----
-status: reviewed
-ticket: {url}
-reviewed: {iso8601}
----
-
-## Headline
-
-{one sentence: clean or N critical / M major issues surfaced}
-
-## Critical Issues
-
-- [{lens}] [{file}:{line}] {issue}
-
-## Major Issues
-
-- [{lens}] [{file}:{line}] {issue}
-
-## Minor / Nit
-
-- {bulleted, grouped by lens}
-
-## Ship Readiness
-
-{Clear recommendation: "Ship as draft" | "Fix criticals first" | "Re-plan"}
-```
-
-Set `progress.md` `status: reviewed`.
+Set `progress.md` `status: reviewed` after the skill returns (or after the fallback synthesis completes).
 
 ### 4.3 Present to user and ask for ship approval
 
@@ -422,11 +394,16 @@ Detailed recipes that load on demand:
 ## Related Agents
 
 - `ticket-analyst` — Phase 1 fetch + digest (model: haiku)
-- `impl-reviewer` — Phase 4 parallel reviewer with `lens` argument; carries its own lens prompts inline (model: sonnet)
+- `impl-reviewer` — Phase 4 parallel reviewer with `lens` argument; carries its own lens prompts inline (model: sonnet). Invoked via `/pr-self-review`; kept reachable directly as a Phase 4.1 fallback.
 
-## Related Skills (Optional Delegation)
+## Related Skills
 
-These are soft references — the skill works without them, but if the host environment has them installed they can be invoked on demand during a run:
+- `pr-self-review` — Phase 4 delegates here for the three-lens review + triage loop. Required at runtime; the Phase 4.1 fallback only fires when the skill is missing from the environment.
+- `ship` — Phase 4.3 hands off here on `ship it` for push + PR creation + template fill + label application.
+
+### Optional Delegation
+
+Soft references — the skill works without them, but if the host environment has them installed they can be invoked on demand during a run:
 
 - `engineering:debug` — optional, when test failures in Phase 3 prove stubborn and you want a structured debug pass
 - `engineering:testing-strategy` — optional, when Phase 2 exploration surfaces a test-architecture gap deep enough to warrant its own plan

@@ -1,6 +1,6 @@
 ---
 name: impl-reviewer
-description: Independent reviewer agent that reviews a diff through a single lens (correctness, security, or simplicity). Invoked by the `issue-work` skill to run three reviewers in parallel against a just-finished implementation before returning it to the user. Not user-facing. Self-contained — lens prompts are inline; no delegation to external skills.
+description: Independent reviewer agent that reviews a diff through a single lens (correctness, security, or simplicity). Invoked by the `pr-self-review` skill (and, for legacy callers, `issue-work`) to run three reviewers in parallel against a just-finished implementation before returning it to the user. Not user-facing. Self-contained — lens prompts are inline; no delegation to external skills.
 tools: Bash, Read, Write, Grep, Glob
 model: sonnet
 ---
@@ -15,8 +15,10 @@ You will be told:
 - **Lens** — one of `correctness`, `security`, `simplicity`
 - **Diff range** — typically `main...HEAD` or a specific base ref
 - **Worktree path** — absolute path to the worktree where the implementation lives
-- **Plan path** — `~/.claude/issue-work/{owner}-{repo}-{N}/plan.md`
-- **Output path** — `~/.claude/issue-work/{owner}-{repo}-{N}/review-{lens}.md`
+- **Plan path** — path to a `plan.md` the invoker wrote, or `null` when the caller has no pre-written plan (e.g., `pr-self-review` reviewing a PR it did not author the plan for). When `null`, skip Step 1's "load the plan" substep and note the absence under your summary's confidence statement.
+- **Output path** — where to write your review file (e.g., `~/.claude/issue-work/{owner}-{repo}-{N}/review-{lens}.md` when called by `issue-work`, or `~/.claude/pr-self-review/.../review-{lens}.md` when called standalone).
+- **Related issues path** *(optional)* — path to a `related-issues.json` file the caller pre-fetched (open issues in the PR's repo that may already cover a finding). When present, read it once at start. When absent or empty, behave as before.
+- **Related notes path** *(optional)* — path to a `related-notes.json` file the caller pre-fetched from the project's `.notes/` vault (decisions / explorations / idea-or-known-issue notes). Same read-once semantics.
 
 ## Output
 
@@ -37,6 +39,8 @@ confidence: high | medium | low
 ## Critical
 
 - [{file}:{line}] {issue} — {why critical} — {suggested fix}
+  related_issue: #47
+  related_note: [[decision-api-versioning]]
 
 ## Major
 
@@ -57,6 +61,8 @@ confidence: high | medium | low
 ```
 
 Omit empty severity sections (e.g., if no Critical issues, skip the section).
+
+The `related_issue:` and `related_note:` lines are **optional** and only appear when you were given a related-issues-path or related-notes-path input and you found an overlap for a specific finding. See "Tagging related context" below.
 
 ---
 
@@ -170,6 +176,26 @@ Reviewed 3 files (+120/-45) across 2 commits. Checked input validation in the ne
 ```
 
 An empty review with no justification is not acceptable. Either you found something, or you explain why you are confident nothing is there. If you cannot be confident, say so — mark confidence `low` and explain what you could not verify.
+
+### Step 6.5 — Tagging related context (only when caller supplied it)
+
+If the caller passed `related_issues_path` and/or `related_notes_path` and the referenced file exists and is non-empty, read it before writing findings. Cache both files in memory for the duration of the review — do not re-read per finding.
+
+For each finding you're about to emit, check whether any cached entry is a plausible match:
+
+- **Related issue match** — the issue title or body excerpt names the same file path, the same function/symbol, or the same defect class the finding describes. A general `tech-debt` issue about "unused exports" is a match for a finding that flags a specific unused export; a `follow-up` issue about one file is not a match for a finding in a different file.
+- **Related note match** — the note's title, type, or summary covers the design space the finding touches. A `decision` note that chose path-based over header-based versioning matches a simplicity finding that proposes header-based versioning.
+
+When there is a match, append one or both of these lines directly under the finding bullet (one line each, not in a code block):
+
+```
+  related_issue: #{N}
+  related_note: [[{wikilink-or-path}]]
+```
+
+A single finding may carry both. Be conservative — when in doubt, omit the tag. A wrong tag will cause the downstream triage UI to default the action to `skip` with a bogus rationale, which is worse than no tag at all.
+
+If the caller supplied the paths but either file is missing or an empty list, ignore the missing path and proceed without tagging. Do not error.
 
 ### Step 7 — Write and return
 

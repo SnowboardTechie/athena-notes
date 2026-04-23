@@ -7,6 +7,8 @@ description: Wrap up worktree work - push branch, open PR, fill description, rep
 
 Push the current branch, open a PR, and fill the description.
 
+Ships WIP as a draft PR by default — self-review and merge-readiness are not this skill's job. For end-to-end ticket work with self-review baked in, use [`/issue-work`](../issue-work/SKILL.md) instead; for a standalone review pass on a branch already shipped with `/ship`, run [`/pr-self-review`](../pr-self-review/SKILL.md) against the open PR.
+
 ---
 
 ## Quick Reference

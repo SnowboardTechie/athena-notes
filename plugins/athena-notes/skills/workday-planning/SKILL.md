@@ -237,7 +237,7 @@ Do NOT run `/weekly-planning`. This is a lightweight prepend, not the full VOMIT
 
 ### Phase 5 — Get goals from forge
 
-Invoke forge with the synthesis as context. **Tell forge to return goals only — the workday-planning skill owns the file write, forge should not also write to its own `today.md` during this flow.**
+Invoke forge with the synthesis as context. This skill owns the canonical daily-plan file (Phase 7 writes to the personal vault, wrapping forge's goals in per-project synthesis and overlays), so forge should return text only — use forge's `Output path: return-only` parameter.
 
 ```
 Task(
@@ -254,16 +254,12 @@ Task(
   or that are blocking others. Don't promote everything in the synthesis —
   let the user choose.
 
-  IMPORTANT: return goals as text only. Do NOT write to .notes/.agents/forge/today.md
-  — the workday-planning skill owns the canonical daily plan file and will persist it
-  to the personal vault at {output path from Phase 0}.
+  Output path: return-only
   """
 )
 ```
 
 Capture forge's goal list for Phase 7 (write).
-
-> **Note — tracked in [#6](https://github.com/SnowboardTechie/athena-notes/issues/6).** The prompt-level "don't write today.md" override is a temporary coupling. Once forge accepts an output-path parameter, this skill will pass the resolved path instead of instructing forge to skip its default write.
 
 ### Phase 6 — [Friday only] Week-wrap overlay
 
@@ -490,7 +486,7 @@ If no TTY / user not present, a source failure should still abort (not silently 
 
 ## Dependencies
 
-- **forge** — goal-mode planning; owns `today.md`. This skill currently instructs forge via prompt to skip the `today.md` write; tracked for replacement with an output-path parameter in [#6](https://github.com/SnowboardTechie/athena-notes/issues/6).
+- **forge** — goal-mode planning; owns `today.md` by default. This skill invokes forge with `Output path: return-only` because it writes the canonical daily-plan file itself in Phase 7 (wrapping forge's goals in synthesis and overlays).
 - **scout** — (optional) forge activity summary; forge invokes scout automatically when planning
 - **Drive MCP** (optional) — required only if `google-doc` sources are configured
 - **`gh`** (optional) — required only if `github-*` sources are configured
@@ -504,6 +500,6 @@ If no TTY / user not present, a source failure should still abort (not silently 
 - Do NOT auto-chain `/weekly-planning` on Mondays — the overlay is the Monday mode. User invokes weekly-planning separately if desired.
 - Do NOT silently skip failed sources. Always halt-and-ask.
 - Do NOT write the daily plan into a project `.notes/` or any project-scoped location. **The daily plan always lives in the personal vault**, at `{notes_root}/{personal_vault}/{output_folder}/`.
-- Do NOT let forge write its `.notes/.agents/forge/today.md` during this flow — tell forge "return goals as text only" in the Task prompt. The workday-planning skill owns the canonical daily-plan file.
+- Do NOT let forge write its `.notes/.agents/forge/today.md` during this flow — pass `Output path: return-only` in the Task prompt. The workday-planning skill owns the canonical daily-plan file.
 - Do NOT re-run bootstrap if the file exists and has projects, even if sources look thin. Suggest `--edit-sources` instead.
 - ALWAYS print the mode and date on the first line of output so the user can see what flow they're in.

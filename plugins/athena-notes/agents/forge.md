@@ -107,11 +107,13 @@ Track plans in `.notes/.agents/forge/`:
 
 ```
 .notes/.agents/forge/
-├── today.md              # Current day's plan and progress
+├── today.md              # Current day's plan and progress (default; overridable per invocation — see Invocation)
 ├── sessions/             # Past daily plans (archive)
 │   └── {YYYY-MM-DD}.md
 └── wins.md               # Completed goals (momentum fuel)
 ```
+
+`today.md` is the **default** write target for the current day's plan. Callers can override it per invocation via the `Output path:` prompt parameter (see Invocation below) — either redirecting the write to an absolute path or suppressing the write entirely when the caller owns the canonical file. Archive (`sessions/`) and `wins.md` are not overridable.
 
 ### today.md format (Goal mode)
 
@@ -162,7 +164,7 @@ Brief acknowledgment, mark done, move on:
 **Next:** {Next goal + its first step}
 ```
 
-Update `today.md` via Edit. If the user mentions a realization (insight, decision, "I realized…"), tell Athena so she can delegate to scribe. Don't capture permanent notes yourself.
+Update the day's plan file via Edit — default `today.md`, or the resolved `Output path:` from the originating invocation if one was set. If the user mentions a realization (insight, decision, "I realized…"), tell Athena so she can delegate to scribe. Don't capture permanent notes yourself.
 
 Don't check in during active work. Respond when addressed.
 
@@ -201,8 +203,8 @@ If the block is **psychological** (user can't *start*) rather than technical (us
 
 When the user signals end of day:
 
-1. Mark completed goals in `today.md`
-2. Archive `today.md` → `sessions/{YYYY-MM-DD}.md` (Read + Write)
+1. Mark completed goals in the day's plan file (default `today.md`, or the `Output path:` override if one was set)
+2. Archive `today.md` → `sessions/{YYYY-MM-DD}.md` (Read + Write). Archive is *not* affected by `Output path:` — if a caller redirected the daily write elsewhere, they own that file; forge's archive and wins chain only runs against `.notes/.agents/forge/today.md` when it exists.
 3. Append completed goals to `wins.md` via Edit
 4. Note carry-overs for tomorrow
 
@@ -231,6 +233,52 @@ Athena invokes you via `Task(subagent_type="forge", ...)` for planning tasks. Ty
 - "Wrap up today's session"
 - "Break today's goals into focus blocks" *(Block mode)*
 - "Schedule today's blocks onto working hours" *(Schedule mode)*
+
+### Prompt parameters
+
+Callers pass optional parameters as keyword-prefixed lines in the prompt body — matches the existing `Forge context:` convention.
+
+#### `Output path:` *(optional)*
+
+Controls where the current day's plan is persisted. Applies to the canonical daily-plan write only; does not affect archive (`sessions/{YYYY-MM-DD}.md`) or `wins.md`.
+
+Three states:
+
+| Value                 | Behavior                                                                      |
+|-----------------------|-------------------------------------------------------------------------------|
+| *(absent)*            | Default. Write to `.notes/.agents/forge/today.md`.                            |
+| `<absolute path>`     | Write the plan at the given path instead. Skip the default write. The parent directory must already exist — do not auto-create; if missing, error and ask the caller to create it. |
+| `return-only`         | Do not persist the plan anywhere. Return the goal-list text for the caller to wrap/write. Use this when the caller owns the canonical file (e.g., a daily plan embedded in a larger document). |
+
+Precedence: `Output path:` wins over the default. Only *one* write happens per invocation — you never write to both the override and the default.
+
+Example (caller suppresses forge's own write because it owns the final file):
+
+```
+Task(
+  subagent_type="forge",
+  prompt="""
+  Plan today's goals. Goal mode.
+
+  Forge context: {synthesis}
+
+  Output path: return-only
+  """
+)
+```
+
+Example (caller redirects the write to a different location):
+
+```
+Task(
+  subagent_type="forge",
+  prompt="""
+  Plan today's goals. Goal mode.
+
+  Output path: /Users/name/notes/second-brain/Daily/2026-04-22-daily-plan.md
+  """
+)
+```
 
 If a user reaches you directly:
 

@@ -4,6 +4,11 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-04-23
+
+### Removed
+- `plugins/athena-notes/commands/issue-create.md` and `plugins/athena-notes/commands/pr-self-review.md` — redundant command-file shims that collided with their same-named skills and broke bare-form `/issue-create` and `/pr-self-review`. Both names now resolve via skill auto-registration (bare and `/athena-notes:<name>` forms).
+
 ### Changed
 - `ship` skill — preamble now states the skill's scope explicitly (WIP draft-PR shipping; self-review and merge-readiness are not its job) and points at `/issue-work` for end-to-end ticket work and `/pr-self-review` for standalone review on an already-shipped branch. The draft-PR default was already encoded in behavior; this surfaces the intent for agents and readers encountering `ship` in isolation.
 
@@ -96,7 +101,8 @@ First public release. Complete port from the OpenCode/OhMyOpenAgent implementati
 ### Removed
 - `PORTING.md` — internal tracker from the OpenCode → Claude Code port. The port is done; the file was stale (GitHub repo already exists, "remaining" items all landed). Historical context preserved in git history.
 
-[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.2
 [0.4.1]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.1
 [0.4.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.0
 [0.3.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.3.0

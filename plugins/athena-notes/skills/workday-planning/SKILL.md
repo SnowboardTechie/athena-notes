@@ -353,6 +353,16 @@ Print in this order:
 
 Triggered when `planning-sources.md` is missing, or on `--edit-sources`.
 
+### Step 0 — Preserve foreign keys from an existing file
+
+If `planning-sources.md` already exists and its frontmatter parses cleanly, **read it first and extract every top-level key except `output_folder` and `projects`**. Those two are the keys this skill owns; anything else belongs to a sibling skill (e.g., `weekly_planning:` written by `weekly-planning`) and must round-trip through the bootstrap unchanged.
+
+Store the preserved key/value pairs. Splice them back into the YAML rendered at Step 4, positioned after the workday-planning keys and before the body. The user sees the full preserved YAML in the confirmation prompt, so they can spot a mis-preserved value before the write lands.
+
+If frontmatter parsing fails, the Malformed YAML edge case applies (don't run bootstrap) — so Step 0 only matters when the existing file is valid.
+
+If the file does not exist, skip Step 0 and start at Step 1 with an empty preservation set.
+
 ### Step 1 — Intro
 
 ```
@@ -424,9 +434,13 @@ Follow-up prompts by type:
 
 ### Step 4 — Confirm & write
 
-Show the generated YAML frontmatter and ask: `Write this to ~/.claude/athena/planning-sources.md? [Y/n]`
+Assemble the final YAML:
+1. workday-planning's own keys first (`output_folder`, `projects`).
+2. The preserved foreign keys from Step 0, in their original order.
 
-If yes, write the file with frontmatter + a brief markdown body explaining the user can edit freely. Create `~/.claude/athena/` if missing.
+Show the assembled frontmatter and ask: `Write this to ~/.claude/athena/planning-sources.md? [Y/n]`
+
+If yes, write the file with the assembled frontmatter + a brief markdown body explaining the user can edit freely. Create `~/.claude/athena/` if missing.
 
 ### Step 5 — Continue or stop
 
@@ -502,4 +516,5 @@ If no TTY / user not present, a source failure should still abort (not silently 
 - Do NOT write the daily plan into a project `.notes/` or any project-scoped location. **The daily plan always lives in the personal vault**, at `{notes_root}/{personal_vault}/{output_folder}/`.
 - Do NOT let forge write its `.notes/.agents/forge/today.md` during this flow — pass `Output path: return-only` in the Task prompt. The workday-planning skill owns the canonical daily-plan file.
 - Do NOT re-run bootstrap if the file exists and has projects, even if sources look thin. Suggest `--edit-sources` instead.
+- Do NOT drop top-level frontmatter keys this skill doesn't own (e.g., `weekly_planning:`). Step 0 of the Bootstrap Flow must preserve them on every run.
 - ALWAYS print the mode and date on the first line of output so the user can see what flow they're in.

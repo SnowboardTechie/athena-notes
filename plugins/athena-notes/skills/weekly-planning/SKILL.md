@@ -336,8 +336,8 @@ Ask: overwrite, or append a `-2` suffix? No silent merge.
 **`planning-sources.md` has a `weekly_planning:` key but it's malformed (not a mapping):**
 Warn once and fall back to default `Journal`. Don't halt — user can fix the file and rerun.
 
-**User ran `/plan-workday` bootstrap (`--edit-sources` or on a missing file) after setting a custom `weekly_planning.output_folder`:**
-`workday-planning`'s bootstrap rewrites `planning-sources.md` from scratch and does not preserve unrelated keys. The `weekly_planning:` section will be lost and this skill will silently fall back to `Journal`. If the user previously customized `weekly_planning.output_folder`, tell them to re-add the block manually after the bootstrap.
+**User ran `/plan-workday --edit-sources` and the `weekly_planning:` key is missing from the post-bootstrap file:**
+Workday-planning's bootstrap is supposed to preserve this key (see its Bootstrap Flow Step 0). If it didn't, flag the bug — a missing key after bootstrap means Step 0 regressed. In the interim this skill falls back to default `Journal`.
 
 ---
 

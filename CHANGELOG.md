@@ -4,6 +4,10 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+## [0.4.0] — 2026-04-22
+
 ### Added
 - `pr-self-review` skill (`plugins/athena-notes/skills/pr-self-review/`) and `/pr-self-review` slash command — iterative self-review loop for PRs the user authored. Three entry points: `/pr-self-review <pr-url>`, `/pr-self-review` (infers PR from current branch), and invocation from `issue-work` Phase 4 on a pre-PR branch. Each pass pre-fetches related open issues (linked-to-PR ∪ path-touching ∪ `tech-debt`/`known-issue`/`follow-up`-labeled) and related `.notes/` entries (parallel `@archivist` calls keyed by diff topics), feeds both caches to three parallel `impl-reviewer` agents, then walks each unsuppressed finding through `accept` / `push-back <reason>` / `issue` / `skip` with per-pass commit-and-push. Findings tagged with a `related_issue` or `related_note` default to `skip` with the reference shown as rationale. Session state (push-backs, skips, filed-issue URLs) is in-memory only; caches live at `~/.claude/pr-self-review/{owner}-{repo}-{pr-or-branch}/` (standalone) or the caller's `~/.claude/issue-work/{owner}-{repo}-{N}/` (pre-pr). Repos without `.notes/` silently skip the archivist phase. Refuses on a dirty tree; refuses on PRs the user didn't author. Resolves [#9](https://github.com/SnowboardTechie/athena-notes/issues/9).
 - `issue-work` Phase 4 — delegates to `/pr-self-review` in `pre-pr` mode instead of spawning three `impl-reviewer` agents inline. Same `review-{lens}.md` + `summary.md` output in the existing state dir, so Phase 4.3's ship gate keeps working unchanged — but Phase 4 now carries related-context awareness and an accept/push-back/issue/skip triage loop, so easy nits clear in-pass instead of piling into a post-merge list.
@@ -86,7 +90,8 @@ First public release. Complete port from the OpenCode/OhMyOpenAgent implementati
 ### Removed
 - `PORTING.md` — internal tracker from the OpenCode → Claude Code port. The port is done; the file was stale (GitHub repo already exists, "remaining" items all landed). Historical context preserved in git history.
 
-[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.0
 [0.3.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.3.0
 [0.2.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.2.0
 [0.1.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.1.0

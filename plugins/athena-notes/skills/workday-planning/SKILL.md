@@ -237,7 +237,7 @@ Do NOT run `/weekly-planning`. This is a lightweight prepend, not the full VOMIT
 
 ### Phase 5 — Get goals from forge
 
-Invoke forge with the synthesis as context. This skill owns the canonical daily-plan file (Phase 7 writes to the personal vault, wrapping forge's goals in per-project synthesis and overlays), so forge should return text only — use forge's `Output path: return-only` parameter.
+Invoke forge with the synthesis as context. This skill owns the canonical daily-plan file (Phase 7 writes to the personal vault, wrapping forge's goals in per-project synthesis and overlays), so forge should return text only.
 
 ```
 Task(

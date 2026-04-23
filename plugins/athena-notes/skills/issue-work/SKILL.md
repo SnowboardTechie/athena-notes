@@ -371,26 +371,17 @@ Present the review outcome inline in this order:
 2. **Critical + Major findings** — full bullets, not just counts. If none, say so explicitly ("No critical or major findings").
 3. **Minor / Nit counts** — single line, e.g. "Minor: 3, Nit: 1. Full detail in review-*.md."
 4. **Paths** — `summary.md` + individual `review-{lens}.md` files, as clickable Markdown links when the surface supports them.
-5. **What the PR command would be** — shown as a fenced `bash` block the user could copy:
-
-   ```bash
-   cd {worktree}
-   git push -u origin {branch}
-   gh pr create --draft --title "{ticket-title}" \
-     --body-file ~/.claude/issue-work/{owner}-{repo}-{N}/summary.md
-   ```
-
-   (Or for Forgejo, the equivalent `curl` POST against `/api/v1/repos/{owner}/{repo}/pulls` — see [ship/SKILL.md](../ship/SKILL.md).)
-
-6. **Explicit ship prompt.** End the message with a direct question — do not stop silently with the command in hand:
+5. **Ship prompt.** End the message with a direct question — do not stop silently:
 
    > Ready to push the branch and open the draft PR? Reply `ship it` to proceed, or flag anything you want changed first.
 
-   On `ship it` (or equivalent approval like "yes", "go", "push"): run the push + `gh pr create` yourself, then report the PR URL as a Markdown link.
+   On `ship it` (or equivalent approval like "yes", "go", "push"): **invoke the [`ship` skill](../ship/SKILL.md)** — do not run `git push` / `gh pr create` directly. `/ship` already handles the push, forge-specific PR creation (GitHub via `gh`, Forgejo via REST API), PR-template detection (`.github/PULL_REQUEST_TEMPLATE.md`), and label application via `gh label list` + domain heuristics. Rolling our own here would duplicate that logic and skip the template / labels.
 
-   On anything ambiguous: ask again, do not push. Do not treat silence as approval.
+   When invoking `/ship`, tell it the authoritative source for what the PR is about lives at `~/.claude/issue-work/{owner}-{repo}-{N}/summary.md` — `/ship` reads that file when filling the PR template's Summary and Test-plan sections so the PR body reflects the review findings, not a generic diff-walk.
 
-**Do not auto-open the PR before this exchange.** The review summary on its own isn't consent — the user needs one more explicit step after reading it.
+   On anything ambiguous: ask again, do not ship. Do not treat silence as approval.
+
+**Do not auto-ship before this exchange.** The review summary on its own isn't consent — the user needs one more explicit step after reading it.
 
 ---
 

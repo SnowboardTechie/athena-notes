@@ -33,16 +33,20 @@ import sys
 
 import yaml
 
-PLUGIN_ROOT = pathlib.Path("plugins/athena-notes")
+# Anchor to repo root via script location so `python3 scripts/lint-frontmatter.py`
+# works from any CWD. Silent "0 files found" passes would be a false-green otherwise.
+REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
+PLUGIN_ROOT = REPO_ROOT / "plugins" / "athena-notes"
+EXAMPLES_ROOT = PLUGIN_ROOT / "examples"
 
 AGENT_DIRS = [
     PLUGIN_ROOT / "agents",
-    PLUGIN_ROOT / "examples" / "agents",
+    EXAMPLES_ROOT / "agents",
 ]
 
 SKILL_DIRS = [
     PLUGIN_ROOT / "skills",
-    PLUGIN_ROOT / "examples" / "skills",
+    EXAMPLES_ROOT / "skills",
 ]
 
 VALID_MODELS = {"opus", "sonnet", "haiku", "inherit"}
@@ -62,10 +66,23 @@ _errors = 0
 def report(path: pathlib.Path, line: int | None, msg: str) -> None:
     global _errors
     _errors += 1
-    loc = f"file={path}"
+    # Annotations need paths relative to repo root, not absolute.
+    try:
+        rel = path.resolve().relative_to(REPO_ROOT)
+    except ValueError:
+        rel = path
+    loc = f"file={rel}"
     if line is not None:
         loc += f",line={line}"
     print(f"::error {loc}::{msg}")
+
+
+def is_example(path: pathlib.Path) -> bool:
+    try:
+        path.resolve().relative_to(EXAMPLES_ROOT)
+        return True
+    except ValueError:
+        return False
 
 
 def parse_frontmatter(path: pathlib.Path) -> tuple[dict | None, str, int]:
@@ -175,31 +192,30 @@ def main() -> int:
             if skill_md.is_file():
                 skill_mds.append(skill_md)
             else:
-                report(sub, None, "Skill directory missing SKILL.md.")
+                report(skill_md, None, "Skill directory missing SKILL.md.")
 
-    examples_root = PLUGIN_ROOT / "examples"
-
-    def is_example(path: pathlib.Path) -> bool:
-        try:
-            path.relative_to(examples_root)
-            return True
-        except ValueError:
-            return False
+    if not agent_paths and not skill_mds:
+        # Misconfigured run — the plugin tree is in this repo, so zero-files means
+        # the anchor broke (e.g., moved PLUGIN_ROOT). Surface it instead of exiting 0.
+        report(PLUGIN_ROOT, None, "No agents or skills discovered — check PLUGIN_ROOT.")
+        return 1
 
     skill_names: set[str] = set()
     skill_bodies: list[tuple[pathlib.Path, str, int]] = []
     for skill_md in skill_mds:
-        name, body, body_start = lint_skill(skill_md)
+        name, body, _body_start = lint_skill(skill_md)
         # Only main-tree skills populate the known-names set — examples can claim
         # any name, and shouldn't let typos masquerade as valid targets.
         if name and not is_example(skill_md):
             skill_names.add(name)
-        skill_bodies.append((skill_md, body, body_start))
+        if body:
+            skill_bodies.append((skill_md, body, _body_start))
 
     agent_bodies: list[tuple[pathlib.Path, str, int]] = []
     for agent in agent_paths:
         _, body, body_start = lint_agent(agent)
-        agent_bodies.append((agent, body, body_start))
+        if body:
+            agent_bodies.append((agent, body, body_start))
 
     for path, body, body_start in agent_bodies + skill_bodies:
         if is_example(path):

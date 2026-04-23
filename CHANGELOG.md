@@ -4,7 +4,11 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
-## [0.3.0] — 2026-04-22
+### Added
+- `.github/workflows/frontmatter-lint.yml` and `scripts/lint-frontmatter.py` — CI lint that validates every agent (`name`/`description`/`tools`/`model`) and skill (`name`/`description`) frontmatter block, catches the OpenCode-shape `tools:` list vs. Claude Code comma-separated string, enforces the `model:` enum (`opus`/`sonnet`/`haiku`/`inherit`), and checks that skill references in main-tree agent/skill bodies resolve to real skill directories. Examples tree is validated for frontmatter but not for cross-refs (examples point at user-project skills). Runs on `pull_request` and `push` to `main`. Resolves [#1](https://github.com/SnowboardTechie/athena-notes/issues/1).
+
+### Fixed
+- `ship` skill — removed dangling reference to a `worktrunk` skill that does not exist; surfaced by the new frontmatter-lint workflow on first run.
 
 ### Added
 - `issue-create` skill (`plugins/athena-notes/skills/issue-create/`) and `/issue-create` slash command. Q&A-driven drafting of GitHub/Forgejo issues: detects forge and repo, scans `.github/ISSUE_TEMPLATE/` for field-based templates or falls back to a six-section default structure, asks clarifying questions, writes a draft to `.notes/.agents/drafts/` for review, runs a best-effort dedup check, posts via `gh issue create`, sets the template's `type:` via the GraphQL `updateIssueIssueType` mutation (with per-repo ID cache + verify-and-retry), archives the draft on success, and offers to hand off to `/issue-work`. Addresses [#10](https://github.com/SnowboardTechie/athena-notes/issues/10).

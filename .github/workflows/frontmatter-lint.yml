@@ -1,0 +1,25 @@
+name: Frontmatter lint
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontmatter-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontmatter-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint agent + skill frontmatter
+        run: |
+          pip install --quiet pyyaml
+          python3 scripts/lint-frontmatter.py

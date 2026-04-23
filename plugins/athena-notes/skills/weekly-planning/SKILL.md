@@ -45,17 +45,17 @@ This is the same config file `workday-planning` uses. Weekly-planning adds a nes
 
 ```yaml
 ---
-output_folder: Daily              # daily plans — workday-planning
+output_folder: Daily              # daily plans — workday-planning's key (ignored here)
 weekly_planning:
   output_folder: Journal          # weekly plans — weekly-planning (default: Journal)
-projects:
-  - ...
+# ...other workday-planning keys (projects, etc.) may coexist here
 ---
 ```
 
 - If the file is missing, use default `Journal`.
 - If the file exists but has no `weekly_planning:` section, use default `Journal`.
 - Do not bootstrap interactively — just use the default. If the user wants to customize, they edit the file (same pattern as workday-planning's top-level `output_folder`).
+- **Validate the value.** Before interpolating into a filesystem path, reject any `output_folder` that contains `..` or starts with `/` (absolute paths). On rejection, warn once and fall back to default `Journal`. Prevents path traversal via a hand-edited or accidentally clobbered config.
 
 ### Resolved output path
 
@@ -78,14 +78,14 @@ Run as an interactive Q&A. Each phase maps to a section of the output note. Conv
 Before asking anything:
 
 1. Resolve `notes_root` + `personal_vault` from `identity.md`. Resolve `weekly_planning.output_folder` from `planning-sources.md` (default `Journal`). Compute the output path.
-2. Check for last week's planning note: `Glob` `{notes_root}/{personal_vault}/{output_folder}/*-weekly-plan.md`, take the newest. If found, read it — especially the rocks and end-of-week sections. Note any incomplete rocks or carry-forward items.
+2. Check for last week's planning note: `Glob` `{notes_root}/{personal_vault}/{weekly_planning.output_folder}/*-weekly-plan.md`, take the newest. If found, read it — especially the rocks and end-of-week sections. Note any incomplete rocks or carry-forward items.
 3. **Invoke scout** for developer-forge obligations (unless the user said "skip github" / "skip forge" / "no forgejo" earlier in the session):
 
    ```
-   Task(subagent_type="scout", prompt="Fetch forge activity for weekly planning (cwd={user_cwd})")
+   Task(subagent_type="scout", prompt="Fetch forge activity for weekly planning (cwd={resolved personal vault path})")
    ```
 
-   Weekly planning usually happens from the personal vault (not a code repo), so scout defaults to GitHub. Hold scout's summary for Phase 3. If scout returns `{forge}_available: false`, continue without — don't block the session.
+   Resolve the `cwd` value yourself — typically the personal vault path from Step 1, since weekly planning usually happens from the vault (not a code repo). Scout defaults to GitHub. Hold scout's summary for Phase 3. If scout returns `{forge}_available: false`, continue without — don't block the session.
 
 ### Phase 1: Vent (Clear the Noise)
 
@@ -306,9 +306,6 @@ WHEN STUCK:
 ## Tone Guidelines
 
 - **Warm but direct.** Thinking partner, not therapist or drill sergeant.
-- **No judgment on bad weeks.** Dropped rocks happen. Name them, move on.
-- **Celebrate wins briefly.** ADHD brains need the dopamine hit from acknowledgment.
-- **Push back on overcommitment gently.** More than 3 rocks = scattered attention = nothing lands.
 - **Keep it moving.** Target 5–10 minutes end-to-end. Don't over-discuss.
 
 ---
@@ -339,6 +336,9 @@ Ask: overwrite, or append a `-2` suffix? No silent merge.
 **`planning-sources.md` has a `weekly_planning:` key but it's malformed (not a mapping):**
 Warn once and fall back to default `Journal`. Don't halt — user can fix the file and rerun.
 
+**User ran `/plan-workday` bootstrap (`--edit-sources` or on a missing file) after setting a custom `weekly_planning.output_folder`:**
+`workday-planning`'s bootstrap rewrites `planning-sources.md` from scratch and does not preserve unrelated keys. The `weekly_planning:` section will be lost and this skill will silently fall back to `Journal`. If the user previously customized `weekly_planning.output_folder`, tell them to re-add the block manually after the bootstrap.
+
 ---
 
 ## Dependencies
@@ -351,10 +351,9 @@ Warn once and fall back to default `Journal`. Don't halt — user can fix the fi
 
 ## Guardrails
 
-- Do NOT skip the vent phase unless the user explicitly asks to.
+- Do NOT skip the vent phase unprompted.
 - Do NOT allow more than 3 rocks without pushback.
 - Do NOT make the session feel like a performance review — it's planning, not grading.
-- Do NOT write the note until all phases are complete.
 - Do NOT add rocks the user didn't choose — this is their plan, not yours.
 - Do NOT hardcode vault paths — always resolve from `identity.md` with fallback defaults.
 - ALWAYS present the whiteboard summary at the end — it's the bridge between digital and physical.

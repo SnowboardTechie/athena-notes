@@ -5,7 +5,7 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 ## [Unreleased]
 
 ### Changed
-- `ship` skill — preamble now states the skill's scope explicitly (WIP draft-PR shipping; self-review and merge-readiness are not its job) and points at `/issue-work` for end-to-end ticket work and `/pr-self-review` for standalone review on an already-shipped branch. The draft-PR default was already encoded in behavior; this surfaces the intent for agents and readers encountering `ship` in isolation.
+- `ship` skill — preamble now states its WIP draft-PR scope and points at `/issue-work` and `/pr-self-review` for end-to-end and standalone review work respectively.
 
 ## [0.4.1] — 2026-04-23
 

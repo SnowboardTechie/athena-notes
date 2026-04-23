@@ -274,9 +274,11 @@ title_keywords=$(echo "$title" | tr -d '[:punct:]' | head -c 100)
 gh issue list --repo "$owner/$repo" --state open --search "$title_keywords" \
   --json number,title,url --limit 3
 
-# Forgejo
-tea api "/repos/$owner/$repo/issues/search?q=$(jq -rn --arg q "$title_keywords" '$q|@uri')&type=issues&state=open" \
-  | jq '.data[:3] | [.[] | {number, title, html_url}]'
+# Forgejo — per-repo issue list accepts q= for title/body substring search.
+# Note the path: /repos/{owner}/{repo}/issues (NOT /issues/search — that's the
+# global cross-repo endpoint). Response is a bare array.
+tea api "/repos/$owner/$repo/issues?q=$(jq -rn --arg q "$title_keywords" '$q|@uri')&type=issues&state=open&limit=3" \
+  | jq '[.[:3][] | {number, title, html_url}]'
 ```
 
 - **Zero matches** → silently continue to 4.2.
@@ -308,16 +310,19 @@ awk '
 The `--label` flag takes one label name per occurrence. Build the command so each selected label becomes its own `--label`:
 
 ```bash
-# Build the --label flags as an array so spaces in label names work correctly.
+# Build --label and --milestone flags as arrays so values with spaces survive.
 label_flags=()
 for l in "${selected_labels[@]}"; do label_flags+=(--label "$l"); done
+
+milestone_flag=()
+[[ -n "$milestone" ]] && milestone_flag=(--milestone "$milestone")
 
 gh issue create \
   --repo "$owner/$repo" \
   --title "$title" \
   --body-file "$BODY_FILE" \
   "${label_flags[@]}" \
-  ${milestone:+--milestone "$milestone"}
+  "${milestone_flag[@]}"
 ```
 
 The command prints the new issue URL on success. Capture it.
@@ -341,7 +346,7 @@ instance=$(echo "$remote_url" | sed -E 's|.*(@\|//)([^:/]+).*|https://\2|')
 # Build JSON payload — env vars are exported so python3 sees them.
 # TITLE / LABELS_JSON / MILESTONE_NUM come from the Q&A + label-id lookup.
 export TITLE="$title"
-export LABELS_JSON="$(printf '%s' "$labels_id_json")"   # e.g. [3, 7]
+export LABELS_JSON="${labels_id_json:-[]}"              # e.g. [3, 7]; default [] when no labels chosen
 export MILESTONE_NUM="${milestone_num:-}"               # integer or empty
 
 payload=$(python3 -c "

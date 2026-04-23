@@ -45,7 +45,6 @@ Same remote verification as above.
 If still missing, also check (Glob for each):
 
 ```bash
-$HOME/code/*/*/.git       # nested org/project layouts
 $HOME/projects/*/.git     # fallback
 $HOME/src/*/.git          # fallback
 ```

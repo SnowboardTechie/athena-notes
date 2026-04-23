@@ -82,9 +82,9 @@ A session often closes a loop that was tracked on today's daily plan (e.g., `[P3
 1. **Resolve today's plan path** (same convention as `workday-planning` Phase 0):
    - Read `~/.claude/athena/identity.md` → `notes_root` (default `~/notes`), `personal_vault` (default `second-brain`), `TZ` (IANA).
    - Read `~/.claude/athena/planning-sources.md` frontmatter → `output_folder` (default `Daily`).
-   - TZ validation: must match `^(UTC|[A-Za-z][A-Za-z0-9_+-]*/[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z][A-Za-z0-9_+-]*)?)$`. On mismatch, warn once and fall back to system TZ.
+   - TZ validation: must match `^(UTC|[A-Za-z][A-Za-z0-9_+-]*/[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z][A-Za-z0-9_+-]*)?)$`. On mismatch, warn once and fall back to system TZ. If the validated-TZ `date` invocation exits non-zero (shape-valid but the zone doesn't exist on this system, e.g. `America/Fakeville`), re-run without `TZ` and emit the same fallback warning.
    - Compute today's date in that zone: `TZ="{{TIMEZONE}}" date +%Y-%m-%d` (or plain `date +%Y-%m-%d` on fallback).
-   - Path: `{notes_root}/{personal_vault}/{output_folder}/{YYYY-MM-DD}-daily-plan.md`.
+   - Path: `{notes_root}/{personal_vault}/{output_folder}/{YYYY-MM-DD}-daily-plan.md`. If `output_folder` is `.`, the path is `{notes_root}/{personal_vault}/{YYYY-MM-DD}-daily-plan.md` (vault root).
 2. **If the file doesn't exist:** silently skip this step. No prompt, no error. Not every session follows a planned day.
 3. **If it exists:** read it and scan for tracked items — any list/bullet line referencing an issue/PR (`#N`, `owner/repo#N`), a named task, or a time-block item the session clearly addressed. Ignore section headings and frontmatter / metadata lines.
 4. **Match against the conversation.** For each tracked item, was it resolved, triaged, decided, or invalidated in this session? Look for concrete evidence (a decision, a comment posted, a pivot). If the session didn't touch the item, skip it.

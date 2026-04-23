@@ -414,3 +414,10 @@ Detailed recipes that load on demand:
 
 - `ticket-analyst` — Phase 1 fetch + digest (model: haiku)
 - `impl-reviewer` — Phase 4 parallel reviewer with `lens` argument; carries its own lens prompts inline (model: sonnet)
+
+## Related Skills (Optional Delegation)
+
+These are soft references — the skill works without them, but if the host environment has them installed they can be invoked on demand during a run:
+
+- `engineering:debug` — optional, when test failures in Phase 3 prove stubborn and you want a structured debug pass
+- `engineering:testing-strategy` — optional, when Phase 2 exploration surfaces a test-architecture gap deep enough to warrant its own plan

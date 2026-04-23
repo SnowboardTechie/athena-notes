@@ -92,6 +92,8 @@ Ground truth is the plan. Your job is to find ways the diff fails to deliver wha
 
 Scan the diff for:
 
+- **Repo-convention compliance.** Read the worktree's root-level `AGENTS.md` and `CLAUDE.md` (and any package-local `CLAUDE.md` in directories the diff touched). Flag any diff line that violates a documented convention. These files are the repo's authoritative voice — take them literally.
+- **Don't duplicate CI's job.** Do not flag formatting, import order, type errors, or lint violations. The repo's CI runs those checks on every push; flagging them in review wastes budget and buries real issues. If the pattern is controversial (e.g., a lint rule that's documented as optional), note it as a Nit at most.
 - **Plan-to-diff drift.** Does the diff actually implement every item in the plan's Affected Files / Approach sections? Anything in the plan that isn't in the diff? Anything in the diff that isn't in the plan (scope creep)?
 - **Off-by-one / boundary bugs.** Loops, slices, index math, `<` vs `<=`, first/last element handling, empty-collection cases.
 - **Null / undefined / empty paths.** Every new function: what happens with a missing arg, empty string, empty array, null object? Does the diff handle that, or silently explode?

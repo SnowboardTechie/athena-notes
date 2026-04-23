@@ -168,14 +168,16 @@ Match answers to template fields by label. If the template has a field that none
 #### Labels
 
 ```bash
-# GitHub
+# GitHub — name-only is enough; gh issue create takes labels by name
 gh label list --repo {owner}/{repo} --json name --limit 100
 
-# Forgejo
-tea api "/repos/{owner}/{repo}/labels" | jq '[.[] | .name]'
+# Forgejo — keep id alongside name; the POST body wants integer IDs
+tea api "/repos/{owner}/{repo}/labels" | jq '[.[] | {id, name}]'
 ```
 
 If the list is empty, silently skip.
+
+On the Forgejo path, after the user picks label names, map each back to its integer id for Stage 4.2's `labels` payload field. Milestones work the same way — Forgejo expects `milestone: {id}` (integer), so capture the milestone's `id` from the API response, not just the title.
 
 Use `AskUserQuestion` with `multiSelect: true`. Include a "none" option and a free-text "other" option.
 
@@ -219,7 +221,7 @@ File: `$DRAFTS_DIR/issue-create-<slug>-<timestamp>.md`
 - `slug` = lowercased title, non-alphanumerics → `-`, collapsed, trimmed, max 40 chars
 - `timestamp` = `YYYYMMDD-HHMM`
 
-Content:
+Content layout — YAML frontmatter for metadata, then the issue body sections. **The frontmatter is metadata only; it is stripped before posting.** The body-section lines are exactly what the forge will render as the issue body — no `# {title}` line (the title is a separate API field, not part of the body).
 
 ```markdown
 ---
@@ -232,8 +234,6 @@ milestone: {selected milestone or empty}
 type: {template's type: field, or empty}
 created: {iso8601}
 ---
-
-# {title}
 
 ## {field label 1}
 
@@ -250,8 +250,9 @@ created: {iso8601}
 
 - **Legacy Markdown template OR default structure** → use `##` headings matching the template's section structure.
 - **GitHub YAML form template** → use `### {label}` (three hashes) with verbatim casing from `attributes.label`. The web form renders field labels as H3, so a programmatic post must match exactly. Do not "improve" the label's casing or wording.
-- **Checkboxes from a form template** → render as `- [ ] {option.label}` bullets.
-- **Dropdowns** → `### {label}\n\n{selected option}`.
+- **`textarea` and `input` fields** → `### {label}\n\n{user's answer}`.
+- **`checkboxes` fields** → render as `- [ ] {option.label}` bullets under the `### {label}` heading.
+- **`dropdown` fields** → `### {label}\n\n{selected option}`.
 
 ### 3.3 Show & iterate
 
@@ -269,7 +270,7 @@ Before posting, search for similar open issues:
 
 ```bash
 # GitHub — search by title keywords
-title_keywords=$(echo "$title" | tr -d '[:punct:]' | tr ' ' ' ' | head -c 100)
+title_keywords=$(echo "$title" | tr -d '[:punct:]' | head -c 100)
 gh issue list --repo "$owner/$repo" --state open --search "$title_keywords" \
   --json number,title,url --limit 3
 
@@ -283,15 +284,29 @@ tea api "/repos/$owner/$repo/issues/search?q=$(jq -rn --arg q "$title_keywords" 
 
 ### 4.2 Post the issue
 
-**GitHub:**
+**First, strip the frontmatter** from the draft. The YAML frontmatter is metadata for the drafting workflow; it must not appear in the posted issue body:
 
 ```bash
+# Skip the first ---...--- block; keep everything after it.
+BODY_FILE=$(mktemp)
+awk 'BEGIN{n=0} /^---$/{n++; if(n<=2) next} n>=2 && !p{p=1; next} p{print}' "$DRAFT_PATH" > "$BODY_FILE"
+```
+
+**GitHub:**
+
+The `--label` flag takes one label name per occurrence. Build the command so each selected label becomes its own `--label`:
+
+```bash
+# Build the --label flags as an array so spaces in label names work correctly.
+label_flags=()
+for l in "${selected_labels[@]}"; do label_flags+=(--label "$l"); done
+
 gh issue create \
   --repo "$owner/$repo" \
   --title "$title" \
-  --body-file "$DRAFT_PATH" \
-  --label "$labels_comma_joined" \
-  $([ -n "$milestone" ] && echo "--milestone \"$milestone\"")
+  --body-file "$BODY_FILE" \
+  "${label_flags[@]}" \
+  ${milestone:+--milestone "$milestone"}
 ```
 
 The command prints the new issue URL on success. Capture it.
@@ -311,11 +326,25 @@ TOKEN=$(grep 'token:' "$TEA_CONFIG" | head -1 | awk '{print $2}')
 
 instance=$(echo "$remote_url" | sed -E 's|.*(@\|//)([^:/]+).*|https://\2|')
 
-# Build JSON payload — use python3 for safe escaping
-body_content=$(cat "$DRAFT_PATH")
-payload=$(python3 -c "import json,sys,os; \
-  print(json.dumps({'title': os.environ['T'], 'body': sys.stdin.read(), 'labels': json.loads(os.environ['L']), 'milestone': int(os.environ['M']) if os.environ.get('M') else None}))" \
-  <<< "$body_content")
+# Labels must be resolved to integer IDs for the Forgejo API.
+# Build JSON payload — env vars are exported so python3 sees them.
+# TITLE / LABELS_JSON / MILESTONE_NUM come from the Q&A + label-id lookup.
+export TITLE="$title"
+export LABELS_JSON="$(printf '%s' "$labels_id_json")"   # e.g. [3, 7]
+export MILESTONE_NUM="${milestone_num:-}"               # integer or empty
+
+payload=$(python3 -c "
+import json, os, sys
+out = {
+    'title': os.environ['TITLE'],
+    'body': sys.stdin.read(),
+    'labels': json.loads(os.environ['LABELS_JSON']),
+}
+m = os.environ.get('MILESTONE_NUM')
+if m:
+    out['milestone'] = int(m)
+print(json.dumps(out))
+" < "$BODY_FILE")
 
 curl -s -X POST "${instance}/api/v1/repos/${owner}/${repo}/issues" \
   -H "Authorization: token $TOKEN" \
@@ -400,7 +429,7 @@ gh api graphql -f query='
 Re-query the issue to confirm the type is actually set:
 
 ```bash
-gh api graphql -f query='
+verified_type=$(gh api graphql -f query='
   query($owner: String!, $repo: String!, $number: Int!) {
     repository(owner: $owner, name: $repo) {
       issue(number: $number) {
@@ -409,12 +438,14 @@ gh api graphql -f query='
     }
   }
 ' -f owner="$owner" -f repo="$repo" -F number="$new_issue_number" \
-  --jq '.data.repository.issue.issueType.name'
+  --jq '.data.repository.issue.issueType.name // ""')
 ```
 
-- **Non-null** (returns a name) → success. Continue to 4.5.
-- **Null** → wait 2 seconds, retry the mutation from 4.3.2 once, then re-verify.
-- **Still null after retry** → report: "Issue #{N} created but type not set. Retry manually: `gh api graphql -f query='mutation { updateIssueIssueType(input: {issueId: \"$issue_node_id\", issueTypeId: \"$type_id\"}) { issue { issueType { name } } } }'`." Continue to 4.5 anyway — the issue exists.
+`gh api --jq '... // ""'` turns a JSON `null` into an empty string, so a bash `[[ -z ... ]]` test is reliable. Do not test against the literal word `null` — an issue type literally named "null" would collide (unlikely but the `// ""` pattern is unambiguous either way).
+
+- **Non-empty** (returns a name) → success. Continue to 4.5.
+- **Empty** → wait 2 seconds, retry the mutation from 4.3.2 once, then re-verify.
+- **Still empty after retry** → report: "Issue #{N} created but type not set. Retry manually: `gh api graphql -f query='mutation { updateIssueIssueType(input: {issueId: \"$issue_node_id\", issueTypeId: \"$type_id\"}) { issue { issueType { name } } } }'`." Continue to 4.5 anyway — the issue exists.
 
 ### 4.5 Archive the draft
 
@@ -434,7 +465,7 @@ Append a URL footer to the archived file:
 Posted: {url}
 ```
 
-(Two dashes is intentional — a minimal horizontal rule, not a new frontmatter block.)
+(Three dashes after body content render as a horizontal rule. The archived file keeps the original frontmatter for retro value; the footer `---` comes after the body sections, not as a second frontmatter block.)
 
 On **post failure** (`gh issue create` or Forgejo API failed) → draft stays in `drafts/`. Report the error and the draft path. User can retry by re-invoking `/issue-create` with the saved draft.
 

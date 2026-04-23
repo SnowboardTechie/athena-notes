@@ -168,7 +168,7 @@ The `plugins/athena-notes/examples/` directory contains personal agents and skil
 - `calliope` — content writing agent (blog posts, newsletters)
 - `aria` — domain-specialist agent (accessibility / VA.gov)
 - `gamedev` — project-specific assistant (Godot)
-- Skill examples: `catalog-review`, `manual-merge`, `sprint-deliverable-update`, `weekly-planning`
+- Skill examples: `catalog-review`, `manual-merge`, `sprint-deliverable-update`
 
 Copy any of these into your own `~/.claude/agents/` or `~/.claude/skills/` and adapt. They show the patterns — make them yours. See [`examples/README.md`](plugins/athena-notes/examples/README.md) for per-example adaptation notes.
 

@@ -154,6 +154,8 @@ Scribe writes immediately on invocation. No previews, no confirmation prompts.
 
   **Non-release PR (the common case).** Add a bullet under `## [Unreleased]` in `CHANGELOG.md` describing the change. Do **not** bump `plugin.json`. CI just needs `CHANGELOG.md` in the diff.
 
+  **Fixed is for previously-shipped behavior only.** Within `[Unreleased]`, entries belong under **Fixed** only if they describe a change to behavior users could have seen in a prior release. Mid-PR iteration — fixes to code added on the same branch that never landed on `main` — folds into the **Added**/**Changed** bullet that describes the new feature. Readers skimming a release changelog never experienced the pre-fix state, so a separate Fixed bullet is noise. Squash-merge preserves the iteration trail in `git log`.
+
   **Release PR (when cutting `vX.Y.Z`).** All of the following, in the same PR:
   1. Bump `plugins/athena-notes/.claude-plugin/plugin.json` `version` → `X.Y.Z`.
   2. Promote `[Unreleased]` contents under a new `## [X.Y.Z] — YYYY-MM-DD` heading; reset `[Unreleased]` to `_No unreleased changes._`.

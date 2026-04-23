@@ -5,10 +5,6 @@ description: Iterative self-review loop for PRs you authored. Runs the three-len
 
 # PR Self-Review
 
-Wraps the manual review → fix → commit → re-review loop for PRs **you authored**. Carries session state so reviewers don't re-raise findings you've already pushed back on, and surfaces related open issues + `.notes/` decisions so a reviewer's nit that duplicates a known ticket or a settled exploration can be deferred with one keystroke.
-
-Not for reviewing other people's work.
-
 Three entry points:
 
 - `/pr-self-review <pr-url>` — fresh session, points at any open PR you authored.
@@ -57,7 +53,7 @@ Argument matches `^https?://github\.com/([^/]+)/([^/]+)/pull/([0-9]+)` or the Fo
 - Resolve local clone (reuse pattern from `skills/issue-work/references/repo-resolution.md`). Ask before cloning if missing.
 - Fetch PR details: `gh pr view {N} --repo {owner}/{repo} --json number,title,headRefName,baseRefName,body,url,author`.
 - Confirm the PR author matches the current `gh auth status` user. If not, stop: "This skill is for PRs you authored. {author} authored this PR — use `/code-review` instead."
-- Create or enter worktree at `.claude/worktrees/{repo}.pr-{N}-{kebab-slug}` (follow `issue-work` Phase 1.6 convention, but with `pr-{N}` instead of `{N}`). Checkout the PR branch there: `git fetch origin pull/{N}/head:{headRefName} && git checkout {headRefName}`.
+- Create or enter worktree at `.claude/worktrees/{repo}.pr-{N}-{kebab-slug}` (follow `issue-work` Phase 1.6 convention, but with `pr-{N}` instead of `{N}`). Checkout the PR branch there: `git fetch origin refs/pull/{N}/head:{headRefName} && git checkout {headRefName}` — the fully-qualified `refs/pull/{N}/head` refspec works on both GitHub and Forgejo, so the same command handles either forge.
 
 ### 0.3 `branch-inference`
 
@@ -160,7 +156,7 @@ If `.notes/` is present, extract keyword topics from the diff:
 - Top-level directory names of changed files.
 - New exported symbols — `git diff {base}...HEAD` + grep for added lines matching `^\+(export\s+|def |class |function |pub fn )` to pull function/class names. Keep the simplest extraction; do not try to parse ASTs.
 
-Dedupe the topic list, cap at 6 topics (budget control). Then fire parallel archivist calls in **a single message with multiple Task tool calls** (matching the meeting-sync precedent — see [skills/meeting-sync/SKILL.md](../meeting-sync/SKILL.md)):
+Dedupe the topic list. If more than 6 topics result, keep the first 6 ranked by the number of changed files each topic matches (i.e., files whose basename or top-level directory contains the topic token); break ties by alphabetical order for determinism. Then fire parallel archivist calls in **a single message with multiple Task tool calls** (matching the meeting-sync precedent — see [skills/meeting-sync/SKILL.md](../meeting-sync/SKILL.md)):
 
 ```
 Task(
@@ -221,16 +217,82 @@ Cross-lens observations (the reviewer's optional bottom-of-file section) surface
 
 ### 2.3 Triage
 
-See [references/triage-ui.md](references/triage-ui.md) for the per-finding prompt shape and the batch fallback.
+Walk unsuppressed findings from Critical → Major → Minor → Nit. Two UI modes:
 
-Short version: walk unsuppressed findings from Critical → Major → Minor → Nit. For each, present file:line, the finding text, any `related_issue` / `related_note` context, and ask for one of:
+**Per-finding mode** (default when unsuppressed findings ≤ 5): one `AskUserQuestion` per finding. Options are fixed across findings — always these four:
+
+```
+Question: {lens} • {file}:{line}
+  {finding text}
+
+  Related issue:  #{N} — {title} ({url})       [only if related_issue tag]
+  Related note:   [[{wikilink}]] ({type}) — {summary}  [only if related_note tag]
+
+Options (single-select):
+  1. accept           — Claude edits the code; you eyeball the diff at end of pass
+  2. push-back <...>  — you give a one-line rationale; suppressed for rest of session
+  3. issue            — hand off to /issue-create (dedup checks related-issues + repo)
+  4. skip             — drop silently for this session
+```
+
+When a finding carries a `related_issue` or `related_note` tag, pre-select `skip` and annotate the label (`skip (related to #{N})` or `skip (settled in [[wikilink]])`). Override stays one keystroke away.
+
+`push-back` requires a rationale: on that selection, follow up with a single-line free-text prompt ("Why?"), record the reply keyed to the finding.
+
+**Batch mode** (fallback when unsuppressed findings > 5): running 12 `AskUserQuestion` prompts in a row is obnoxious. Switch to a single batched prompt — numbered list grouped by severity, related context shown inline, single free-text reply with one action per line:
+
+```
+Findings this pass:
+
+[Critical]
+  1. correctness | src/auth/login.ts:42
+     Empty-string username bypasses the rate-limit check — rate-limiter keys on
+     `user.id ?? username` which becomes "" for unregistered requests and shares
+     the same bucket across all anonymous traffic.
+
+[Major]
+  2. security | src/api/upload.ts:88
+     Unvalidated Content-Type echoed back in error body — potential XSS.
+     ↳ related_issue: #47 "Sanitize error responses"
+
+Reply with one line per finding:
+
+  {num} accept
+  {num} push-back <reason>
+  {num} issue
+  {num} skip
+
+Findings you don't mention are treated as skip.
+```
+
+Parse the reply; apply in order. If a `push-back` line arrives with no rationale, re-prompt for that line only — do not re-present the full batch.
+
+**Triage action semantics:**
 
 - **accept** — Claude makes the edit in the worktree. No commit yet; batched at end of pass.
 - **push-back <reason>** — record reason in session state; add finding key to suppression set.
 - **issue** — hand off to `/issue-create` for dedup + filing. Pre-fill the issue body with the finding text, the offending file:line, and a link back to the PR. Filed-issue URL goes into session state so the same finding isn't re-filed next pass.
 - **skip** — drop silently for this session. Add key to suppression set.
 
-**Default action when a finding carries a `related_*` tag:** suggest `skip` and show the related issue/note inline as the rationale. Override stays one keystroke away.
+**Suppression key.** A finding's identity across passes is `{lens}|{file}|{line}|{sha8(message)}`:
+
+- `lens` — the reviewer lens prefix; prevents a `simplicity` skip from masking a later `correctness` catch on the same line.
+- `file` — repo-relative path the reviewer cited.
+- `line` — line number; for a range (`42-48`), use the first number.
+- `sha8(message)` — first 8 hex chars of SHA-256 of the finding text, normalized (lowercased, whitespace runs collapsed to single space, leading/trailing whitespace stripped). Tolerates reformatting between passes but still catches reworded findings.
+
+**Session state** (in-memory, never persisted):
+
+```
+suppression_set:    Set<string>                                      # suppression keys
+pushbacks:          List<{key, reason}>                              # for summary.md
+filed_issues:       List<{key, url}>                                 # auto-suppress on re-surface
+skips:              List<key>                                        # for summary.md
+accepts_per_pass:   List<List<{key, file, line, lens, summary}>>     # for summary.md
+pass_count:         int
+```
+
+All of it dies when the skill run ends. `~/.claude/pr-self-review/…/` holds only the JSON caches, the `review-{lens}.md` files, and the final `summary.md` — the decision log is a *report*, not an input to future runs.
 
 At the end of triage, the pass has accumulated a set of accepted edits.
 
@@ -359,10 +421,6 @@ Frontmatter `ticket:` field is retained (not renamed) so tools that key on it ke
 - **Run against `main`/`master`.** Phase 0.4 blocks this by requiring an open PR (standalone) or a non-trunk branch (pre-pr).
 
 ---
-
-## References
-
-- [references/triage-ui.md](references/triage-ui.md) — per-finding prompt shape, batch fallback, and suppression-key format
 
 ## Related Agents
 

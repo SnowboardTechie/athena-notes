@@ -86,12 +86,12 @@ A session often closes a loop that was tracked on today's daily plan (e.g., `[P3
    - Compute today's date in that zone: `TZ="{{TIMEZONE}}" date +%Y-%m-%d` (or plain `date +%Y-%m-%d` on fallback).
    - Path: `{notes_root}/{personal_vault}/{output_folder}/{YYYY-MM-DD}-daily-plan.md`.
 2. **If the file doesn't exist:** silently skip this step. No prompt, no error. Not every session follows a planned day.
-3. **If it exists:** read it and scan for tracked items — any line referencing an issue/PR (`#N`, `owner/repo#N`), a named task, or a time-block item the session clearly addressed.
+3. **If it exists:** read it and scan for tracked items — any list/bullet line referencing an issue/PR (`#N`, `owner/repo#N`), a named task, or a time-block item the session clearly addressed. Ignore section headings and frontmatter / metadata lines.
 4. **Match against the conversation.** For each tracked item, was it resolved, triaged, decided, or invalidated in this session? Look for concrete evidence (a decision, a comment posted, a pivot). If the session didn't touch the item, skip it.
 5. **Draft in-place edits only.** Use whatever convention the plan already uses (checkbox, strike-through, nested bullet) or append a short `→ resolved: {one-line outcome}` suffix. Do not rewrite the plan, do not add sections, do not reorder items. If a user pivot invalidated a sibling detail on the plan, propose that edit too.
 6. **Zero matches is fine** — equivalent to "no signal" for the knowledge path.
 
-Outputs from this step bypass the Signal Test (see Exemption above) and flow directly to Step 4's draft and Step 5's approval gate.
+Outputs from this step bypass Steps 1.5, 2, and 3 — they don't need the Signal Test (state, not insight), prior-art checks (in-place edits, not new knowledge), or categorization (the table already routes them). They go straight to Step 4, drafted with the Daily-plan update template, and then to the Step 5 approval gate.
 
 ### Step 2: Read existing context
 
@@ -222,7 +222,7 @@ Use this for Step 1.6 outputs. Show the existing line and the proposed replaceme
 
 **No survivors (common):** Most sessions execute rather than discover. If Step 1.6 also found no daily-plan items to close, report `No signal — routine execution` and stop. This isn't failure; it's the expected outcome. If Step 1.6 did surface daily-plan edits, present those alone at the approval gate — a session with zero insight-signal is still allowed to close a planned loop.
 
-**No daily plan for today:** Step 1.6 silently skips. No error, no prompt. Not every session follows a planned day.
+**No daily plan for today:** Step 1.6 handles this — silently skip, no prompt.
 
 **No AGENTS.md in project:** Skip the AGENTS.md section entirely. Still offer `.notes/` drafts for survivors.
 
@@ -238,7 +238,7 @@ Use this for Step 1.6 outputs. Show the existing line and the proposed replaceme
 - Do NOT write to AGENTS.md, .notes/, or today's daily plan until the user explicitly approves the draft
 - Do NOT fabricate learnings or tracked-item resolutions — every item must trace to a specific moment in the conversation
 - Do NOT create new AGENTS.md sections — fit content into existing structure
-- Do NOT rewrite or restructure the daily plan — Step 8 is minimal, in-place edits matching existing lines. Workday-planning owns the plan's shape.
+- Do NOT rewrite or restructure the daily plan — workday-planning owns the plan's shape.
 - Do NOT handle worktree path resolution — that's @scribe's job via the agent-workspace skill. (Daily-plan paths are personal-vault paths, not worktree paths; Step 1.6 resolves them directly from identity config.)
 - Do NOT write prose-heavy narratives. Notes must be scannable in Obsidian at a glance — tables, bullets, wikilinks to related notes, short paragraphs. A 300-word reflective essay is the failure mode, not the goal.
 - Do NOT hit a quota. If only one candidate survives the Signal Test, propose one. If none survive, propose none. Never pad.

@@ -217,6 +217,14 @@ Three storage surfaces. The decision rule is: "does this vary by user?" → `~/.
 
 Per-user config files are bootstrapped by the owning skill on first use (prompt → write → proceed), matching the `/athena-setup` pattern. Per-project state uses the worktree-aware trunk-resolution protocol from [agent-workspace/SKILL.md](skills/agent-workspace/SKILL.md).
 
+### Shared config: preserve foreign keys
+
+When one skill owns a `~/.claude/athena/*.md` config file and a sibling skill extends it with its own nested key (e.g., `weekly-planning` adds `weekly_planning:` to `workday-planning`'s `planning-sources.md`), the owner's bootstrap/rewrite path must preserve top-level frontmatter keys it doesn't own. A bootstrap that writes the file from scratch will silently drop sibling-skill keys and break the sibling with no error.
+
+Pattern: before emitting the final YAML, read the existing file, extract every top-level key outside the owner's schema, and splice those pairs back into the assembled frontmatter. Show the full preserved YAML in the confirmation prompt so a mis-preservation is caught before the write. Add a Guardrail like "Do NOT drop top-level frontmatter keys this skill doesn't own" so future changes don't regress.
+
+Surfaced in [#39](https://github.com/SnowboardTechie/athena-notes/issues/39) / [#40](https://github.com/SnowboardTechie/athena-notes/pull/40); implemented as `workday-planning/SKILL.md` Bootstrap Flow Step 0.
+
 ---
 
 ## PR Review Comments

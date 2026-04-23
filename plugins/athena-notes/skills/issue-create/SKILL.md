@@ -214,7 +214,7 @@ gh api graphql -f query='
   --jq '[.data.repository.projectsV2.nodes[] | select(.closed == false) | .title]'
 ```
 
-If the query itself fails (non-zero exit, error in response) — most commonly missing `project` scope or a transient API error — surface the error and ask the user whether to proceed without attaching. Do not silently fall through to the zero-projects branch; that looks identical to "this repo has no linked projects" and quietly drops the attachment.
+If the query itself fails (non-zero exit, error in response) — most commonly missing `project` scope or a transient API error — surface the error and ask: *"The GitHub Projects query failed ({error}). Continue posting without attaching to a project? [yes / stop]"*. Treat silence or any non-`yes` reply as stop. Do not silently fall through to the zero-projects branch; that looks identical to "this repo has no linked projects" and quietly drops the attachment.
 
 Branch on a successful response:
 
@@ -548,7 +548,7 @@ Then ask: "Start working on this now?" If yes, invoke the `issue-work` skill wit
 | Template has `title:` prefix | Pre-fill user's title suggestion with the prefix |
 | Template has required fields | Don't post with empty answers; re-ask |
 | `gh auth status` fails | Stop. Tell user to `gh auth login` |
-| `gh issue create --project` errors on scope | Run `gh auth refresh -s project` then retry — `project` scope is not in the default token |
+| Missing `project` OAuth scope | Run `gh auth refresh -s project` then retry — `project` scope is not in the default token |
 | Forgejo token missing | Stop. Tell user token source (tea config) |
 | No labels / no milestones in repo | Skip the `AskUserQuestion` prompts silently |
 | User edits draft mid-Stage 3 | Re-render from user's edits; continue iteration |

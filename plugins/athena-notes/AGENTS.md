@@ -189,6 +189,36 @@ Scribe writes immediately on invocation. No previews, no confirmation prompts.
 
 ---
 
+## Skill Authoring
+
+### Positive prompts for approval gates
+
+When a skill reaches an action gate (open a PR, publish a note, post to Slack, send an email), script the question positively — ask what the skill wants to do and list the accepted replies. Don't state the prohibition and leave the orchestrator to invent the prompt shape.
+
+Write:
+
+> Ask: *"Ready to push and open the draft PR? [yes / wait]"*. Wait for explicit approval. Treat silence or ambiguity as a re-prompt, not as approval.
+
+Not:
+
+> Do not auto-open the PR. User approves ship.
+
+Prohibitions leave the orchestrator to fill the positive shape, which often lands as a silent stop — the user has to pull the thread ("why did you stop?") to get moving. Discovered in [#10](https://github.com/SnowboardTechie/athena-notes/issues/10) / [#31](https://github.com/SnowboardTechie/athena-notes/pull/31); `issue-work/SKILL.md` Phase 4.3 was rewritten from the negative form to the positive form.
+
+### Per-user config vs per-project state vs plugin-local
+
+Three storage surfaces. The decision rule is: "does this vary by user?" → `~/.claude/athena/`. "Does this vary by project?" → `.notes/.agents/{skill}/`. "Neither?" → ship it in the plugin body.
+
+| Surface | Varies by | Examples |
+|---|---|---|
+| `~/.claude/athena/*.md` | User (name, vault path, working hours, source lists) | `identity.md` (via `/athena-setup`), `planning-sources.md` (via `/plan-workday`) |
+| `.notes/.agents/{skill}/` | Project (per-repo caches, drafts, session context) | `.notes/.agents/drafts/`, `.notes/.agents/issue-create/type-ids.md` |
+| Plugin body (`SKILL.md`, `references/`) | Neither — ships with the plugin | Static instruction text, example templates |
+
+Per-user config files are bootstrapped by the owning skill on first use (prompt → write → proceed), matching the `/athena-setup` pattern. Per-project state uses the worktree-aware trunk-resolution protocol from [agent-workspace/SKILL.md](skills/agent-workspace/SKILL.md).
+
+---
+
 ## PR Review Comments
 
 When posting review comments to a forge (GitHub, Gitea, Forgejo), **always post as inline comments on specific files and lines** — never as a single bulk review body. Each finding is its own comment anchored to the relevant code so the author sees it in context. The review body itself should be a short summary only.

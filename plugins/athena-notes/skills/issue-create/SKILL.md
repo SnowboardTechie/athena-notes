@@ -19,7 +19,7 @@ Pairs with `issue-work` — after a successful post, the skill offers to hand of
 remote_url=$(git remote get-url origin 2>/dev/null)
 if [[ "$remote_url" == *"github.com"* ]]; then
   forge="github"
-elif [[ "$remote_url" == *"forgejo"* || "$remote_url" == *"gitea"* || "$remote_url" == *"codeberg"* ]]; then
+elif [[ "$remote_url" == *"forgejo"* || "$remote_url" == *"gitea"* || "$remote_url" == *"codeberg"* || "$remote_url" == *"snowboardtechie"* ]]; then
   forge="forgejo"
 else
   forge="unknown"

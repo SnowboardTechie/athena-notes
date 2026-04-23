@@ -27,7 +27,7 @@ Follows the "Wrapping Up" flow from the `worktrunk` skill. Load it for full deta
 remote_url=$(git remote get-url origin 2>/dev/null)
 if [[ "$remote_url" == *"github.com"* ]]; then
   forge="github"
-elif [[ "$remote_url" == *"forgejo"* || "$remote_url" == *"gitea"* || "$remote_url" == *"snowboardtechie"* ]]; then
+elif [[ "$remote_url" == *"forgejo"* || "$remote_url" == *"gitea"* || "$remote_url" == *"codeberg"* ]]; then
   forge="forgejo"
 else
   echo "No supported forge detected — use wt merge instead"

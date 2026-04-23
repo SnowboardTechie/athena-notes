@@ -163,7 +163,7 @@ Ask via conversational turns (open-ended answer space). Use the user's initial f
 
 Match answers to template fields by label. If the template has a field that none of the answers cover, ask an additional targeted question. If the template has a field that's already covered by an answer, don't re-ask.
 
-### 2.2 Metadata via `AskUserQuestion`
+### 2.2 Metadata collection
 
 #### Labels
 
@@ -194,6 +194,33 @@ tea api "/repos/{owner}/{repo}/milestones?state=open" | jq '[.[] | {id, title}]'
 If the list is empty, silently skip.
 
 Use `AskUserQuestion` single-select with "(none)" as a default option. On the Forgejo path, after the user picks a title, look up its `id` from the response above for Stage 4.2's `milestone` payload field.
+
+#### Project (GitHub only)
+
+Forgejo has no Projects equivalent — skip this subsection entirely on the Forgejo path.
+
+Query Projects **linked to this repo** (not the owner-scoped list, which surfaces boards unrelated to this repo). Pass `owner` / `name` as GraphQL variables rather than inlining them into the query body — matches the variable-binding form used by the issue-type queries in Stage 4.3/4.4:
+
+```bash
+gh api graphql -f query='
+  query($owner: String!, $name: String!) {
+    repository(owner: $owner, name: $name) {
+      projectsV2(first: 20) {
+        nodes { title closed }
+      }
+    }
+  }' \
+  -f owner="$owner" -f name="$repo" \
+  --jq '[.data.repository.projectsV2.nodes[] | select(.closed == false) | .title]'
+```
+
+If the query itself fails (non-zero exit, error in response) — most commonly missing `project` scope or a transient API error — surface the error and ask: *"The GitHub Projects query failed ({error}). If this is a scope error, re-auth with `gh auth refresh -s project` and re-run me. Otherwise, continue posting without attaching to a project? [yes / stop]"*. Treat silence or any non-`yes` reply as stop. Do not silently fall through to the zero-projects branch; that looks identical to "this repo has no linked projects" and quietly drops the attachment.
+
+Branch on a successful response:
+
+- **Zero open linked projects** → skip silently. No prompt, no flag.
+- **Exactly one open linked project** → attach it automatically. One linked project is unambiguous, so no prompt. Capture the title for Stage 4.2's `--project` flag.
+- **Two or more open linked projects** → `AskUserQuestion` single-select with each title plus `(none)`. Capture the selection (empty when `(none)`).
 
 ---
 
@@ -231,6 +258,7 @@ template: {template-filename or "default-structure"}
 title: {chosen title}
 labels: [{selected labels}]
 milestone: {selected milestone or empty}
+project: {selected project or empty}
 type: {template's type: field, or empty}
 created: {iso8601}
 ---
@@ -310,19 +338,23 @@ awk '
 The `--label` flag takes one label name per occurrence. Build the command so each selected label becomes its own `--label`:
 
 ```bash
-# Build --label and --milestone flags as arrays so values with spaces survive.
+# Build --label / --milestone / --project flags as arrays so values with spaces survive.
 label_flags=()
 for l in "${selected_labels[@]}"; do label_flags+=(--label "$l"); done
 
 milestone_flag=()
 [[ -n "$milestone" ]] && milestone_flag=(--milestone "$milestone")
 
+project_flag=()
+[[ -n "$project" ]] && project_flag=(--project "$project")
+
 gh issue create \
   --repo "$owner/$repo" \
   --title "$title" \
   --body-file "$BODY_FILE" \
   "${label_flags[@]}" \
-  "${milestone_flag[@]}"
+  "${milestone_flag[@]}" \
+  "${project_flag[@]}"
 ```
 
 The command prints the new issue URL on success. Capture it.
@@ -496,6 +528,7 @@ Show the user:
 
 Labels: {applied}
 Milestone: {applied or "—"}
+Project: {attached or "—"}
 Type: {set or "—" or "⚠ not set, retry manually"}
 
 Archived draft: {archive path}

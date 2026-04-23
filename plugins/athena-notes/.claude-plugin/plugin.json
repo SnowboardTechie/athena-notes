@@ -1,6 +1,6 @@
 {
   "name": "athena-notes",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Obsidian-native thinking and note-capture system. A hub-spoke of Claude Code agents (athena, scribe, archivist, sage, forge, and more) that captures your thinking into Obsidian vaults with zero setup friction.",
   "author": {
     "name": "Bryan Thompson"

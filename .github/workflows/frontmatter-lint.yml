@@ -1,0 +1,19 @@
+name: Frontmatter lint
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  frontmatter-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure PyYAML
+        run: pip install --quiet pyyaml
+
+      - name: Lint agent + skill frontmatter
+        run: python3 scripts/lint-frontmatter.py

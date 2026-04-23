@@ -7,8 +7,6 @@ description: Wrap up worktree work - push branch, open PR, fill description, rep
 
 Push the current branch, open a PR, and fill the description.
 
-Follows the "Wrapping Up" flow from the `worktrunk` skill. Load it for full details.
-
 ---
 
 ## Quick Reference

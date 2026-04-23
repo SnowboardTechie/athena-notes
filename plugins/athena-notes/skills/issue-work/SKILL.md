@@ -355,23 +355,34 @@ reviewed: {iso8601}
 
 Set `progress.md` `status: reviewed`.
 
-### 4.3 Present to user
+### 4.3 Present to user and ask for ship approval
 
-Show the user:
+Present the review outcome inline in this order:
 
-1. The headline + Critical + Major findings inline
-2. Path to `summary.md` + individual `review-{lens}.md` files
-3. The suggested next step:
+1. **Headline** — the one-line summary from `summary.md`.
+2. **Critical + Major findings** — full bullets, not just counts. If none, say so explicitly ("No critical or major findings").
+3. **Minor / Nit counts** — single line, e.g. "Minor: 3, Nit: 1. Full detail in review-*.md."
+4. **Paths** — `summary.md` + individual `review-{lens}.md` files, as clickable Markdown links when the surface supports them.
+5. **What the PR command would be** — shown as a fenced `bash` block the user could copy:
 
-```bash
-cd {worktree}
-gh pr create --draft --title "{ticket-title}" \
-  --body-file ~/.claude/issue-work/{owner}-{repo}-{N}/summary.md
-```
+   ```bash
+   cd {worktree}
+   git push -u origin {branch}
+   gh pr create --draft --title "{ticket-title}" \
+     --body-file ~/.claude/issue-work/{owner}-{repo}-{N}/summary.md
+   ```
 
-(Or for Forgejo, the equivalent `tea pulls create` or API call.)
+   (Or for Forgejo, the equivalent `curl` POST against `/api/v1/repos/{owner}/{repo}/pulls` — see [ship/SKILL.md](../ship/SKILL.md).)
 
-**Do not auto-open the PR.** User approves ship.
+6. **Explicit ship prompt.** End the message with a direct question — do not stop silently with the command in hand:
+
+   > Ready to push the branch and open the draft PR? Reply `ship it` to proceed, or flag anything you want changed first.
+
+   On `ship it` (or equivalent approval like "yes", "go", "push"): run the push + `gh pr create` yourself, then report the PR URL as a Markdown link.
+
+   On anything ambiguous: ask again, do not push. Do not treat silence as approval.
+
+**Do not auto-open the PR before this exchange.** The review summary on its own isn't consent — the user needs one more explicit step after reading it.
 
 ---
 

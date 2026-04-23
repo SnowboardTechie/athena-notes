@@ -6,6 +6,11 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 _No unreleased changes._
 
+## [0.4.1] — 2026-04-23
+
+### Changed
+- `issue-create` skill — GitHub path now attaches new issues to repo-linked GitHub Projects (V2). Queries `repository.projectsV2` filtered to open projects; zero linked projects skips silently, exactly one linked project auto-attaches, two or more prompts via `AskUserQuestion` single-select with `(none)` available. Uses the repo-scoped graphql query rather than `gh project list --owner X` so org-level boards unrelated to this repo stay out of the prompt. Wires into the existing `gh issue create` invocation via a new `project_flag` array; Forgejo has no Projects equivalent and skips entirely. Draft frontmatter gains a `project:` field for traceability.
+
 ## [0.4.0] — 2026-04-22
 
 ### Added
@@ -90,7 +95,8 @@ First public release. Complete port from the OpenCode/OhMyOpenAgent implementati
 ### Removed
 - `PORTING.md` — internal tracker from the OpenCode → Claude Code port. The port is done; the file was stale (GitHub repo already exists, "remaining" items all landed). Historical context preserved in git history.
 
-[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.1
 [0.4.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.0
 [0.3.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.3.0
 [0.2.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.2.0

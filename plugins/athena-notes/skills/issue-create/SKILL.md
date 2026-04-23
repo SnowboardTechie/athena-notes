@@ -195,6 +195,31 @@ If the list is empty, silently skip.
 
 Use `AskUserQuestion` single-select with "(none)" as a default option. On the Forgejo path, after the user picks a title, look up its `id` from the response above for Stage 4.2's `milestone` payload field.
 
+#### Project (GitHub only)
+
+Forgejo has no Projects equivalent — skip this subsection entirely on the Forgejo path.
+
+Query Projects **linked to this repo** (not the owner-scoped list, which surfaces boards unrelated to this repo):
+
+```bash
+gh api graphql -f query='
+  query {
+    repository(owner: "'"$owner"'", name: "'"$repo"'") {
+      projectsV2(first: 20) {
+        nodes { number title closed }
+      }
+    }
+  }' --jq '[.data.repository.projectsV2.nodes[] | select(.closed == false) | .title]'
+```
+
+Branch on the result:
+
+- **Zero open linked projects** → skip silently. No prompt, no flag.
+- **Exactly one open linked project** → attach it automatically. One linked project is unambiguous, so no prompt. Capture the title for Stage 4.2's `--project` flag.
+- **Two or more open linked projects** → `AskUserQuestion` single-select with each title plus `(none)`. Capture the selection (empty when `(none)`).
+
+`repository.projectsV2` returns the subset linked to this specific repo. `gh project list --owner X` would surface every board the owner has, most of which are unrelated — don't use it here.
+
 ---
 
 ## Stage 3 — Draft & review
@@ -231,6 +256,7 @@ template: {template-filename or "default-structure"}
 title: {chosen title}
 labels: [{selected labels}]
 milestone: {selected milestone or empty}
+project: {selected project or empty}
 type: {template's type: field, or empty}
 created: {iso8601}
 ---
@@ -310,19 +336,23 @@ awk '
 The `--label` flag takes one label name per occurrence. Build the command so each selected label becomes its own `--label`:
 
 ```bash
-# Build --label and --milestone flags as arrays so values with spaces survive.
+# Build --label / --milestone / --project flags as arrays so values with spaces survive.
 label_flags=()
 for l in "${selected_labels[@]}"; do label_flags+=(--label "$l"); done
 
 milestone_flag=()
 [[ -n "$milestone" ]] && milestone_flag=(--milestone "$milestone")
 
+project_flag=()
+[[ -n "$project" ]] && project_flag=(--project "$project")
+
 gh issue create \
   --repo "$owner/$repo" \
   --title "$title" \
   --body-file "$BODY_FILE" \
   "${label_flags[@]}" \
-  "${milestone_flag[@]}"
+  "${milestone_flag[@]}" \
+  "${project_flag[@]}"
 ```
 
 The command prints the new issue URL on success. Capture it.

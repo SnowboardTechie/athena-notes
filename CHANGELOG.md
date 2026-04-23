@@ -7,8 +7,14 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 ### Added
 - `.github/workflows/frontmatter-lint.yml` and `scripts/lint-frontmatter.py` — CI lint that validates every agent (`name`/`description`/`tools`/`model`) and skill (`name`/`description`) frontmatter block, catches the OpenCode-shape `tools:` list vs. Claude Code comma-separated string, enforces the `model:` enum (`opus`/`sonnet`/`haiku`/`inherit`), and checks that skill references in main-tree agent/skill bodies resolve to real skill directories. Examples tree is validated for frontmatter but not for cross-refs (examples point at user-project skills). Runs on `pull_request` and `push` to `main`. Resolves [#1](https://github.com/SnowboardTechie/athena-notes/issues/1).
 
+### Changed
+- `forge` agent — accepts an optional `Output path:` prompt-prefix parameter in Task invocations. Absent value preserves the existing `.notes/.agents/forge/today.md` default write; an absolute path redirects the daily-plan write there (parent dir must exist); the literal `return-only` suppresses the write so callers that own the canonical file get goal-list text back without the side effect. Archive (`sessions/`) and `wins.md` are unaffected. Replaces the prompt-level "return goals as text only, don't write to today.md" hack `workday-planning` was using, removing the LLM-compliance fragility and silent-drift risk flagged in [#6](https://github.com/SnowboardTechie/athena-notes/issues/6).
+- `workday-planning` skill — Phase 5 forge invocation now passes `Output path: return-only` instead of the prior prompt-level "don't write" override. Dependencies note and Guardrail 6 updated to match the new contract; the interim `> Note — tracked in #6` block is removed. Resolves [#6](https://github.com/SnowboardTechie/athena-notes/issues/6).
+
 ### Fixed
 - `ship` skill — removed dangling reference to a `worktrunk` skill that does not exist; surfaced by the new frontmatter-lint workflow on first run.
+
+## [0.3.0] — 2026-04-22
 
 ### Added
 - `issue-create` skill (`plugins/athena-notes/skills/issue-create/`) and `/issue-create` slash command. Q&A-driven drafting of GitHub/Forgejo issues: detects forge and repo, scans `.github/ISSUE_TEMPLATE/` for field-based templates or falls back to a six-section default structure, asks clarifying questions, writes a draft to `.notes/.agents/drafts/` for review, runs a best-effort dedup check, posts via `gh issue create`, sets the template's `type:` via the GraphQL `updateIssueIssueType` mutation (with per-repo ID cache + verify-and-retry), archives the draft on success, and offers to hand off to `/issue-work`. Addresses [#10](https://github.com/SnowboardTechie/athena-notes/issues/10).

@@ -4,6 +4,9 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed
+- `workday-planning` skill — Phase 8 now opens with a persistence receipt: `✅ Wrote: …` on a fresh write, `⏭️ Kept existing: …` when the user declines to overwrite. Resolves [#30](https://github.com/SnowboardTechie/athena-notes/issues/30).
+
 ## [0.4.3] — 2026-04-23
 
 ### Changed

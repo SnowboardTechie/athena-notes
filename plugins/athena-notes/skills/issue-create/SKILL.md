@@ -237,6 +237,107 @@ Branch on a successful response:
 - **Exactly one open linked project** → attach it automatically. One linked project is unambiguous, so no prompt. Capture the title for Stage 4.2's `--project` flag.
 - **Two or more open linked projects** → `AskUserQuestion` single-select with each title plus `(none)`. Capture the selection (empty when `(none)`).
 
+### 2.3 Parent linkage (GitHub only)
+
+Forgejo has no native sub-issue concept — skip this entire subsection silently on the Forgejo path. The flow continues to Stage 3 with `parent` empty in the draft frontmatter.
+
+**Always search.** Even when the candidate set is empty, prompt the user — never silently skip. Some issues legitimately have no parent, but that's the user's call.
+
+#### 2.3.1 Build the candidate set
+
+Combine two sources:
+
+1. **Seed `#N` references.** Scan the user's initial framing and Q&A answers for bare `#N` patterns. Drop any cross-repo `{owner}/{repo}#N` references — this skill only links within the target repo. Capture the bare numbers.
+
+2. **Label-cluster siblings.** Open issues in the target repo that share **all** selected labels (full intersection). Build the search query explicitly so label semantics are unambiguous (`gh issue list --label` repetition is AND in current `gh` versions, but `--search` makes the intent local to this file):
+
+   ```bash
+   search_terms=""
+   for l in "${selected_labels[@]}"; do
+     if [[ "$l" == *" "* ]]; then
+       search_terms+=" label:\"$l\""
+     else
+       search_terms+=" label:$l"
+     fi
+   done
+   search_terms="${search_terms# }"  # trim leading space
+
+   gh issue list \
+     --repo "$owner/$repo" \
+     --state open \
+     --search "$search_terms" \
+     --limit 20 \
+     --json number \
+     --jq '.[].number'
+   ```
+
+   If no labels were selected in 2.2, skip the label-cluster source entirely — full-intersection on zero labels matches every open issue, which is noise.
+
+Merge the two sources, dedupe, and exclude any number the user already named as the parent in their seed (e.g. "this is a follow-up to #656" — `#656` is the candidate parent, not a sibling). Cap the merged set at 20.
+
+If the merged set is empty → skip 2.3.2 and 2.3.3, jump to 2.3.4 (still prompt, with `(no candidates detected)`).
+
+#### 2.3.2 Query each candidate's parent
+
+One batched GraphQL request, with one alias per candidate. The `sub_issues` preview header is required for both the read here and the mutation in Stage 4.5; without it the `parent` field returns `Field 'parent' doesn't exist on type 'Issue'`.
+
+```bash
+# Build the alias list dynamically. Example shape:
+#   query($owner: String!, $repo: String!) {
+#     repository(owner: $owner, name: $repo) {
+#       i123: issue(number: 123) { parent { number title url state } }
+#       i456: issue(number: 456) { parent { number title url state } }
+#       ...
+#     }
+#   }
+
+aliases=""
+for n in "${candidates[@]}"; do
+  aliases+="i${n}: issue(number: ${n}) { parent { number title url state } }
+"
+done
+
+gh api graphql \
+  -H "GraphQL-Features: sub_issues" \
+  -f query="
+    query(\$owner: String!, \$repo: String!) {
+      repository(owner: \$owner, name: \$repo) {
+        $aliases
+      }
+    }
+  " \
+  -f owner="$owner" -f repo="$repo" \
+  --jq '.data.repository | to_entries | map(select(.value != null and .value.parent != null)) | map({sibling: (.key | sub("^i"; "") | tonumber), parent: .value.parent})'
+```
+
+The `--jq` filter drops candidates with `null` parents (and any `null` issues — a bad number in the input set returns `null` rather than an error) and reshapes the rest into `[{sibling, parent: {number, title, url, state}}, …]`.
+
+If the GraphQL call itself fails (non-zero exit, error in response — most commonly the `sub_issues` preview not enabled on the account, or rate limit), surface the error and ask: *"Parent search failed ({error}). Continue posting without parent linkage? [yes / stop]"*. Treat silence or any non-`yes` reply as stop. Do not silently fall through — that's the same failure mode Stage 2.2 Project guards against.
+
+#### 2.3.3 Find convergence
+
+Tally parent numbers across the surviving candidates:
+
+- **Single agreed parent** (all non-null candidates point to the same parent) → primary suggestion.
+- **Mixed parents** → sort by count descending; take up to 3 distinct parents as suggestions, primary first.
+- **All candidates had `null` parent** → no suggestions; fall through to 2.3.4 with `(no parent detected among siblings)`.
+
+For each surfaced parent, append ` (closed)` to the option label when the parent's `state == "CLOSED"` so the user sees the state without an extra click.
+
+#### 2.3.4 Ask the user
+
+Use `AskUserQuestion` single-select. Always include all of:
+
+- One option per surfaced candidate parent (up to 3): `Link under #N — {title}` or `Link under #N — {title} (closed)`.
+- `Specify a different parent` — on selection, ask a follow-up turn: *"Parent issue number? (e.g. `42`, or `skip`)"*. Validate the answer parses as a positive integer; on invalid input or `skip`, treat as `No parent`.
+- `No parent` — default. The natural choice when no candidates surfaced or the user has none in mind.
+
+Capture the result as a single integer (parent issue number) or empty.
+
+#### 2.3.5 Persist on the draft
+
+In Stage 3.2's frontmatter, write `parent: {N}` (or empty when not chosen). The actual link happens in Stage 4.5 after the issue is created — at draft time we only need to remember the choice.
+
 ---
 
 ## Stage 3 — Draft & review
@@ -274,6 +375,7 @@ title: {chosen title}
 labels: [{selected labels}]
 milestone: {selected milestone or empty}
 project: {selected project or empty}
+parent: {parent issue number from Stage 2.3, or empty}
 type: {template's type: field, or empty}
 created: {iso8601}
 ---
@@ -510,9 +612,70 @@ verified_type=$(gh api graphql -f query='
 - **Empty** → wait 2 seconds, retry the mutation from 4.3.2 once, then re-verify.
 - **Still empty after retry** → report: "Issue #{N} created but type not set. Retry manually: `gh api graphql -f query='mutation { updateIssueIssueType(input: {issueId: \"$issue_node_id\", issueTypeId: \"$type_id\"}) { issue { issueType { name } } } }'`." Continue to 4.5 anyway — the issue exists.
 
-### 4.5 Archive the draft
+### 4.5 Link parent issue (GitHub only, when `parent` set in 2.3)
 
-On successful post (type set or type not needed — i.e., Forgejo, no-template, or verified non-null after 4.4):
+Skip this stage entirely when:
+
+- `forge == forgejo` (no native sub-issue concept), or
+- The draft's `parent:` field is empty (user picked `No parent` in 2.3.4).
+
+Otherwise, link the new issue under the chosen parent. Mirrors the 4.3+4.4 pattern: mutation, then verify, then one retry on failure.
+
+#### 4.5.1 Resolve node IDs
+
+The new issue's node ID was already resolved in 4.3.2 as `$issue_node_id`. Reuse it (resolve it here if 4.3 was skipped, e.g. no-template path):
+
+```bash
+[[ -z "$issue_node_id" ]] && issue_node_id=$(gh api "repos/$owner/$repo/issues/$new_issue_number" --jq '.node_id')
+parent_node_id=$(gh api "repos/$owner/$repo/issues/$parent_number" --jq '.node_id' 2>/dev/null)
+```
+
+If the parent number doesn't exist (404, empty `parent_node_id`), report `"Parent #$parent_number not found in $owner/$repo — skipping linkage."` and continue to 4.6 without linking. The issue exists; the orphaned parent number is a user mistake, not a posting failure.
+
+#### 4.5.2 Call addSubIssue
+
+The `sub_issues` preview header is required. Without it the mutation returns `Field 'addSubIssue' doesn't exist on type 'Mutation'`.
+
+```bash
+gh api graphql \
+  -H "GraphQL-Features: sub_issues" \
+  -f query='
+    mutation($parentId: ID!, $childId: ID!) {
+      addSubIssue(input: {issueId: $parentId, subIssueId: $childId}) {
+        subIssue { number }
+      }
+    }
+  ' -f parentId="$parent_node_id" -f childId="$issue_node_id"
+```
+
+#### 4.5.3 Verify
+
+Re-query the new issue's `parent.number` and compare against the chosen parent:
+
+```bash
+verified_parent=$(gh api graphql \
+  -H "GraphQL-Features: sub_issues" \
+  -f query='
+    query($owner: String!, $repo: String!, $number: Int!) {
+      repository(owner: $owner, name: $repo) {
+        issue(number: $number) {
+          parent { number }
+        }
+      }
+    }
+  ' -f owner="$owner" -f repo="$repo" -F number="$new_issue_number" \
+    --jq '.data.repository.issue.parent.number // ""')
+```
+
+`// ""` turns a JSON `null` into an empty string (same pattern as 4.4) so `[[ -z ... ]]` is reliable.
+
+- **Matches `$parent_number`** → success. Continue to 4.6.
+- **Empty or mismatched** → wait 2 seconds, retry the mutation from 4.5.2 once, then re-verify.
+- **Still wrong after retry** → report: `"Issue #{N} created but parent linkage to #$parent_number failed. Retry manually: gh api graphql -H 'GraphQL-Features: sub_issues' -f query='mutation { addSubIssue(input: {issueId: \"$parent_node_id\", subIssueId: \"$issue_node_id\"}) { subIssue { number } } }'"`. Continue to 4.6 anyway — the issue exists.
+
+### 4.6 Archive the draft
+
+On successful post — i.e., the issue was created in 4.2, regardless of whether 4.3 (type-set), 4.4 (type-verify), and 4.5 (parent-link + verify) all succeeded. The issue exists; archival is unconditional once 4.2 returns a URL:
 
 ```bash
 ARCHIVE_DIR="$TRUNK_ROOT/.notes/.agents/_archive/issue-create"
@@ -532,9 +695,9 @@ Posted: {url}
 
 On **post failure** (`gh issue create` or Forgejo API failed) → draft stays in `drafts/`. Report the error and the draft path. User can retry by re-invoking `/issue-create` with the saved draft.
 
-On **type-set failure after retry** (4.4 returned null twice) → still archive the draft, since the issue exists. Include the manual-retry command in the user-facing report.
+On **type-set failure after retry** (4.4 returned null twice) or **parent-link failure after retry** (4.5.3 still mismatched after retry) → still archive the draft, since the issue exists. Include the relevant manual-retry command in the user-facing report.
 
-### 4.6 Report + handoff
+### 4.7 Report + handoff
 
 Show the user:
 
@@ -544,6 +707,7 @@ Show the user:
 Labels: {applied}
 Milestone: {applied or "—"}
 Project: {attached or "—"}
+Parent: {linked #N or "—" or "⚠ not linked, retry manually"}
 Type: {set or "—" or "⚠ not set, retry manually"}
 
 Archived draft: {archive path}
@@ -569,6 +733,10 @@ Then ask: "Start working on this now?" If yes, invoke the `issue-work` skill wit
 | User says "actually, let me think more" | Leave draft in `drafts/`; exit cleanly; re-invoke later picks up by listing drafts |
 | Dedup check finds identical title | Surface + ask — never auto-merge |
 | GraphQL rate-limited | Surface the rate-reset time from the response header; don't loop |
+| `sub_issues` preview disabled on the account | Stage 2.3.2 surfaces the error; ask `[yes / stop]` to continue without parent linkage |
+| Parent number user typed (`Specify a different parent`) doesn't exist | Skip linkage with a one-line note; issue still posts |
+| Convergence picks a closed parent | Offer it with `(closed)` in the option label; user decides |
+| User picks a parent in 2.3 but post fails in 4.2 | Draft retains `parent:` in frontmatter; re-invoking `/issue-create` resumes with the choice intact |
 
 ---
 
@@ -576,7 +744,7 @@ Then ask: "Start working on this now?" If yes, invoke the `issue-work` skill wit
 
 - **Edit existing issues.** (Separate skill if wanted.)
 - **Post to multiple repos at once.**
-- **Auto-link related issues/PRs.** (User can reference them in their answers — the draft preserves whatever they write.)
+- **Auto-link parent or related issues without confirmation.** Stage 2.3 always asks before linking; user can pick `No parent`. Free-text `#N` references in the body are preserved as-is, never auto-converted into linkages.
 - **Bulk-create issues from a list.**
 - **Assign anyone other than the default (caller is author, no assignees).**
 - **Add `Co-authored-by: Claude` trailers** to the issue body.

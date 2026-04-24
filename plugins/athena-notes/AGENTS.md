@@ -251,6 +251,8 @@ When posting review comments to a forge (GitHub, Gitea, Forgejo), **always post 
 
 This plugin is designed primarily for Claude Code but uses `AGENTS.md` format so the conventions port to Cursor, Aider, Codex, and other tools that respect this file. The agents and skills themselves are Claude Code-specific, but forks for other platforms can use this file as the shared spec.
 
+The repo-level [`core/AGENTS.md`](../../core/AGENTS.md) defines the host-agnostic / host-specific boundary — what eventually belongs under `core/` versus what stays in this plugin (or a future per-host adapter). New skill or agent contributions that are pure prose are host-agnostic candidates; anything calling Claude Code tools (`AskUserQuestion`, host-specific `Bash` shapes) or reading `~/.claude/` config paths is host-specific. Migration of existing content is tracked under the [portability epic](https://github.com/SnowboardTechie/athena-notes/issues/21).
+
 ---
 
 ## License

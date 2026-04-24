@@ -6,7 +6,9 @@ Issues and PRs welcome. This plugin is maintained in the open because the hub-sp
 
 Read [`plugins/athena-notes/AGENTS.md`](plugins/athena-notes/AGENTS.md). It's the framework spec — identity, vault routing, worktree resolution, the "users talk only to Athena" convention, cross-tool portability rules. Every agent and skill in this plugin obeys it. Yours should too.
 
-## The four-point filter (for agents & skills)
+If your contribution is host-agnostic prose (skill bodies, agent personas, templates, vault spec), also read [`core/AGENTS.md`](core/AGENTS.md). It defines the boundary between content that belongs under `core/` and content that belongs in a host-specific layer like `plugins/athena-notes/`.
+
+## The five-point filter (for agents & skills)
 
 Before opening a PR that adds an agent or skill to the main tree, check:
 
@@ -14,8 +16,9 @@ Before opening a PR that adds an agent or skill to the main tree, check:
 2. **Is it Obsidian-aware?** Wikilinks, frontmatter, and the existing vault structure should feel native. If your skill writes raw JSON to a flat file, rethink it.
 3. **Is it free of personal hardcoding?** No specific names, companies, projects, vault paths, or domain-specific jargon (VA.gov, HHS, "my SnowboardTechie brand"). Use placeholders (`{{USER_NAME}}`, `{{NOTES_ROOT}}`, `{{PERSONAL_VAULT}}`) read from `~/.claude/athena/identity.md`.
 4. **Would a teammate you've never met find it useful?** If the honest answer is "only people who work exactly like me," it's an example — open a PR to `plugins/athena-notes/examples/` instead.
+5. **Is it host-agnostic, or genuinely Claude-Code-specific?** Prose-only content (skill bodies, agent personas, templates) is host-agnostic and belongs eventually under [`core/`](core/AGENTS.md). Anything that calls runtime tools (`AskUserQuestion`, `Bash`), reads host config paths (`~/.claude/`), or depends on Claude-Code-specific frontmatter is host-specific and stays in `plugins/athena-notes/`. While migration is in progress, host-agnostic content can land in `plugins/athena-notes/` alongside its glue — flag the choice in your PR description so reviewers can route it later.
 
-Hit all four → main tree. Miss one or more → `examples/`, still welcome, labeled as reference.
+Hit all five → main tree. Miss one or more → `examples/`, still welcome, labeled as reference.
 
 ## Conventions you should know
 

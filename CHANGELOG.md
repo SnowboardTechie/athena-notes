@@ -5,7 +5,7 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 ## [Unreleased]
 
 ### Changed
-- `issue-create` skill — always searches for a candidate parent issue before posting (new Stage 2.3: GraphQL `issue.parent` on seed `#N` references and label-cluster siblings, single-select prompt with up to 3 suggestions plus `Specify` and `No parent`) and links the new issue via `addSubIssue` after creation when the user confirms a parent (new Stage 4.5, mutation + verify, mirrors 4.3+4.4). Forgejo path skips silently; both new GraphQL calls send `GraphQL-Features: sub_issues` for the public-preview API. Resolves [#47](https://github.com/SnowboardTechie/athena-notes/issues/47).
+- `issue-create` skill — searches for a candidate parent issue before posting (Stage 2.3) and links via `addSubIssue` after creation when the user confirms (Stage 4.5); Forgejo path skips silently. Resolves [#47](https://github.com/SnowboardTechie/athena-notes/issues/47).
 - `workday-planning` skill — Phase 8 now opens with a persistence receipt: `✅ Wrote: …` on a fresh write, `⏭️ Kept existing: …` when the user declines to overwrite. Resolves [#30](https://github.com/SnowboardTechie/athena-notes/issues/30).
 
 ## [0.4.3] — 2026-04-23

@@ -245,22 +245,18 @@ Forgejo has no native sub-issue concept — skip this entire subsection silently
 
 #### 2.3.1 Build the candidate set
 
-Combine two sources:
+Two sources, used differently:
 
-1. **Seed `#N` references.** Scan the user's initial framing and Q&A answers for bare `#N` patterns. Drop any cross-repo `{owner}/{repo}#N` references — this skill only links within the target repo. Capture the bare numbers.
+1. **Seed `#N` references → `direct_parents[]`.** Scan the user's initial framing and Q&A answers for bare `#N` patterns (drop cross-repo `{owner}/{repo}#N` references — this skill only links within the target repo). When someone says "follow-up to #656" the natural reading is that *#656 is the parent* — surface these directly as parent options in 2.3.4 rather than treating them as siblings to infer a parent from.
 
-2. **Label-cluster siblings.** Open issues in the target repo that share **all** selected labels (full intersection). Build the search query explicitly so label semantics are unambiguous (`gh issue list --label` repetition is AND in current `gh` versions, but `--search` makes the intent local to this file):
+2. **Label-cluster siblings → `siblings[]`.** Open issues in the target repo that share **all** selected labels (full intersection). Skipped if no labels were selected in 2.2 — full-intersection on zero labels matches every open issue, which is noise.
 
    ```bash
    search_terms=""
    for l in "${selected_labels[@]}"; do
-     if [[ "$l" == *" "* ]]; then
-       search_terms+=" label:\"$l\""
-     else
-       search_terms+=" label:$l"
-     fi
+     search_terms+=" label:\"$l\""
    done
-   search_terms="${search_terms# }"  # trim leading space
+   search_terms="${search_terms# }"
 
    gh issue list \
      --repo "$owner/$repo" \
@@ -271,29 +267,19 @@ Combine two sources:
      --jq '.[].number'
    ```
 
-   If no labels were selected in 2.2, skip the label-cluster source entirely — full-intersection on zero labels matches every open issue, which is noise.
+**Validate** every value in both arrays as a positive integer (`[[ "$n" =~ ^[0-9]+$ ]]`) before they reach 2.3.2. The batched GraphQL query in 2.3.2 interpolates these numbers directly into the alias list; a non-integer value would be a query-injection vector. Drop anything that fails the regex.
 
-Merge the two sources, dedupe, and exclude any number the user already named as the parent in their seed (e.g. "this is a follow-up to #656" — `#656` is the candidate parent, not a sibling). Cap the merged set at 20.
+Build the de-duplicated query set: `candidates = direct_parents ∪ siblings`. Cap at 20. If `candidates` is empty → skip 2.3.2 and 2.3.3, jump to 2.3.4 (still prompt, with `(no candidates detected)`).
 
-If the merged set is empty → skip 2.3.2 and 2.3.3, jump to 2.3.4 (still prompt, with `(no candidates detected)`).
+#### 2.3.2 Query candidates
 
-#### 2.3.2 Query each candidate's parent
-
-One batched GraphQL request, with one alias per candidate. The `sub_issues` preview header is required for both the read here and the mutation in Stage 4.5; without it the `parent` field returns `Field 'parent' doesn't exist on type 'Issue'`.
+One batched GraphQL request, one alias per candidate. Fetch each candidate's own `state` + `title` (used to render direct parents as options) and its `parent { … }` (used to derive convergence among siblings). Without `-H "GraphQL-Features: sub_issues"` the `parent` field returns `Field 'parent' doesn't exist on type 'Issue'`.
 
 ```bash
-# Build the alias list dynamically. Example shape:
-#   query($owner: String!, $repo: String!) {
-#     repository(owner: $owner, name: $repo) {
-#       i123: issue(number: 123) { parent { number title url state } }
-#       i456: issue(number: 456) { parent { number title url state } }
-#       ...
-#     }
-#   }
-
+# 'i' prefix is stripped by --jq's sub("^i"; "") below — keep in sync if it ever changes.
 aliases=""
 for n in "${candidates[@]}"; do
-  aliases+="i${n}: issue(number: ${n}) { parent { number title url state } }
+  aliases+="i${n}: issue(number: ${n}) { number title state parent { number title url state } }
 "
 done
 
@@ -307,29 +293,34 @@ gh api graphql \
     }
   " \
   -f owner="$owner" -f repo="$repo" \
-  --jq '.data.repository | to_entries | map(select(.value != null and .value.parent != null)) | map({sibling: (.key | sub("^i"; "") | tonumber), parent: .value.parent})'
+  --jq '.data.repository | to_entries | map(select(.value != null)) | map({n: (.key | sub("^i"; "") | tonumber), self: {title: .value.title, state: .value.state}, parent: .value.parent})'
 ```
 
-The `--jq` filter drops candidates with `null` parents (and any `null` issues — a bad number in the input set returns `null` rather than an error) and reshapes the rest into `[{sibling, parent: {number, title, url, state}}, …]`.
+The `--jq` filter drops `null` issues (a bad number returns `null` rather than an error) and reshapes the rest into `[{n, self: {title, state}, parent: {number, title, url, state} | null}, …]`.
 
-If the GraphQL call itself fails (non-zero exit, error in response — most commonly the `sub_issues` preview not enabled on the account, or rate limit), surface the error and ask: *"Parent search failed ({error}). Continue posting without parent linkage? [yes / stop]"*. Treat silence or any non-`yes` reply as stop. Do not silently fall through — that's the same failure mode Stage 2.2 Project guards against.
+If the call fails (non-zero exit, error in response — most commonly the `sub_issues` preview not enabled on the account, or rate limit), surface the error and ask: *"Parent search failed ({error}). Continue posting without parent linkage? [yes / stop]"*. Treat silence or any non-`yes` reply as stop. Do not silently fall through — same failure mode Stage 2.2 Project guards against.
 
-#### 2.3.3 Find convergence
+#### 2.3.3 Find convergence (siblings only)
 
-Tally parent numbers across the surviving candidates:
+Among candidates whose `n` is in `siblings[]` but **not** in `direct_parents[]`, tally the non-null `parent.number` values:
 
-- **Single agreed parent** (all non-null candidates point to the same parent) → primary suggestion.
-- **Mixed parents** → sort by count descending; take up to 3 distinct parents as suggestions, primary first.
-- **All candidates had `null` parent** → no suggestions; fall through to 2.3.4 with `(no parent detected among siblings)`.
-
-For each surfaced parent, append ` (closed)` to the option label when the parent's `state == "CLOSED"` so the user sees the state without an extra click.
+- **Single agreed parent** (all non-null sibling parents converge on one number) → primary inferred suggestion.
+- **Mixed parents** → sort by count descending; take up to 3 distinct parents as inferred suggestions.
+- **All sibling parents are `null`** → no inferred suggestions; only direct parents (if any) reach 2.3.4.
 
 #### 2.3.4 Ask the user
 
 Use `AskUserQuestion` single-select. Always include all of:
 
-- One option per surfaced candidate parent (up to 3): `Link under #N — {title}` or `Link under #N — {title} (closed)`.
-- `Specify a different parent` — on selection, ask a follow-up turn: *"Parent issue number? (e.g. `42`, or `skip`)"*. Validate the answer parses as a positive integer; on invalid input or `skip`, treat as `No parent`.
+- **Direct parents** (one option per `direct_parents[]` entry): `Link under #N — {title}` or `Link under #N — {title} (closed)` when `self.state == "CLOSED"`. Listed first — the user named these explicitly, so they should not have to retype them via `Specify`.
+- **Inferred parents** from 2.3.3 (up to 3): same option shape, ` (closed)` when the parent's `state == "CLOSED"`.
+- `Specify a different parent` — on selection, ask a follow-up turn: *"Parent issue number? (e.g. `42`, or `skip`)"*. Validate the answer parses as a positive integer; on invalid input or `skip`, treat as `No parent`. Then look up the typed number's title + state and confirm before persisting:
+
+  ```bash
+  parent_meta=$(gh api "repos/$owner/$repo/issues/$specified_n" --jq '{title, state}')
+  ```
+
+  Surface a confirmation prompt: *"Link under #{specified_n} — {title} ({state})?"*. On `no`, an empty `parent_meta` (404), or any error, treat as `No parent`. This keeps the closed-state visibility symmetric with the direct-parent and convergence paths.
 - `No parent` — default. The natural choice when no candidates surfaced or the user has none in mind.
 
 Capture the result as a single integer (parent issue number) or empty.
@@ -627,10 +618,10 @@ The new issue's node ID was already resolved in 4.3.2 as `$issue_node_id`. Reuse
 
 ```bash
 [[ -z "$issue_node_id" ]] && issue_node_id=$(gh api "repos/$owner/$repo/issues/$new_issue_number" --jq '.node_id')
-parent_node_id=$(gh api "repos/$owner/$repo/issues/$parent_number" --jq '.node_id' 2>/dev/null)
+parent_node_id=$(gh api "repos/$owner/$repo/issues/$parent_number" --jq '.node_id')
 ```
 
-If the parent number doesn't exist (404, empty `parent_node_id`), report `"Parent #$parent_number not found in $owner/$repo — skipping linkage."` and continue to 4.6 without linking. The issue exists; the orphaned parent number is a user mistake, not a posting failure.
+If `parent_node_id` is empty (404 on a missing issue, or any other error — `gh` will have printed the cause to stderr), report `"Parent #$parent_number lookup failed — skipping linkage."` and continue to 4.6 without linking. The issue exists; we'd rather skip the link with a visible reason than swallow auth/network errors as if they were "parent not found."
 
 #### 4.5.2 Call addSubIssue
 

@@ -4,6 +4,9 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed
+- `workday-planning` skill — Phase 8 now prints a write-receipt line (`✅ Wrote: {path} ({N} bytes)`) as item 1 before the summary; remaining items renumber 1-6 to 2-7. Paired Guardrails bullet makes Phase 7 non-skippable. Resolves [#30](https://github.com/SnowboardTechie/athena-notes/issues/30).
+
 ## [0.4.3] — 2026-04-23
 
 ### Changed

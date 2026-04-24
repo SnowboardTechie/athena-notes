@@ -6,6 +6,7 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ### Changed
 - `workday-planning` skill — Phase 8 now opens with a persistence receipt: `✅ Wrote: …` on a fresh write, `⏭️ Kept existing: …` when the user declines to overwrite. Resolves [#30](https://github.com/SnowboardTechie/athena-notes/issues/30).
+- `session-review` skill — Step 1 now scans with two lenses (technical + collaboration); Signal Test Q2 softened to allow cross-project user-collaboration preferences alongside project-specific findings; Categorization Criteria split into vault-routes and memory-routes (harness memory destinations for user-preference / project-motivation / external-system-pointer signal). Hub Capture Triggers in `AGENTS.md` clarified as vault-only — the plugin routes collaboration signal to the harness memory system but doesn't own that destination. Resolves [#13](https://github.com/SnowboardTechie/athena-notes/issues/13).
 
 ## [0.4.3] — 2026-04-23
 

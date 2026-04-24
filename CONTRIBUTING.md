@@ -16,7 +16,7 @@ Before opening a PR that adds an agent or skill to the main tree, check:
 2. **Is it Obsidian-aware?** Wikilinks, frontmatter, and the existing vault structure should feel native. If your skill writes raw JSON to a flat file, rethink it.
 3. **Is it free of personal hardcoding?** No specific names, companies, projects, vault paths, or domain-specific jargon (VA.gov, HHS, "my SnowboardTechie brand"). Use placeholders (`{{USER_NAME}}`, `{{NOTES_ROOT}}`, `{{PERSONAL_VAULT}}`) read from `~/.claude/athena/identity.md`.
 4. **Would a teammate you've never met find it useful?** If the honest answer is "only people who work exactly like me," it's an example — open a PR to `plugins/athena-notes/examples/` instead.
-5. **Is it host-agnostic, or genuinely Claude-Code-specific?** Prose-only content (skill bodies, agent personas, templates) is host-agnostic and belongs eventually under [`core/`](core/AGENTS.md). Anything that calls runtime tools (`AskUserQuestion`, `Bash`), reads host config paths (`~/.claude/`), or depends on Claude-Code-specific frontmatter is host-specific and stays in `plugins/athena-notes/`. While migration is in progress, host-agnostic content can land in `plugins/athena-notes/` alongside its glue — flag the choice in your PR description so reviewers can route it later.
+5. **Is it host-agnostic, or genuinely Claude-Code-specific?** Prose-only content (skill bodies, agent personas, templates) is host-agnostic and belongs eventually under [`core/AGENTS.md`](core/AGENTS.md). Anything that calls runtime tools (`AskUserQuestion`, `Bash`), reads host config paths (`~/.claude/`), or depends on Claude-Code-specific frontmatter is host-specific and stays in `plugins/athena-notes/`. While migration is in progress, host-agnostic content can land in `plugins/athena-notes/` alongside its glue — flag the choice in your PR description so reviewers can route it later.
 
 Hit all five → main tree. Miss one or more → `examples/`, still welcome, labeled as reference.
 
@@ -82,7 +82,7 @@ Skills are prose instructions keyed by name. Keep the description specific enoug
 2. Run a smoke test: install your fork locally (`/plugin install ~/code/your-fork`) and invoke the new agent/skill end-to-end. Confirm scribe captures whatever it was supposed to capture.
 3. Open a PR with:
    - What the agent/skill does and when it triggers.
-   - Which of the four filter points it satisfies (or why it's an example).
+   - Which of the five filter points it satisfies (or why it's an example).
    - A one-line transcript example if it's user-observable.
 4. One reviewer will walk the code with the filter and the framework spec.
 

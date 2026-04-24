@@ -43,9 +43,14 @@ Before categorizing or drafting, every candidate must pass the questions that ap
 **Exemption:** Daily-plan status updates from Step 1.6 (tracked-item resolutions) skip this filter — they're state changes, not durable insights, and the questions are tuned for knowledge. A session with zero insight-signal can still close a planned loop.
 
 1. **Novel.** Is the rule, decision, or pattern already captured in AGENTS.md or an existing `.notes/` note? If so, the existing record *is* the signal.
-2. **Durable & scoped.** Either project-specific (→ AGENTS.md / `.notes/` — agents, skills, vaults, identity, hub-spoke, this repo's layout) OR a cross-project user-collaboration preference (→ harness memory — how this user thinks, anchors, decides). A transient session vibe isn't durable; a general engineering truism isn't scoped. Neither qualifies.
+2. **Durable & scoped.** The candidate routes to one of two destinations:
+
+   - **Vault** (→ AGENTS.md / `.notes/`) — project-specific to Athena Notes: agents, skills, vaults, identity, hub-spoke, this repo's layout.
+   - **Harness memory** — cross-project user-collaboration preference (how this user thinks, anchors, decides), project motivation / stakeholder context, or external-system pointer.
+
+   A transient session vibe isn't durable; a general engineering truism isn't scoped. Neither qualifies.
 3. **Future-actionable.** Will a concrete decision — in a future chat or by your future self — change because this note exists? If removing the note wouldn't change any future outcome, it's a log.
-4. **Readable in six months.** Would the note earn a second look in Obsidian on a Saturday? Scannable (table, bullets, wikilinks, short paragraphs) — or a wall of prose to scroll past? If the latter: compress or drop.
+4. **Readable in six months.** Would the captured item earn a second look — vault notes in Obsidian on a Saturday, memory records in a future session window? Scannable (table, bullets, short paragraphs; wikilinks for vault notes only) — or a wall of prose to scroll past? If the latter: compress or drop.
 
 Zero survivors is fine. Better to capture nothing than to grow an archive you never revisit.
 
@@ -90,8 +95,8 @@ A session can have signal in one lens, both, or neither. Ignore routine task exe
 
 Run each candidate against the four questions above. Drop any that don't pass.
 
-- **Vault-route candidates** (technical lens → AGENTS.md / `.notes/` / daily plan): all four questions must pass.
-- **Memory-route candidates** (collaboration lens → harness memory): only Q2 (durable & scoped) and Q4 (readable in six months) apply. Q1 (novel-in-vault) doesn't fit — memory is a separate index. Q3 (future-actionable) is implicit — collaboration preferences exist precisely to change future decisions.
+- **Vault-route candidates** (AGENTS.md / `.notes/` / daily plan): all four questions must pass.
+- **Memory-route candidates** (harness memory): only Q2 (durable & scoped) and Q4 (readable in six months) apply. Q1 (novel-in-vault) doesn't fit — memory is a separate index. Q3 (future-actionable) is implicit — these records exist precisely to change future decisions. This route covers both collaboration-lens findings and technical-lens findings that fit the project-motivation or external-system-pointer rows; routing is by destination row, not by lens.
 
 This is the filter that does the real work; downstream steps only handle survivors.
 
@@ -143,7 +148,7 @@ Write out proposed content for each item using the templates below. Keep drafts 
 
 ### Step 5: APPROVAL GATE
 
-Present all drafts to the user and stop. Do not proceed until you receive explicit approval. The user may approve all, some, or none.
+Present all drafts to the user and stop. Do not proceed until you receive explicit approval from a human. The user may approve all, some, or none. A hub agent invoking `session-review` autonomously must surface the gate to the user — it must not self-approve on the user's behalf, since the collaboration lens by design is fed by session content.
 
 ### Step 6: Write or update approved .notes/ items
 
@@ -230,12 +235,12 @@ Use this for collaboration-lens candidates routed to harness memory. The skill d
 ### Proposed Memory Recommendation
 
 **Route:** Harness memory ({user | feedback | project | reference} record)
-**Destination hint:** {e.g., `~/.claude/projects/{slug}/memory/{name}.md` for Claude Code auto-memory; otherwise wherever your harness keeps cross-project preferences}
+**Destination hint:** {e.g., `~/.claude/projects/{slug}/memory/{name}.md` for Claude Code auto-memory — `{slug}` is the project's directory under `~/.claude/projects/`, mirroring its absolute path with `/` → `-`. Otherwise wherever your harness keeps cross-project preferences.}
 **Trigger moment:** {one-line — the conversation moment this surfaced from}
 
 {One-paragraph draft of the preference / motivation / pointer, written so it's recognizable in six months without re-reading the session.}
 
-*Approve to surface this for memory write at the end of the run. The skill itself does not write to memory.*
+*Approve to record this. Step 9 surfaces the final recommendation for handoff with no second gate.*
 ```
 
 ### Daily-plan update

@@ -4,6 +4,8 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.4.3] — 2026-04-23
+
 ### Changed
 - `AGENTS.md` — new **Command files vs. skill auto-registration** subsection under Skill Authoring. Codifies when to add a `commands/<name>.md` file alongside a skill (full implementation, differently-named alias) and when not to (same-name shim). Surfaced in [#49](https://github.com/SnowboardTechie/athena-notes/pull/49).
 - `session-review` skill — now scans today's daily plan for tracked items resolved in the session and proposes in-place edits at the approval gate. Resolves [#51](https://github.com/SnowboardTechie/athena-notes/issues/51).
@@ -106,7 +108,8 @@ First public release. Complete port from the OpenCode/OhMyOpenAgent implementati
 ### Removed
 - `PORTING.md` — internal tracker from the OpenCode → Claude Code port. The port is done; the file was stale (GitHub repo already exists, "remaining" items all landed). Historical context preserved in git history.
 
-[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.3
 [0.4.2]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.2
 [0.4.1]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.1
 [0.4.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.0

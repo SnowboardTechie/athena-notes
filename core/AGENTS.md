@@ -11,7 +11,7 @@ Two layers exist in this repo:
 - **Host-agnostic** (this directory): prose instructions, conventions, and templates that read cleanly as Markdown to any reasonable LLM-driven agent runtime. No specific tool names, no host-specific config paths, no runtime-specific frontmatter.
 - **Host-specific** (under `plugins/{plugin-name}/` for now; eventually also under `adapters/{host}/`): the glue that makes the host-agnostic content executable on a particular runtime. Plugin manifests, runtime tool calls (`AskUserQuestion`, `Bash`, etc.), agent frontmatter (`tools:`, `model:`), runtime config paths (`~/.claude/`, `.opencode/`, …), and slash-command surfaces.
 
-The relationship is one-directional: host-specific layers consume host-agnostic content. Nothing in `core/` should reference anything in `plugins/` or `adapters/`. The opposite — a Claude Code plugin or an opencode adapter pulling skill prose from `core/skills/` — is the point.
+The relationship is one-directional: host-specific layers consume host-agnostic content. Content under `core/` (skills, agents, templates) should not reference anything in `plugins/` or `adapters/`. The opposite — a Claude Code plugin or an opencode adapter pulling skill prose from `core/skills/` — is the point. This boundary spec itself is the exception: while migration is in progress it cross-references the existing plugin tree to orient readers; once migration completes, those pointers go away.
 
 ## What belongs here
 
@@ -55,7 +55,7 @@ If a skill is *mostly* host-agnostic but has one or two host-specific calls, the
 
 `core/` is established as the destination. Migration of existing host-agnostic content is tracked under the [portability epic](https://github.com/SnowboardTechie/athena-notes/issues/22) — specifically [#15](https://github.com/SnowboardTechie/athena-notes/issues/15) (skills), [#16](https://github.com/SnowboardTechie/athena-notes/issues/16) (embedded content), and [#17](https://github.com/SnowboardTechie/athena-notes/issues/17) (regression safeguards + contributor docs). Until those land:
 
-- `plugins/athena-notes/AGENTS.md` is the active framework spec for the Claude Code plugin. `core/AGENTS.md` (this file) is the boundary spec only.
+- `plugins/athena-notes/AGENTS.md` is the active framework spec for the Claude Code plugin; `core/AGENTS.md` is the boundary spec only.
 - `plugins/athena-notes/skills/` and `plugins/athena-notes/agents/` are the active skill and agent trees.
 - `core/` is not yet covered by `.github/workflows/version-check.yml` or `scripts/lint-frontmatter.py`. The migration PR that introduces the first versionable or frontmatter-bearing file under `core/` extends both.
 - New skills and agents can land in either location depending on which scope they fit; flag the choice in the PR description so reviewers can route it.

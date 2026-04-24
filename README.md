@@ -218,13 +218,14 @@ This license was chosen to prevent enclosure: Athena Notes should never become a
 
 Issues and PRs welcome at [github.com/SnowboardTechie/athena-notes](https://github.com/SnowboardTechie/athena-notes). See [CONTRIBUTING.md](CONTRIBUTING.md) for the submission workflow and conventions.
 
-Before contributing an agent or skill, check the four-point filter:
+Before contributing an agent or skill, check the five-point filter:
 - Does it serve the thinking + note-capture core? (vs. being a random utility)
 - Is it Obsidian-aware? (wikilinks, frontmatter, vault conventions)
 - Is it free of personal hardcoding? (no specific names, companies, projects)
 - Would a teammate I've never met find it useful?
+- Is it host-agnostic, or genuinely Claude-Code-specific? (see [`core/AGENTS.md`](core/AGENTS.md))
 
-If yes to all four, open a PR to the main `agents/` or `skills/` tree. If no to one or more, it probably belongs in `examples/` — still welcome, but labeled as a reference, not a utility.
+If yes to all five, open a PR to the main `agents/` or `skills/` tree. If no to one or more, it probably belongs in `examples/` — still welcome, but labeled as a reference, not a utility.
 
 ---
 

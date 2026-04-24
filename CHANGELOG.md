@@ -6,6 +6,7 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ### Changed
 - `AGENTS.md` — new **Command files vs. skill auto-registration** subsection under Skill Authoring. Codifies when to add a `commands/<name>.md` file alongside a skill (full implementation, differently-named alias) and when not to (same-name shim). Surfaced in [#49](https://github.com/SnowboardTechie/athena-notes/pull/49).
+- `session-review` skill — now scans today's daily plan for tracked items resolved in the session and proposes in-place edits at the approval gate. Resolves [#51](https://github.com/SnowboardTechie/athena-notes/issues/51).
 
 ## [0.4.2] — 2026-04-23
 

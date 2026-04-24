@@ -1,6 +1,6 @@
 ---
 name: session-review
-description: Review conversation sessions for project-specific learnings to document in AGENTS.md and .notes/
+description: Review conversation sessions for project-specific learnings to document in AGENTS.md and .notes/, and close resolved items on today's daily plan
 ---
 
 # Session Review
@@ -40,6 +40,8 @@ Good sessions produce knowledge that shouldn't live only in your head. This skil
 
 Before categorizing or drafting, every candidate must pass **all four** questions. Any "no" drops the candidate.
 
+**Exemption:** Daily-plan status updates from Step 1.6 (tracked-item resolutions) skip this filter — they're state changes, not durable insights, and the four questions are tuned for knowledge. A session with zero insight-signal can still close a planned loop.
+
 1. **Novel.** Is the rule, decision, or pattern already captured in AGENTS.md or an existing `.notes/` note? If so, the existing record *is* the signal.
 2. **Project-specific.** Is this specific to Athena Notes (agents, skills, vaults, identity, hub-spoke, this repo's layout)? General engineering knowledge fails.
 3. **Future-actionable.** Will a concrete decision — in a future chat or by your future self — change because this note exists? If removing the note wouldn't change any future outcome, it's a log.
@@ -59,6 +61,7 @@ Zero survivors is fine. Better to capture nothing than to grow an archive you ne
 | Architectural decision | .notes/ | DECISION type | "Chose JWT over sessions because..." |
 | Deep exploration | .notes/ | EXPLORATION type | "Investigated caching strategies..." |
 | Key insight | .notes/ | SESSION type | "Realized the auth flow requires..." |
+| Tracked-item resolution | today's daily plan | matching line | "`#734 → triaged out-of-scope`" |
 
 ---
 
@@ -71,6 +74,24 @@ Read back through the session. Look for moments where something was discovered, 
 ### Step 1.5: Apply the Signal Test
 
 Run each candidate against the four questions above. Drop any that don't pass all four. This is the filter that does the real work; downstream steps only handle survivors.
+
+### Step 1.6: Scan today's daily plan for resolved items
+
+A session often closes a loop that was tracked on today's daily plan (e.g., `[P3 afternoon] Triage #646 / #734 / #731`). Step 1's conversation scan is artifact-oriented and the Signal Test is insight-tuned, so resolved items slip through both. This step catches them.
+
+1. **Resolve today's plan path** (same convention as `workday-planning` Phase 0):
+   - Read `~/.claude/athena/identity.md` → `notes_root` (default `~/notes`), `personal_vault` (default `second-brain`), `TZ` (IANA).
+   - Read `~/.claude/athena/planning-sources.md` frontmatter → `output_folder` (default `Daily`).
+   - TZ validation: must match `^(UTC|[A-Za-z][A-Za-z0-9_+-]*/[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z][A-Za-z0-9_+-]*)?)$`. On mismatch, warn once and fall back to system TZ. If the validated-TZ `date` invocation exits non-zero (shape-valid but the zone doesn't exist on this system, e.g. `America/Fakeville`), re-run without `TZ` and emit the same fallback warning.
+   - Compute today's date in that zone: `TZ="{{TIMEZONE}}" date +%Y-%m-%d` (or plain `date +%Y-%m-%d` on fallback).
+   - Path: `{notes_root}/{personal_vault}/{output_folder}/{YYYY-MM-DD}-daily-plan.md`. If `output_folder` is `.`, the path is `{notes_root}/{personal_vault}/{YYYY-MM-DD}-daily-plan.md` (vault root).
+2. **If the file doesn't exist:** silently skip this step. No prompt, no error. Not every session follows a planned day.
+3. **If it exists:** read it and scan for tracked items — any list/bullet line referencing an issue/PR (`#N`, `owner/repo#N`), a named task, or a time-block item the session clearly addressed. Ignore section headings and frontmatter / metadata lines.
+4. **Match against the conversation.** For each tracked item, was it resolved, triaged, decided, or invalidated in this session? Look for concrete evidence (a decision, a comment posted, a pivot). If the session didn't touch the item, skip it.
+5. **Draft in-place edits only.** Use whatever convention the plan already uses (checkbox, strike-through, nested bullet) or append a short `→ resolved: {one-line outcome}` suffix. Do not rewrite the plan, do not add sections, do not reorder items. If a user pivot invalidated a sibling detail on the plan, propose that edit too.
+6. **Zero matches is fine** — equivalent to "no signal" for the knowledge path.
+
+Outputs from this step bypass Steps 1.5, 2, and 3 — they don't need the Signal Test (state, not insight), prior-art checks (in-place edits, not new knowledge), or categorization (the table already routes them). They go straight to Step 4, drafted with the Daily-plan update template, and then to the Step 5 approval gate.
 
 ### Step 2: Read existing context
 
@@ -125,6 +146,10 @@ Scribe writes (or edits) immediately on invocation — no preview, no confirmati
 
 After user approval, apply the edit directly to AGENTS.md using the Edit tool. Match section headings case-insensitively (so `## Conventions`, `## CONVENTIONS`, and `## conventions` all target the same section) and fit content into the existing section (CONVENTIONS, ANTI-PATTERNS, WHERE TO LOOK, NOTES) — never create new sections. If none of those sections exists in the user's AGENTS.md, fall back to presenting the markdown block for manual placement. If the user explicitly asks for copy-paste instead of a direct edit, present the markdown block and skip the write.
 
+### Step 8: Write approved daily-plan updates
+
+For each approved daily-plan edit from Step 1.6, apply it directly via the Edit tool at the path resolved in Step 1.6. Minimal, in-place edits only — match the existing line by its tracked reference (issue number, task name, time-block tag) and modify it in place. Do not rewrite the plan, do not add new sections, do not reorder items. If the matching line can't be found unambiguously (e.g., the user pivoted the plan between sessions), surface that to the user and skip the write — ask for manual placement rather than guess.
+
 ---
 
 ## Output Templates
@@ -172,11 +197,32 @@ Use this variant when archivist (Step 2) surfaced an existing note on the same t
 *Approve to have @scribe apply this update*
 ```
 
+### Daily-plan update
+
+Use this for Step 1.6 outputs. Show the existing line and the proposed replacement so the user can eyeball the edit before approving.
+
+```markdown
+### Proposed Daily-Plan Update
+
+**Path:** `{resolved daily-plan path}`
+**Tracked item:** {one-line — e.g., "P3 afternoon — Triage #734"}
+
+**Before:**
+`{exact existing line}`
+
+**After:**
+`{exact replacement line}`
+
+*Approve to have this applied via direct Edit*
+```
+
 ---
 
 ## Edge Cases
 
-**No survivors (common):** Most sessions execute rather than discover. Report `No signal — routine execution` and stop. This isn't failure; it's the expected outcome.
+**No survivors (common):** Most sessions execute rather than discover. If Step 1.6 also found no daily-plan items to close, report `No signal — routine execution` and stop. This isn't failure; it's the expected outcome. If Step 1.6 did surface daily-plan edits, present those alone at the approval gate — a session with zero insight-signal is still allowed to close a planned loop.
+
+**No daily plan for today:** Step 1.6 handles this — silently skip, no prompt.
 
 **No AGENTS.md in project:** Skip the AGENTS.md section entirely. Still offer `.notes/` drafts for survivors.
 
@@ -189,9 +235,10 @@ Use this variant when archivist (Step 2) surfaced an existing note on the same t
 ## Guardrails
 
 - Do NOT invoke @scribe until the user explicitly approves the draft
-- Do NOT write to AGENTS.md (or .notes/) until the user explicitly approves the draft
-- Do NOT fabricate learnings — every item must trace to a specific moment in the conversation
+- Do NOT write to AGENTS.md, .notes/, or today's daily plan until the user explicitly approves the draft
+- Do NOT fabricate learnings or tracked-item resolutions — every item must trace to a specific moment in the conversation
 - Do NOT create new AGENTS.md sections — fit content into existing structure
-- Do NOT handle worktree path resolution — that's @scribe's job via the agent-workspace skill
+- Do NOT rewrite or restructure the daily plan — workday-planning owns the plan's shape.
+- Do NOT handle worktree path resolution — that's @scribe's job via the agent-workspace skill. (Daily-plan paths are personal-vault paths, not worktree paths; Step 1.6 resolves them directly from identity config.)
 - Do NOT write prose-heavy narratives. Notes must be scannable in Obsidian at a glance — tables, bullets, wikilinks to related notes, short paragraphs. A 300-word reflective essay is the failure mode, not the goal.
 - Do NOT hit a quota. If only one candidate survives the Signal Test, propose one. If none survive, propose none. Never pad.

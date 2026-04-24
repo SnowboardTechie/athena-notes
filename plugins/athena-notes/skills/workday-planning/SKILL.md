@@ -340,7 +340,10 @@ Write via the Write tool. If the file already exists (user ran planning twice th
 
 Print in this order:
 
-1. `✅ Wrote: {absolute output path} ({N} bytes)` — print this before anything else, as proof-of-persistence. If you cannot print this line truthfully, Phase 7 was skipped; go back and do it.
+1. Persistence receipt — print before anything else:
+   - If Phase 7 wrote the file: `✅ Wrote: {absolute output path} ({N} bytes)`.
+   - If the user chose **Keep existing** in Phase 7: `⏭️ Kept existing: {absolute output path}`.
+   - If you can print neither truthfully, Phase 7 was skipped; go back and do it.
 2. Mode + date header (one line).
 3. Week-prep overlay (Monday only).
 4. Per-project synthesis (Phase 3 blocks).
@@ -518,5 +521,5 @@ If no TTY / user not present, a source failure should still abort (not silently 
 - Do NOT let forge write its `.notes/.agents/forge/today.md` during this flow — pass `Output path: return-only` in the Task prompt. The workday-planning skill owns the canonical daily-plan file.
 - Do NOT re-run bootstrap if the file exists and has projects, even if sources look thin. Suggest `--edit-sources` instead.
 - Do NOT drop top-level frontmatter keys this skill doesn't own (e.g., `weekly_planning:`). Step 0 of the Bootstrap Flow must preserve them on every run.
-- ALWAYS print the mode and date in the Phase 8 header (immediately after the write-receipt) so the user can see what flow they're in.
-- ALWAYS complete Phase 7 before Phase 8. If forge returns goals and the session feels "done" after presenting them, the file has not yet been written. The first line of Phase 8 output is the receipt that confirms otherwise.
+- ALWAYS print the mode and date header in Phase 8 so the user can see what flow they're in.
+- ALWAYS complete Phase 7 before Phase 8. If forge returns goals and the session feels "done" after presenting them, the file has not yet been written. The first line of Phase 8 output is the persistence receipt that confirms otherwise.

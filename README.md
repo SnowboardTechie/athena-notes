@@ -176,7 +176,7 @@ Copy any of these into your own `~/.claude/agents/` or `~/.claude/skills/` and a
 
 ## Cross-tool portability
 
-The framework conventions live in `AGENTS.md` — readable by Cursor, Aider, Codex, and other tools. The agents and skills themselves are Claude Code-specific, but the conventions translate.
+The framework conventions live in [`plugins/athena-notes/AGENTS.md`](plugins/athena-notes/AGENTS.md) — readable by Cursor, Aider, Codex, and other tools. The agents and skills themselves are Claude Code-specific, but the conventions translate.
 
 [`core/AGENTS.md`](core/AGENTS.md) is the boundary spec for host-agnostic content (skill prose, agent personas, templates) versus host-specific glue (runtime tool calls, agent frontmatter, plugin manifest). Subsequent migration issues will move host-agnostic content under `core/` so that other-host adapters (e.g., the planned [opencode adapter](https://github.com/SnowboardTechie/athena-notes/issues/21)) can consume it directly.
 

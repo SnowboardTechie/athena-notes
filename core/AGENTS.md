@@ -11,7 +11,7 @@ Two layers exist in this repo:
 - **Host-agnostic** (this directory): prose instructions, conventions, and templates that read cleanly as Markdown to any reasonable LLM-driven agent runtime. No specific tool names, no host-specific config paths, no runtime-specific frontmatter.
 - **Host-specific** (under `plugins/{plugin-name}/` for now; eventually also under `adapters/{host}/`): the glue that makes the host-agnostic content executable on a particular runtime. Plugin manifests, runtime tool calls (`AskUserQuestion`, `Bash`, etc.), agent frontmatter (`tools:`, `model:`), runtime config paths (`~/.claude/`, `.opencode/`, …), and slash-command surfaces.
 
-The relationship is one-directional: host-specific layers consume host-agnostic content. Content under `core/` (skills, agents, templates) should not reference anything in `plugins/` or `adapters/`. The opposite — a Claude Code plugin or an opencode adapter pulling skill prose from `core/skills/` — is the point. This boundary spec itself is the exception: while migration is in progress it cross-references the existing plugin tree to orient readers; once migration completes, those pointers go away.
+The relationship is one-directional: host-specific layers consume host-agnostic content. Content under `core/` (skills, agents, templates) should not reference anything in `plugins/` or `adapters/`. The opposite — a Claude Code plugin or an opencode adapter pulling skill prose from `core/skills/` — is the point. This boundary spec itself is the exception: while migration is in progress it cross-references the existing plugin tree to orient readers.
 
 ## What belongs here
 
@@ -49,7 +49,7 @@ For agents and skills specifically:
 - **Templates / vault spec / note types** → `core/`. These are pure data shapes.
 - **Setup or onboarding flows** that touch a host's config home → host-specific.
 
-If a skill is *mostly* host-agnostic but has one or two host-specific calls, the question is whether to extract the host-agnostic prose into `core/` and have the host-specific layer re-export it. That's a per-skill judgment to make at migration time, not now.
+If a skill is *mostly* host-agnostic but has one or two host-specific calls, the question is whether to extract the host-agnostic prose into `core/` and have the host-specific layer re-export it. That's a per-skill judgment to make at migration time.
 
 ## Current state
 

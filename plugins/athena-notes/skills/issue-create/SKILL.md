@@ -263,7 +263,10 @@ The batched GraphQL query in 2.3.2 interpolates these numbers directly into the 
    ```bash
    search_terms=""
    for l in "${selected_labels[@]}"; do
-     search_terms+=" label:\"$l\""
+     # Escape any embedded `"` in the label name so it can't break out of the quoted value
+     # in the search string and re-scope the query to a different repo.
+     l_escaped="${l//\"/\\\"}"
+     search_terms+=" label:\"$l_escaped\""
    done
    search_terms="${search_terms# }"
 
@@ -303,8 +306,6 @@ One batched GraphQL request, one alias per candidate. Fetch each candidate's own
 
 ```bash
 # 'i' prefix required — GraphQL alias names cannot start with a digit. Stripped in --jq via sub("^i"; "").
-# Defensive re-guard: 2.3.1's source-loop validation should have caught any non-integer,
-# but interpolating into a query string has zero error-recovery, so we re-check at the boundary.
 aliases=""
 for n in "${candidates[@]}"; do
   [[ "$n" =~ ^[1-9][0-9]*$ ]] || continue
@@ -312,6 +313,10 @@ for n in "${candidates[@]}"; do
 "
 done
 
+# Note: this `gh api graphql` call uses double-quotes around `-f query="..."` because
+# `$aliases` must expand. The other gh api graphql calls in this file (4.3, 4.4, 4.5.2,
+# 4.5.3) use single-quotes — those queries don't interpolate any shell variables. Don't
+# normalize the quoting style across the file: the asymmetry is load-bearing.
 gh api graphql \
   -H "GraphQL-Features: sub_issues" \
   -f query="
@@ -341,9 +346,10 @@ Among candidates whose `n` is in `siblings[]` but **not** in `direct_parents[]`,
 
 Use `AskUserQuestion` single-select. Always include all of:
 
-- **Direct parents** (one option per `direct_parents[]` entry): `Link under #N — {title}`, with ` (closed)` appended when the candidate's own `self.state == "CLOSED"` — for direct parents, `self` *is* the parent. Listed first — the user named these explicitly, so they should not have to retype them via `Specify`.
-- **Inferred parents** from 2.3.3 (up to 3): same option shape, with ` (closed)` appended when the inferred parent's `parent.state == "CLOSED"` (the sibling's parent — a different object than `self`). **Drop any inferred-parent number that already appears in `direct_parents[]`** — convergence can land on a number the user named directly, and showing it twice as `Link under #N — {title}` would be visually duplicative without conveying anything new.
-- `Specify a different parent` — on selection, ask a follow-up turn: *"Parent issue number? (e.g. `42`, or `skip`)"*. Validate the answer parses as a positive integer; on invalid input or `skip`, treat as `No parent`. Persist the typed number directly — Stage 4.5.3's verify step catches a non-existent or otherwise invalid parent on the post side. We deliberately don't pre-confirm or surface state at draft time; the user typed the number explicitly, and a closed-parent linkage is allowed.
+- **Direct parents** (one option per `direct_parents[]` entry): `Link under #N — {title}`. Listed first — the user named these explicitly, so they should not have to retype them via `Specify`.
+- **Inferred parents** from 2.3.3 (up to 3): same option shape. **Drop any inferred-parent number that already appears in `direct_parents[]`** — convergence can land on a number the user named directly, and showing it twice as `Link under #N — {title}` would be visually duplicative without conveying anything new.
+- Append ` (closed)` to either option label when the parent issue is closed. Field path differs by source: direct parents use `self.state` (the candidate *is* the parent); inferred parents use the sibling's `parent.state` (a different object).
+- `Specify a different parent` — on selection, ask a follow-up turn: *"Parent issue number? (e.g. `42`, or `skip`)"*. Validate the answer parses as a positive integer; on invalid input or `skip`, surface a brief inline note (`"Input not recognized — treating as No parent."`) and continue with `parent` empty. Persist the typed number directly — Stage 4.5.3's verify step catches a non-existent or otherwise invalid parent on the post side. We deliberately don't pre-confirm or surface state at draft time; the user typed the number explicitly, and a closed-parent linkage is allowed.
 - `No parent` — default. The natural choice when no candidates surfaced or the user has none in mind.
 
 Capture the result as a single integer (parent issue number) or empty.
@@ -479,16 +485,17 @@ milestone_flag=()
 project_flag=()
 [[ -n "$project" ]] && project_flag=(--project "$project")
 
-gh issue create \
+issue_url=$(gh issue create \
   --repo "$owner/$repo" \
   --title "$title" \
   --body-file "$BODY_FILE" \
   "${label_flags[@]}" \
   "${milestone_flag[@]}" \
-  "${project_flag[@]}"
+  "${project_flag[@]}")
+new_issue_number=$(echo "$issue_url" | grep -oE '[0-9]+$')
 ```
 
-The command prints the new issue URL on success. Capture it.
+`$issue_url` and `$new_issue_number` are both used downstream — 4.3.2 / 4.4 / 4.5.1 all assume `$new_issue_number` is set, including the no-template path that skips 4.3 entirely.
 
 **Forgejo:**
 
@@ -624,7 +631,18 @@ verified_type=$(gh api graphql -f query='
 
 - **Non-empty** (returns a name) → success. Continue to 4.5 (Link parent).
 - **Empty** → wait 2 seconds, retry the mutation from 4.3.2 once, then re-verify.
-- **Still empty after retry** → report: "Issue #{N} created but type not set. Retry manually: `gh api graphql -f query='mutation { updateIssueIssueType(input: {issueId: \"$issue_node_id\", issueTypeId: \"$type_id\"}) { issue { issueType { name } } } }'`." Continue to 4.5 (Link parent) anyway — the issue exists.
+- **Still empty after retry** → report a fenced code block with the actual `$issue_node_id` / `$type_id` / `$N` values **substituted inline** before display (do not show literal `{issue_node_id}` placeholders — a user copy-pasting the rendered block must get a working command):
+
+  ````
+  Issue #<actual N> created but type not set. Retry manually:
+
+      gh api graphql \
+        -f issueId=<actual issue_node_id> \
+        -f typeId=<actual type_id> \
+        -f query='mutation($issueId: ID!, $typeId: ID!) { updateIssueIssueType(input: {issueId: $issueId, issueTypeId: $typeId}) { issue { issueType { name } } } }'
+  ````
+
+  Continue to 4.5 (Link parent) anyway — the issue exists.
 
 ### 4.5 Link parent issue (GitHub only, when `parent` set in 2.3)
 
@@ -635,7 +653,7 @@ Skip this stage entirely when:
 
 Otherwise, link the new issue under the chosen parent. Mirrors the 4.3+4.4 pattern: mutation, then verify, then one retry on failure.
 
-**Read `parent_number` from the draft frontmatter before doing anything else.** On a resume path (re-invoking `/issue-create` against a saved draft), the `parent:` field is the only place the choice persists across sessions — Stage 2.3.5 wrote it; Stage 4.5 reads it. The variable name `$parent_number` referenced below assumes this assignment has happened.
+**Read `parent_number` from the draft frontmatter before doing anything else.** On a resume path (re-invoking `/issue-create` against a saved draft), the `parent:` field is the only place the choice persists across sessions — Stage 2.3.5 wrote it; Stage 4.5 reads it. Re-validate that `$parent_number` matches `^[1-9][0-9]*$` after reading; if it fails (e.g., a hand-edited draft has `parent: "evil"` or `parent: 0`), treat as `No parent` and skip to 4.6.
 
 #### 4.5.1 Resolve node IDs
 
@@ -680,14 +698,14 @@ verified_parent=$(gh api graphql \
       }
     }
   ' -f owner="$owner" -f repo="$repo" -F number="$new_issue_number" \
-    --jq '.data.repository.issue.parent.number // ""')
+    --jq '.data.repository.issue.parent.number // "" | tostring')
 ```
 
 `// ""` turns a JSON `null` into an empty string (same pattern as 4.4) so `[[ -z ... ]]` is reliable.
 
 - **Matches `$parent_number`** → success. Continue to 4.6 (Archive).
 - **Empty or mismatched** → wait 2 seconds, retry the mutation from 4.5.2 once, then re-verify.
-- **Still wrong after retry** → report a fenced code block with the actual `$parent_node_id` / `$issue_node_id` / `$N` values **substituted inline** before display (do not show literal `{parent_node_id}` placeholders — a user copy-pasting the rendered block must get a working command). The retry uses GraphQL variable binding (same shape as 4.5.2), not query-string interpolation, so quoting is straightforward:
+- **Still wrong after retry** → report a fenced code block with the actual `$parent_node_id` / `$issue_node_id` / `$N` values **substituted inline** before display (do not show literal `{parent_node_id}` placeholders — a user copy-pasting the rendered block must get a working command):
 
   ````
   Issue #<actual N> created but parent linkage to #<actual parent_number> failed. Retry manually:
@@ -761,8 +779,7 @@ Then ask: "Start working on this now?" If yes, invoke the `issue-work` skill wit
 | User says "actually, let me think more" | Leave draft in `drafts/`; exit cleanly; re-invoke later picks up by listing drafts |
 | Dedup check finds identical title | Surface + ask — never auto-merge |
 | GraphQL rate-limited | Surface the rate-reset time from the response header; don't loop |
-| `sub_issues` preview disabled on the account | Stage 2.3.2 surfaces the error; ask `[yes / stop]` to continue without parent linkage |
-| Parent number user typed (`Specify a different parent`) is invalid (non-integer, `skip`, or empty) | Treat as `No parent` silently; `parent:` stays empty in the draft |
+| Parent number user typed (`Specify a different parent`) is invalid (non-integer, `skip`, or empty) | Surface `Input not recognized — treating as No parent.` and continue; `parent:` stays empty in the draft |
 | Confirmed parent number is valid at draft time but doesn't exist (or is inaccessible) at post time | Stage 4.5.1 reports `"Parent #N lookup failed — skipping linkage."` and continues to 4.6; the issue still posts |
 | Convergence picks a closed parent | Offer it with `(closed)` in the option label; user decides |
 | User picks a parent in 2.3 but post fails in 4.2 | Draft retains `parent:` in frontmatter; re-invoking `/issue-create` resumes with the choice intact |

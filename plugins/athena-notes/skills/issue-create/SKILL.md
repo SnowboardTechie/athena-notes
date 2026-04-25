@@ -245,11 +245,18 @@ Forgejo has no native sub-issue concept — skip this entire subsection silently
 
 #### 2.3.1 Build the candidate set
 
-Two sources, used differently. **In each loop, drop any value that fails `[[ "$n" =~ ^[0-9]+$ ]]` before it lands in the array** — the batched GraphQL query in 2.3.2 interpolates these numbers directly into the alias list, so a non-integer value here is a query-injection vector. Validate at the source, not at the union.
+Two sources, used differently. The batched GraphQL query in 2.3.2 interpolates these numbers directly into the alias list, so every value entering `direct_parents[]` or `siblings[]` must match `^[1-9][0-9]*$` — a strict positive-integer guard, no leading zeros, `0` excluded since GitHub issues start at 1. Apply the guard at the source for each loop:
 
-1. **Seed `#N` references → `direct_parents[]`.** Scan the user's initial framing and Q&A answers for bare `#N` patterns (drop cross-repo `{owner}/{repo}#N` references — this skill only links within the target repo). For each match, push the captured number onto `direct_parents[]` only if it passes the positive-integer regex; otherwise drop it. When someone says "follow-up to #656" the natural reading is that *#656 is the parent* — surface these directly as parent options in 2.3.4 rather than treating them as siblings to infer a parent from.
+1. **Seed `#N` references → `direct_parents[]`.** Scan the user's initial framing and Q&A answers for bare `#N` patterns (drop cross-repo `{owner}/{repo}#N` references — this skill only links within the target repo). The capture group must be the integer only; trailing characters from a loose regex would survive into the alias list. When someone says "follow-up to #656" the natural reading is that *#656 is the parent* — surface these directly as parent options in 2.3.4 rather than treating them as siblings to infer a parent from.
 
-2. **Label-cluster siblings → `siblings[]`.** Open issues in the target repo that share **all** selected labels (full intersection). Skipped if no labels were selected in 2.2 — full-intersection on zero labels matches every open issue, which is noise. The `gh issue list --json number` output is already integer-typed, but pipe each line through the same regex guard before pushing onto `siblings[]` so the validation invariant is maintained at every entry point to the candidate set.
+   ```bash
+   direct_parents=()
+   while read -r n; do
+     [[ "$n" =~ ^[1-9][0-9]*$ ]] && direct_parents+=("$n")
+   done < <(printf '%s\n' "$user_seed_text" | grep -oE '(^|[^/A-Za-z0-9_-])#[0-9]+' | grep -oE '[0-9]+')
+   ```
+
+2. **Label-cluster siblings → `siblings[]`.** Open issues in the target repo that share **all** selected labels (full intersection). Skipped if no labels were selected in 2.2 — full-intersection on zero labels matches every open issue, which is noise. The `gh issue list --json number` output is already integer-typed, but the same regex guard applies on the way in:
 
    ```bash
    search_terms=""
@@ -258,16 +265,19 @@ Two sources, used differently. **In each loop, drop any value that fails `[[ "$n
    done
    search_terms="${search_terms# }"
 
-   gh issue list \
+   siblings=()
+   while read -r n; do
+     [[ "$n" =~ ^[1-9][0-9]*$ ]] && siblings+=("$n")
+   done < <(gh issue list \
      --repo "$owner/$repo" \
      --state open \
      --search "$search_terms" \
      --limit 20 \
      --json number \
-     --jq '.[].number'
+     --jq '.[].number')
    ```
 
-Build the de-duplicated query set: `candidates = direct_parents ∪ siblings`. Cap at 20. If `candidates` is empty → skip 2.3.2 and 2.3.3, jump to 2.3.4 (still prompt, with `(no candidates detected)`).
+Build the de-duplicated query set: `candidates = direct_parents ∪ siblings`, with `direct_parents[]` entries kept first and `siblings[]` filling the remaining slots up to a total of 20 — this preserves the user-named numbers when a heavy label cluster would otherwise crowd them out. If `candidates` is empty → skip 2.3.2 and 2.3.3, jump to 2.3.4 (which still prompts, with only `Specify a different parent` and `No parent` available).
 
 #### 2.3.2 Query candidates
 
@@ -310,8 +320,8 @@ Among candidates whose `n` is in `siblings[]` but **not** in `direct_parents[]`,
 
 Use `AskUserQuestion` single-select. Always include all of:
 
-- **Direct parents** (one option per `direct_parents[]` entry): `Link under #N — {title}` or `Link under #N — {title} (closed)` when `self.state == "CLOSED"`. Listed first — the user named these explicitly, so they should not have to retype them via `Specify`.
-- **Inferred parents** from 2.3.3 (up to 3): same option shape, ` (closed)` when the parent's `state == "CLOSED"`.
+- **Direct parents** (one option per `direct_parents[]` entry): `Link under #N — {title}`, with ` (closed)` appended when the candidate's own `self.state == "CLOSED"` — for direct parents, `self` *is* the parent. Listed first — the user named these explicitly, so they should not have to retype them via `Specify`.
+- **Inferred parents** from 2.3.3 (up to 3): same option shape, with ` (closed)` appended when the inferred parent's `parent.state == "CLOSED"` (the sibling's parent — a different object than `self`).
 - `Specify a different parent` — on selection, ask a follow-up turn: *"Parent issue number? (e.g. `42`, or `skip`)"*. Validate the answer parses as a positive integer; on invalid input or `skip`, treat as `No parent`. Persist the typed number directly — Stage 4.5.3's verify step catches a non-existent or otherwise invalid parent on the post side. We deliberately don't pre-confirm or surface state at draft time; the user typed the number explicitly, and a closed-parent linkage is allowed.
 - `No parent` — default. The natural choice when no candidates surfaced or the user has none in mind.
 
@@ -613,7 +623,7 @@ The new issue's node ID was already resolved in 4.3.2 as `$issue_node_id`. Reuse
 parent_node_id=$(gh api "repos/$owner/$repo/issues/$parent_number" --jq '.node_id')
 ```
 
-If `parent_node_id` is empty (404 on a missing issue, or any other error — `gh` will have printed the cause to stderr), report `"Parent #$parent_number lookup failed — skipping linkage."` and continue to 4.6 without linking. The issue exists; we'd rather skip the link with a visible reason than swallow auth/network errors as if they were "parent not found."
+If `parent_node_id` is empty (404 on a missing issue, or any other error — `gh` will have printed the cause to stderr), report `"Parent #$parent_number lookup failed — skipping linkage."` and continue to 4.6 (Archive) without linking. The issue exists; we'd rather skip the link with a visible reason than swallow auth/network errors as if they were "parent not found."
 
 #### 4.5.2 Call addSubIssue
 
@@ -652,9 +662,9 @@ verified_parent=$(gh api graphql \
 
 `// ""` turns a JSON `null` into an empty string (same pattern as 4.4) so `[[ -z ... ]]` is reliable.
 
-- **Matches `$parent_number`** → success. Continue to 4.6.
+- **Matches `$parent_number`** → success. Continue to 4.6 (Archive).
 - **Empty or mismatched** → wait 2 seconds, retry the mutation from 4.5.2 once, then re-verify.
-- **Still wrong after retry** → report: `"Issue #{N} created but parent linkage to #$parent_number failed. Retry manually: gh api graphql -H 'GraphQL-Features: sub_issues' -f query='mutation { addSubIssue(input: {issueId: \"$parent_node_id\", subIssueId: \"$issue_node_id\"}) { subIssue { number } } }'"`. Continue to 4.6 anyway — the issue exists.
+- **Still wrong after retry** → report: `"Issue #{N} created but parent linkage to #$parent_number failed. Retry manually: gh api graphql -H 'GraphQL-Features: sub_issues' -f query='mutation { addSubIssue(input: {issueId: \"$parent_node_id\", subIssueId: \"$issue_node_id\"}) { subIssue { number } } }'"`. Continue to 4.6 (Archive) anyway — the issue exists.
 
 ### 4.6 Archive the draft
 

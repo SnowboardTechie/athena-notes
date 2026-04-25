@@ -249,13 +249,14 @@ Forgejo has no native sub-issue concept — skip this entire subsection silently
 
 The batched GraphQL query in 2.3.2 interpolates these numbers directly into the alias list, so every value entering `direct_parents[]` or `siblings[]` must match `^[1-9][0-9]*$` — a strict positive-integer guard, no leading zeros, `0` excluded since GitHub issues start at 1. Apply the guard at the source for each loop:
 
-1. **Seed `#N` references → `direct_parents[]`.** Scan the user's initial framing and Q&A answers for bare `#N` patterns (drop cross-repo `{owner}/{repo}#N` references — this skill only links within the target repo). The capture group must be the integer only; trailing characters from a loose regex would survive into the alias list. When someone says "follow-up to #656" the natural reading is that *#656 is the parent* — surface these directly as parent options in 2.3.4 rather than treating them as siblings to infer a parent from.
+1. **Seed `#N` references → `direct_parents[]`.** Scan the user's initial framing and any `#N` references that surfaced during the Stage 2 Q&A for bare `#N` patterns (drop cross-repo `{owner}/{repo}#N` references — this skill only links within the target repo). The capture group must be the integer only; trailing characters from a loose regex would survive into the alias list. When someone says "follow-up to #656" the natural reading is that *#656 is the parent* — surface these directly as parent options in 2.3.4 rather than treating them as siblings to infer a parent from.
 
    ```bash
+   # $seed_text is the initial framing concatenated with every Q&A answer that may carry an #N reference.
    direct_parents=()
    while read -r n; do
      [[ "$n" =~ ^[1-9][0-9]*$ ]] && direct_parents+=("$n")
-   done < <(printf '%s\n' "$user_seed_text" | grep -oE '(^|[^/A-Za-z0-9_-])#[0-9]+' | grep -oE '[0-9]+')
+   done < <(printf '%s\n' "$seed_text" | grep -oE '(^|[^/A-Za-z0-9_-])#[0-9]+' | grep -oE '[0-9]+')
    ```
 
 2. **Label-cluster siblings → `siblings[]`.** Open issues in the target repo that share **all** selected labels (full intersection). Skipped if no labels were selected in 2.2 — full-intersection on zero labels matches every open issue, which is noise. The `gh issue list --json number` output is already integer-typed, but the same regex guard applies on the way in:
@@ -263,9 +264,11 @@ The batched GraphQL query in 2.3.2 interpolates these numbers directly into the 
    ```bash
    search_terms=""
    for l in "${selected_labels[@]}"; do
-     # Escape any embedded `"` in the label name so it can't break out of the quoted value
-     # in the search string and re-scope the query to a different repo.
-     l_escaped="${l//\"/\\\"}"
+     # Escape any embedded `\` then `"` in the label name so the value can't break out of the
+     # search string and re-scope the query to a different repo. Backslash must come first;
+     # otherwise the escape we add for `"` would itself get escaped on a second pass.
+     l_escaped="${l//\\/\\\\}"
+     l_escaped="${l_escaped//\"/\\\"}"
      search_terms+=" label:\"$l_escaped\""
    done
    search_terms="${search_terms# }"
@@ -287,9 +290,8 @@ Build the de-duplicated, capped query set. Order matters — `direct_parents[]` 
 ```bash
 candidates=()
 for n in "${direct_parents[@]}" "${siblings[@]}"; do
-  # Skip if already added (dedup). Without this, a number in both arrays would
-  # produce duplicate GraphQL aliases (`i123:` twice) and the API rejects the
-  # whole batch with a parse error.
+  # Without dedup, a number in both arrays produces duplicate GraphQL aliases (`i123:` twice)
+  # and the API rejects the whole batch with a parse error.
   for existing in "${candidates[@]}"; do
     [[ "$existing" == "$n" ]] && continue 2
   done
@@ -316,7 +318,9 @@ done
 # Note: this `gh api graphql` call uses double-quotes around `-f query="..."` because
 # `$aliases` must expand. The other gh api graphql calls in this file (4.3, 4.4, 4.5.2,
 # 4.5.3) use single-quotes — those queries don't interpolate any shell variables. Don't
-# normalize the quoting style across the file: the asymmetry is load-bearing.
+# normalize the quoting style across the file: switching this block to single-quotes
+# turns `$aliases` into a literal field name and the GraphQL parser rejects the whole
+# query at the first alias boundary.
 gh api graphql \
   -H "GraphQL-Features: sub_issues" \
   -f query="
@@ -631,7 +635,7 @@ verified_type=$(gh api graphql -f query='
 
 - **Non-empty** (returns a name) → success. Continue to 4.5 (Link parent).
 - **Empty** → wait 2 seconds, retry the mutation from 4.3.2 once, then re-verify.
-- **Still empty after retry** → report a fenced code block with the actual `$issue_node_id` / `$type_id` / `$N` values **substituted inline** before display (do not show literal `{issue_node_id}` placeholders — a user copy-pasting the rendered block must get a working command):
+- **Still empty after retry** → report a fenced code block with the actual `$issue_node_id` / `$type_id` / `$N` values **substituted inline** before display:
 
   ````
   Issue #<actual N> created but type not set. Retry manually:
@@ -705,7 +709,7 @@ verified_parent=$(gh api graphql \
 
 - **Matches `$parent_number`** → success. Continue to 4.6 (Archive).
 - **Empty or mismatched** → wait 2 seconds, retry the mutation from 4.5.2 once, then re-verify.
-- **Still wrong after retry** → report a fenced code block with the actual `$parent_node_id` / `$issue_node_id` / `$N` values **substituted inline** before display (do not show literal `{parent_node_id}` placeholders — a user copy-pasting the rendered block must get a working command):
+- **Still wrong after retry** → report a fenced code block with the actual `$parent_node_id` / `$issue_node_id` / `$N` values **substituted inline** before display:
 
   ````
   Issue #<actual N> created but parent linkage to #<actual parent_number> failed. Retry manually:

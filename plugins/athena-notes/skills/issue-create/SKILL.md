@@ -245,7 +245,9 @@ Forgejo has no native sub-issue concept — skip this entire subsection silently
 
 #### 2.3.1 Build the candidate set
 
-Two sources, used differently. The batched GraphQL query in 2.3.2 interpolates these numbers directly into the alias list, so every value entering `direct_parents[]` or `siblings[]` must match `^[1-9][0-9]*$` — a strict positive-integer guard, no leading zeros, `0` excluded since GitHub issues start at 1. Apply the guard at the source for each loop:
+**Why two arrays.** Seed `#N` references go into `direct_parents[]` and become parent options directly in 2.3.4. Label-cluster siblings go into `siblings[]` and feed the convergence inference in 2.3.3 (their `parent` field is what we infer from). The two sources behave differently from 2.3.3 onward; keep them separate, then take their union for the single batched query in 2.3.2.
+
+The batched GraphQL query in 2.3.2 interpolates these numbers directly into the alias list, so every value entering `direct_parents[]` or `siblings[]` must match `^[1-9][0-9]*$` — a strict positive-integer guard, no leading zeros, `0` excluded since GitHub issues start at 1. Apply the guard at the source for each loop:
 
 1. **Seed `#N` references → `direct_parents[]`.** Scan the user's initial framing and Q&A answers for bare `#N` patterns (drop cross-repo `{owner}/{repo}#N` references — this skill only links within the target repo). The capture group must be the integer only; trailing characters from a loose regex would survive into the alias list. When someone says "follow-up to #656" the natural reading is that *#656 is the parent* — surface these directly as parent options in 2.3.4 rather than treating them as siblings to infer a parent from.
 
@@ -277,7 +279,23 @@ Two sources, used differently. The batched GraphQL query in 2.3.2 interpolates t
      --jq '.[].number')
    ```
 
-Build the de-duplicated query set: `candidates = direct_parents ∪ siblings`, with `direct_parents[]` entries kept first and `siblings[]` filling the remaining slots up to a total of 20 — this preserves the user-named numbers when a heavy label cluster would otherwise crowd them out. If `candidates` is empty → skip 2.3.2 and 2.3.3, jump to 2.3.4 (which still prompts, with only `Specify a different parent` and `No parent` available).
+Build the de-duplicated, capped query set. Order matters — `direct_parents[]` entries kept first so a heavy label cluster can't crowd out user-named numbers, then `siblings[]` filling the remaining slots up to a total of 20:
+
+```bash
+candidates=()
+for n in "${direct_parents[@]}" "${siblings[@]}"; do
+  # Skip if already added (dedup). Without this, a number in both arrays would
+  # produce duplicate GraphQL aliases (`i123:` twice) and the API rejects the
+  # whole batch with a parse error.
+  for existing in "${candidates[@]}"; do
+    [[ "$existing" == "$n" ]] && continue 2
+  done
+  candidates+=("$n")
+  (( ${#candidates[@]} >= 20 )) && break
+done
+```
+
+If `candidates` is empty → skip 2.3.2 and 2.3.3, jump to 2.3.4 (which still prompts, with only `Specify a different parent` and `No parent` available).
 
 #### 2.3.2 Query candidates
 
@@ -285,8 +303,11 @@ One batched GraphQL request, one alias per candidate. Fetch each candidate's own
 
 ```bash
 # 'i' prefix required — GraphQL alias names cannot start with a digit. Stripped in --jq via sub("^i"; "").
+# Defensive re-guard: 2.3.1's source-loop validation should have caught any non-integer,
+# but interpolating into a query string has zero error-recovery, so we re-check at the boundary.
 aliases=""
 for n in "${candidates[@]}"; do
+  [[ "$n" =~ ^[1-9][0-9]*$ ]] || continue
   aliases+="i${n}: issue(number: ${n}) { number title state parent { number title url state } }
 "
 done
@@ -306,7 +327,7 @@ gh api graphql \
 
 The `--jq` filter drops `null` issues (a bad number returns `null` rather than an error) and reshapes the rest into `[{n, self: {title, state}, parent: {number, title, url, state} | null}, …]`.
 
-If the call fails (non-zero exit, error in response — most commonly the `sub_issues` preview not enabled on the account, or rate limit), surface the error and ask: *"Parent search failed ({error}). Continue posting without parent linkage? [yes / stop]"*. Treat silence or any non-`yes` reply as stop. Do not silently fall through — same failure mode Stage 2.2 Project guards against.
+If the call fails (non-zero exit, error in response — most commonly the `sub_issues` preview not enabled on the account, or rate limit), surface the error and ask: *"Parent search failed ({error}). Continue without inferred-parent suggestions? [yes / stop]"*. Treat silence or any non-`yes` reply as stop. On `yes`, **fall through to 2.3.4** — the "always prompt" invariant holds even in the failure path. Since the failed query was the source of titles and states, direct parents render as bare `Link under #N` (no `{title}`, no `(closed)` indicator), inferred-parent suggestions are dropped entirely, and `Specify a different parent` + `No parent` remain available as always.
 
 #### 2.3.3 Find convergence (siblings only)
 
@@ -601,7 +622,7 @@ verified_type=$(gh api graphql -f query='
 
 `gh api --jq '... // ""'` turns a JSON `null` into an empty string, so a bash `[[ -z ... ]]` test is reliable. Do not test against the literal word `null` — an issue type literally named "null" would collide (unlikely but the `// ""` pattern is unambiguous either way).
 
-- **Non-empty** (returns a name) → success. Continue to 4.5.
+- **Non-empty** (returns a name) → success. Continue to 4.5 (Link parent).
 - **Empty** → wait 2 seconds, retry the mutation from 4.3.2 once, then re-verify.
 - **Still empty after retry** → report: "Issue #{N} created but type not set. Retry manually: `gh api graphql -f query='mutation { updateIssueIssueType(input: {issueId: \"$issue_node_id\", issueTypeId: \"$type_id\"}) { issue { issueType { name } } } }'`." Continue to 4.5 (Link parent) anyway — the issue exists.
 
@@ -664,7 +685,19 @@ verified_parent=$(gh api graphql \
 
 - **Matches `$parent_number`** → success. Continue to 4.6 (Archive).
 - **Empty or mismatched** → wait 2 seconds, retry the mutation from 4.5.2 once, then re-verify.
-- **Still wrong after retry** → report: `"Issue #{N} created but parent linkage to #$parent_number failed. Retry manually: gh api graphql -H 'GraphQL-Features: sub_issues' -f query='mutation { addSubIssue(input: {issueId: \"$parent_node_id\", subIssueId: \"$issue_node_id\"}) { subIssue { number } } }'"`. Continue to 4.6 (Archive) anyway — the issue exists.
+- **Still wrong after retry** → report (rendered in a fenced code block, not inline, so the user can copy without quote-mismatch):
+
+  ````
+  Issue #{N} created but parent linkage to #{parent_number} failed. Retry manually:
+
+      gh api graphql \
+        -H 'GraphQL-Features: sub_issues' \
+        -f parentId='{parent_node_id}' \
+        -f childId='{issue_node_id}' \
+        -f query='mutation($parentId: ID!, $childId: ID!) { addSubIssue(input: {issueId: $parentId, subIssueId: $childId}) { subIssue { number } } }'
+  ````
+
+  Substitute the bracketed values inline in the user-facing message. The retry uses GraphQL variable binding (same shape as 4.5.2) instead of inlining the IDs into the query string, so the command survives copy-paste without escaping pitfalls. Continue to 4.6 (Archive) anyway — the issue exists.
 
 ### 4.6 Archive the draft
 

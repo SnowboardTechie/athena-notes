@@ -100,7 +100,7 @@ Run each candidate against the four questions above. Drop any that don't pass.
 - **Vault-route candidates** (AGENTS.md / `.notes/` / daily plan): all four questions must pass.
 - **Memory-route candidates** (harness memory): Q2 (durable & scoped), Q3 (future-actionable), and Q4 (readable in six months) all apply. Q1 (novel-in-vault) doesn't — memory is a separate index from the vault. A preference that wouldn't change any future agent decision still fails Q3.
 
-Routing is by destination row, not by which lens flagged the candidate — a technical-lens finding can land on memory-routes if it fits a project-motivation or external-system-pointer row, and a collaboration-lens finding is always memory-route. See Step 3.
+Routing is by destination row, not by which lens flagged the candidate — a technical-lens finding can land on memory-routes if it fits a project-motivation or external-system-pointer row.
 
 This is the filter that does the real work; downstream steps only handle survivors.
 
@@ -233,7 +233,7 @@ Use this variant when archivist (Step 2) surfaced an existing note on the same t
 
 ### Memory recommendation
 
-Use this for memory-route candidates (collaboration / project-motivation / external-system-pointer). The skill doesn't write to memory itself — the template is the handoff artifact for the user or hub agent. **Write the draft in third-person declarative form** ("Bryan prefers X", "the auth migration is compliance-driven") rather than imperative ("Always do X", "Do this when…") — third-person declarative phrasing keeps injected imperatives visually distinct at the approval gate.
+Use this for memory-route candidates (collaboration / project-motivation / external-system-pointer). The skill doesn't write to memory itself — the template is the handoff artifact for the user or hub agent. **Write the draft in third-person declarative form** ("[User] prefers X", "the auth migration is compliance-driven") rather than imperative ("Always do X", "Do this when…") — third-person declarative phrasing keeps injected imperatives visually distinct at the approval gate.
 
 ```markdown
 ### Proposed Memory Recommendation
@@ -270,7 +270,7 @@ Use this for Step 1.6 outputs. Show the existing line and the proposed replaceme
 
 ## Edge Cases
 
-**No survivors (common):** Most sessions execute rather than discover. "No survivors" means **both lenses** dropped to zero AND Step 1.6 found no daily-plan items to close. When all three are empty, report `No signal — routine execution` and stop. This isn't failure; it's the expected outcome. If only one channel has output (e.g., the collaboration lens surfaced a single user-preference candidate, or Step 1.6 surfaced a daily-plan edit), present that alone at the approval gate — a session with signal in just one channel is still allowed to close.
+**No survivors (common):** Most sessions execute rather than discover. "No survivors" means all three channels — technical lens, collaboration lens, and the Step 1.6 daily-plan scan — came up empty. When that's the case, report `No signal — routine execution` and stop. This isn't failure; it's the expected outcome. If only one channel has output (e.g., the collaboration lens surfaced a single user-preference candidate, or Step 1.6 surfaced a daily-plan edit), present that alone at the approval gate — a session with signal in just one channel is still allowed to close.
 
 **No daily plan for today:** Step 1.6 handles this — silently skip, no prompt.
 

@@ -144,7 +144,7 @@ Run archivist lookups in parallel — emit all Task calls in one assistant messa
 
 ### Step 3: Categorize
 
-Map each candidate to the row that fits its content. Routing is by row, not by lens (see Step 1.5). If it doesn't fit any row, it probably isn't worth capturing.
+Map each candidate to the row that fits its content (see Step 1.5 for the routing rule). If it doesn't fit any row, it probably isn't worth capturing.
 
 ### Step 4: Draft inline
 
@@ -292,5 +292,5 @@ Use this for Step 1.6 outputs. Show the existing line and the proposed replaceme
 - Do NOT handle worktree path resolution — that's @scribe's job via the agent-workspace skill. (Daily-plan paths are personal-vault paths, not worktree paths; Step 1.6 resolves them directly from identity config.)
 - Do NOT write prose-heavy narratives. Notes must be scannable in Obsidian at a glance — tables, bullets, wikilinks to related notes, short paragraphs. A 300-word reflective essay is the failure mode, not the goal.
 - Do NOT hit a quota. If only one candidate survives the Signal Test, propose one. If none survive, propose none. Never pad.
-- Do NOT report `No signal — routine execution` without confirming both lenses ran (see Edge Cases — No survivors).
+- Do NOT report `No signal — routine execution` without confirming all three channels came up empty (see Edge Cases — No survivors).
 - Do NOT write to harness memory directly. Memory-route candidates are presented at the approval gate as recommendations; the user (or a hub agent with memory access) makes the actual write. The skill is a router, not the destination owner.

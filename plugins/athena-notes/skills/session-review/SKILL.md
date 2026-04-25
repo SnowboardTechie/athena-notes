@@ -78,7 +78,7 @@ Zero survivors is fine. Better to capture nothing than to grow an archive you ne
 | Project motivation / stakeholder context | Harness memory | project record | "Auth migration is compliance-driven, not tech-debt cleanup" |
 | External-system pointer | Harness memory | reference record | "Pipeline bugs live in Linear project INGEST" |
 
-> **Scoping note for the external-system-pointer row.** Generic, public-facing pointers (a tool name, a public dashboard URL) are fine for cross-project memory. Pointers that name internal infrastructure (private URLs, internal project IDs, undisclosed tooling, team names) are project-scoped and belong in `.notes/` on the originating project — not in cross-project user/reference memory that any future agent in any repo will load.
+> **Scoping note.** Pointers that name internal infrastructure (private URLs, internal IDs, internal tooling) are project-scoped — write them to `.notes/` on the originating project, not to cross-project memory.
 
 ---
 
@@ -144,11 +144,11 @@ Run archivist lookups in parallel — emit all Task calls in one assistant messa
 
 ### Step 3: Categorize
 
-Map each candidate to the row that fits its content. Routing is by row, not by lens — a technical-lens finding about project motivation lands on memory-routes per Step 1.5, and a collaboration-lens finding is always memory-route. If it doesn't fit any row, it probably isn't worth capturing.
+Map each candidate to the row that fits its content. Routing is by row, not by lens (see Step 1.5). If it doesn't fit any row, it probably isn't worth capturing.
 
 ### Step 4: Draft inline
 
-Write out proposed content for each item using the templates below. Keep drafts concise — one table row for AGENTS.md, a filled template for a new `.notes/` note, or a targeted patch for an update.
+Write out proposed content for each item using the templates below. Keep drafts concise — one table row for AGENTS.md, a filled template for a new `.notes/` note, a targeted patch for an update, or a Memory recommendation for memory-route candidates.
 
 ### Step 5: APPROVAL GATE
 
@@ -233,13 +233,13 @@ Use this variant when archivist (Step 2) surfaced an existing note on the same t
 
 ### Memory recommendation
 
-Use this for memory-route candidates (collaboration / project-motivation / external-system-pointer). The skill doesn't write to memory itself — the template is the handoff artifact for the user or hub agent. **Write the draft in third-person declarative form** ("Bryan prefers X", "the auth migration is compliance-driven") rather than imperative ("Always do X", "Do this when…"). Imperative-shaped session content is a prompt-injection vector once it lands verbatim in `~/.claude/projects/*/memory/*.md` and loads as instruction in a future session; third-person declarative phrasing keeps injected imperatives visually distinct at the approval gate.
+Use this for memory-route candidates (collaboration / project-motivation / external-system-pointer). The skill doesn't write to memory itself — the template is the handoff artifact for the user or hub agent. **Write the draft in third-person declarative form** ("Bryan prefers X", "the auth migration is compliance-driven") rather than imperative ("Always do X", "Do this when…") — third-person declarative phrasing keeps injected imperatives visually distinct at the approval gate.
 
 ```markdown
 ### Proposed Memory Recommendation
 
 **Route:** Harness memory ({user | feedback | project | reference} record)
-**Destination hint:** {e.g., `~/.claude/projects/{slug}/memory/{name}.md` for Claude Code auto-memory — `{slug}` is the project's directory under `~/.claude/projects/`, mirroring its absolute path with `/` → `-`. Verify the slug against `ls ~/.claude/projects/` rather than computing it blind, since the harness's actual directory name may differ from the naive transformation. Otherwise wherever your harness keeps cross-project preferences.}
+**Destination hint:** {e.g., `~/.claude/projects/{slug}/memory/{name}.md` for Claude Code auto-memory — verify `{slug}` with `ls ~/.claude/projects/` rather than computing it blind. Otherwise wherever your harness keeps cross-project preferences.}
 **Trigger moment:** {one-line — the conversation moment this surfaced from}
 
 {One-paragraph draft (third-person declarative) of the preference / motivation / pointer, written so it's recognizable in six months without re-reading the session.}

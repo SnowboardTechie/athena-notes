@@ -308,7 +308,7 @@ One batched GraphQL request, one alias per candidate. Fetch each candidate's own
 aliases=""
 for n in "${candidates[@]}"; do
   [[ "$n" =~ ^[1-9][0-9]*$ ]] || continue
-  aliases+="i${n}: issue(number: ${n}) { number title state parent { number title url state } }
+  aliases+="i${n}: issue(number: ${n}) { number title state parent { number title state } }
 "
 done
 
@@ -325,7 +325,7 @@ gh api graphql \
   --jq '.data.repository | to_entries | map(select(.value != null)) | map({n: (.key | sub("^i"; "") | tonumber), self: {title: .value.title, state: .value.state}, parent: .value.parent})'
 ```
 
-The `--jq` filter drops `null` issues (a bad number returns `null` rather than an error) and reshapes the rest into `[{n, self: {title, state}, parent: {number, title, url, state} | null}, …]`.
+The `--jq` filter drops `null` issues (a bad number returns `null` rather than an error) and reshapes the rest into `[{n, self: {title, state}, parent: {number, title, state} | null}, …]`.
 
 If the call fails (non-zero exit, error in response — most commonly the `sub_issues` preview not enabled on the account, or rate limit), surface the error and ask: *"Parent search failed ({error}). Continue without inferred-parent suggestions? [yes / stop]"*. Treat silence or any non-`yes` reply as stop. On `yes`, **fall through to 2.3.4** — the "always prompt" invariant holds even in the failure path. Since the failed query was the source of titles and states, direct parents render as bare `Link under #N` (no `{title}`, no `(closed)` indicator), inferred-parent suggestions are dropped entirely, and `Specify a different parent` + `No parent` remain available as always.
 
@@ -342,7 +342,7 @@ Among candidates whose `n` is in `siblings[]` but **not** in `direct_parents[]`,
 Use `AskUserQuestion` single-select. Always include all of:
 
 - **Direct parents** (one option per `direct_parents[]` entry): `Link under #N — {title}`, with ` (closed)` appended when the candidate's own `self.state == "CLOSED"` — for direct parents, `self` *is* the parent. Listed first — the user named these explicitly, so they should not have to retype them via `Specify`.
-- **Inferred parents** from 2.3.3 (up to 3): same option shape, with ` (closed)` appended when the inferred parent's `parent.state == "CLOSED"` (the sibling's parent — a different object than `self`).
+- **Inferred parents** from 2.3.3 (up to 3): same option shape, with ` (closed)` appended when the inferred parent's `parent.state == "CLOSED"` (the sibling's parent — a different object than `self`). **Drop any inferred-parent number that already appears in `direct_parents[]`** — convergence can land on a number the user named directly, and showing it twice as `Link under #N — {title}` would be visually duplicative without conveying anything new.
 - `Specify a different parent` — on selection, ask a follow-up turn: *"Parent issue number? (e.g. `42`, or `skip`)"*. Validate the answer parses as a positive integer; on invalid input or `skip`, treat as `No parent`. Persist the typed number directly — Stage 4.5.3's verify step catches a non-existent or otherwise invalid parent on the post side. We deliberately don't pre-confirm or surface state at draft time; the user typed the number explicitly, and a closed-parent linkage is allowed.
 - `No parent` — default. The natural choice when no candidates surfaced or the user has none in mind.
 
@@ -635,6 +635,8 @@ Skip this stage entirely when:
 
 Otherwise, link the new issue under the chosen parent. Mirrors the 4.3+4.4 pattern: mutation, then verify, then one retry on failure.
 
+**Read `parent_number` from the draft frontmatter before doing anything else.** On a resume path (re-invoking `/issue-create` against a saved draft), the `parent:` field is the only place the choice persists across sessions — Stage 2.3.5 wrote it; Stage 4.5 reads it. The variable name `$parent_number` referenced below assumes this assignment has happened.
+
 #### 4.5.1 Resolve node IDs
 
 The new issue's node ID was already resolved in 4.3.2 as `$issue_node_id`. Reuse it (resolve it here if 4.3 was skipped, e.g. no-template path):
@@ -685,19 +687,19 @@ verified_parent=$(gh api graphql \
 
 - **Matches `$parent_number`** → success. Continue to 4.6 (Archive).
 - **Empty or mismatched** → wait 2 seconds, retry the mutation from 4.5.2 once, then re-verify.
-- **Still wrong after retry** → report (rendered in a fenced code block, not inline, so the user can copy without quote-mismatch):
+- **Still wrong after retry** → report a fenced code block with the actual `$parent_node_id` / `$issue_node_id` / `$N` values **substituted inline** before display (do not show literal `{parent_node_id}` placeholders — a user copy-pasting the rendered block must get a working command). The retry uses GraphQL variable binding (same shape as 4.5.2), not query-string interpolation, so quoting is straightforward:
 
   ````
-  Issue #{N} created but parent linkage to #{parent_number} failed. Retry manually:
+  Issue #<actual N> created but parent linkage to #<actual parent_number> failed. Retry manually:
 
       gh api graphql \
         -H 'GraphQL-Features: sub_issues' \
-        -f parentId='{parent_node_id}' \
-        -f childId='{issue_node_id}' \
+        -f parentId=<actual parent_node_id> \
+        -f childId=<actual issue_node_id> \
         -f query='mutation($parentId: ID!, $childId: ID!) { addSubIssue(input: {issueId: $parentId, subIssueId: $childId}) { subIssue { number } } }'
   ````
 
-  Substitute the bracketed values inline in the user-facing message. The retry uses GraphQL variable binding (same shape as 4.5.2) instead of inlining the IDs into the query string, so the command survives copy-paste without escaping pitfalls. Continue to 4.6 (Archive) anyway — the issue exists.
+  Continue to 4.6 (Archive) anyway — the issue exists.
 
 ### 4.6 Archive the draft
 

@@ -252,7 +252,6 @@ The batched GraphQL query in 2.3.2 interpolates these numbers directly into the 
 1. **Seed `#N` references → `direct_parents[]`.** Scan the user's initial framing and any `#N` references that surfaced during the Stage 2 Q&A for bare `#N` patterns (drop cross-repo `{owner}/{repo}#N` references — this skill only links within the target repo). The capture group must be the integer only; trailing characters from a loose regex would survive into the alias list. When someone says "follow-up to #656" the natural reading is that *#656 is the parent* — surface these directly as parent options in 2.3.4 rather than treating them as siblings to infer a parent from.
 
    ```bash
-   # $seed_text is the initial framing concatenated with every Q&A answer that may carry an #N reference.
    direct_parents=()
    while read -r n; do
      [[ "$n" =~ ^[1-9][0-9]*$ ]] && direct_parents+=("$n")
@@ -315,12 +314,8 @@ for n in "${candidates[@]}"; do
 "
 done
 
-# Note: this `gh api graphql` call uses double-quotes around `-f query="..."` because
-# `$aliases` must expand. The other gh api graphql calls in this file (4.3, 4.4, 4.5.2,
-# 4.5.3) use single-quotes — those queries don't interpolate any shell variables. Don't
-# normalize the quoting style across the file: switching this block to single-quotes
-# turns `$aliases` into a literal field name and the GraphQL parser rejects the whole
-# query at the first alias boundary.
+# Double-quotes required around `-f query="..."` so $aliases expands; single-quotes would
+# pass it as a literal field name and GraphQL parses-fails at the first alias boundary.
 gh api graphql \
   -H "GraphQL-Features: sub_issues" \
   -f query="
@@ -353,7 +348,7 @@ Use `AskUserQuestion` single-select. Always include all of:
 - **Direct parents** (one option per `direct_parents[]` entry): `Link under #N — {title}`. Listed first — the user named these explicitly, so they should not have to retype them via `Specify`.
 - **Inferred parents** from 2.3.3 (up to 3): same option shape. **Drop any inferred-parent number that already appears in `direct_parents[]`** — convergence can land on a number the user named directly, and showing it twice as `Link under #N — {title}` would be visually duplicative without conveying anything new.
 - Append ` (closed)` to either option label when the parent issue is closed. Field path differs by source: direct parents use `self.state` (the candidate *is* the parent); inferred parents use the sibling's `parent.state` (a different object).
-- `Specify a different parent` — on selection, ask a follow-up turn: *"Parent issue number? (e.g. `42`, or `skip`)"*. Validate the answer parses as a positive integer; on invalid input or `skip`, surface a brief inline note (`"Input not recognized — treating as No parent."`) and continue with `parent` empty. Persist the typed number directly — Stage 4.5.3's verify step catches a non-existent or otherwise invalid parent on the post side. We deliberately don't pre-confirm or surface state at draft time; the user typed the number explicitly, and a closed-parent linkage is allowed.
+- `Specify a different parent` — on selection, ask a follow-up turn: *"Parent issue number? (e.g. `42`, or `skip`)"*. Validate the answer parses as a positive integer; on invalid input or `skip`, surface a brief inline note (`"Input not recognized — treating as No parent."`) and continue with `parent` empty. Persist the typed number directly — Stage 4.5.3's verify step catches a non-existent parent on the post side, and a closed-parent linkage is allowed.
 - `No parent` — default. The natural choice when no candidates surfaced or the user has none in mind.
 
 Capture the result as a single integer (parent issue number) or empty.
@@ -705,11 +700,11 @@ verified_parent=$(gh api graphql \
     --jq '.data.repository.issue.parent.number // "" | tostring')
 ```
 
-`// ""` turns a JSON `null` into an empty string (same pattern as 4.4) so `[[ -z ... ]]` is reliable.
+`// ""` turns a JSON `null` into an empty string so `[[ -z ... ]]` is reliable.
 
 - **Matches `$parent_number`** → success. Continue to 4.6 (Archive).
 - **Empty or mismatched** → wait 2 seconds, retry the mutation from 4.5.2 once, then re-verify.
-- **Still wrong after retry** → report a fenced code block with the actual `$parent_node_id` / `$issue_node_id` / `$N` values **substituted inline** before display:
+- **Still wrong after retry** → report a fenced code block with the actual `$parent_node_id` / `$issue_node_id` / `$parent_number` / `$N` values **substituted inline** before display:
 
   ````
   Issue #<actual N> created but parent linkage to #<actual parent_number> failed. Retry manually:

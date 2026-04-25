@@ -1,6 +1,6 @@
 # core/ — host-agnostic content
 
-This directory is the home for content that doesn't depend on any specific agent runtime. Skill prose, agent personas, vault patterns, note templates, and the framework spec itself can live here unchanged across [Claude Code](https://claude.com/claude-code), [opencode](https://opencode.ai), [Cursor](https://cursor.com), Aider, Codex, and any future host that respects the [`AGENTS.md`](https://agents.md) convention.
+This directory is the home for content that doesn't depend on any specific agent runtime. Skill prose, agent personas, vault patterns, note templates, and the framework spec itself can live here unchanged across [Claude Code](https://claude.com/claude-code), [opencode](https://opencode.ai), [Cursor](https://cursor.com), Aider, Codex, and any future host that respects the `AGENTS.md` convention.
 
 This file is the spec for what belongs here. If you're adding a skill, agent, or template and you're not sure where to put it — start here.
 
@@ -57,27 +57,7 @@ If a skill is *mostly* host-agnostic but has one or two host-specific calls, the
 
 - `plugins/athena-notes/AGENTS.md` is the active framework spec for the Claude Code plugin; `core/AGENTS.md` is the boundary spec only.
 - `plugins/athena-notes/skills/` and `plugins/athena-notes/agents/` are the active skill and agent trees.
-- `core/` is not yet covered by `.github/workflows/version-check.yml` or `scripts/lint-frontmatter.py`. The migration PR that introduces the first versionable or frontmatter-bearing file under `core/` extends both.
 - New skills and agents can land in either location depending on which scope they fit; flag the choice in the PR description so reviewers can route it.
-
-## Future shape
-
-The intended layout, once migration completes:
-
-```
-core/
-├── AGENTS.md           # this file — boundary spec + framework conventions
-├── agents/             # agent persona/prose (frontmatter lives in adapters/)
-├── skills/             # skill bodies (host-specific calls factored out)
-├── templates/          # note templates, vault spec
-└── examples/           # reference content not in the main tree
-
-adapters/
-├── claude-code/        # Claude Code adapter — frontmatter, plugin manifest, host-specific commands
-└── opencode/           # opencode adapter — frontmatter, plugin shape, lifecycle hooks (see #21)
-```
-
-Today's `plugins/athena-notes/` is in effect the Claude Code adapter. Whether it's renamed to `adapters/claude-code/`, kept at `plugins/athena-notes/` for marketplace compatibility, or split between the two is a decision for the migration PRs — not for this file.
 
 ## Cross-references
 

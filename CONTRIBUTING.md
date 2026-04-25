@@ -12,11 +12,13 @@ If your contribution is host-agnostic prose (skill bodies, agent personas, templ
 
 Before opening a PR that adds an agent or skill to the main tree, check:
 
+_While migration into `core/` is in progress, host-agnostic content can land in `plugins/athena-notes/` alongside its glue — flag the choice in your PR description so reviewers can route it later._
+
 1. **Does it serve the thinking + note-capture core?** Not every useful utility belongs here. A Godot project assistant is useful, but it isn't about thinking — it's an example, not a utility.
 2. **Is it Obsidian-aware?** Wikilinks, frontmatter, and the existing vault structure should feel native. If your skill writes raw JSON to a flat file, rethink it.
 3. **Is it free of personal hardcoding?** No specific names, companies, projects, vault paths, or domain-specific jargon (VA.gov, HHS, "my SnowboardTechie brand"). Use placeholders (`{{USER_NAME}}`, `{{NOTES_ROOT}}`, `{{PERSONAL_VAULT}}`) read from `~/.claude/athena/identity.md`.
 4. **Would a teammate you've never met find it useful?** If the honest answer is "only people who work exactly like me," it's an example — open a PR to `plugins/athena-notes/examples/` instead.
-5. **Is it host-agnostic, or genuinely Claude-Code-specific?** Prose-only content (skill bodies, agent personas, templates) is host-agnostic and belongs eventually under `core/` — see [`core/AGENTS.md`](core/AGENTS.md) for the boundary spec. Anything that calls runtime tools (`AskUserQuestion`, `Bash`), reads host config paths (`~/.claude/`), or depends on Claude-Code-specific frontmatter is host-specific and stays in `plugins/athena-notes/`. While migration is in progress, host-agnostic content can land in `plugins/athena-notes/` alongside its glue — flag the choice in your PR description so reviewers can route it later.
+5. **Is it host-agnostic, or genuinely Claude-Code-specific?** Prose-only content (skill bodies, agent personas, templates) belongs eventually under `core/`; anything that calls runtime tools, reads host config paths (`~/.claude/`), or depends on Claude-Code-specific frontmatter stays in `plugins/athena-notes/`. See [`core/AGENTS.md`](core/AGENTS.md).
 
 Hit all five → main tree. Miss one or more → `examples/`, still welcome, labeled as reference.
 

@@ -54,6 +54,8 @@ A new spoke is warranted only when at least one applies:
 
 If none apply, the work stays in the invoking skill. Interactive multi-turn flows (user Q&A loops, triage) are the wrong shape for spokes — spokes return a single artifact, not a conversation. MCPs and skills cover architectures that look agent-shaped but aren't: MCP for tool surfaces exposed to many agents; skill for user-facing orchestration.
 
+When an existing spoke already does adjacent reasoning, prefer a sibling skill over extending the spoke — even if the criteria above would otherwise warrant spoke shape. Spokes derive value from focus; spreading forge's daily-goal sequencing into life-spanning option ranking dilutes its current value. Surfaced while drafting [#73](https://github.com/SnowboardTechie/athena-notes/issues/73).
+
 ### Parallel agents write to distinct output paths
 
 When spawning parallel Task or Explore agents, each agent needs its own output destination — never a shared file that multiple agents append to. Concurrent appends interleave silently and corrupt the output; file locking isn't reliable across agent boundaries. Two safe shapes:

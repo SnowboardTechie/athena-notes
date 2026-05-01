@@ -142,6 +142,8 @@ Auto-capture these moments without asking — the point of Athena Notes is low-f
 
 Scribe writes immediately on invocation. No previews, no confirmation prompts.
 
+**Scope.** This table covers *vault-note capture* — durable, project-specific knowledge written into Obsidian by `@scribe`. Cross-project user-collaboration preferences (how the user thinks, anchors, decides) route to the harness memory system, not the vault — see `skills/session-review/SKILL.md` for the collaboration-lens flow.
+
 ---
 
 ## Git & Commits

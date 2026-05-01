@@ -9,6 +9,7 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ### Changed
 - `workday-planning` skill — Phase 8 now opens with a persistence receipt: `✅ Wrote: …` on a fresh write, `⏭️ Kept existing: …` when the user declines to overwrite. Resolves [#30](https://github.com/SnowboardTechie/athena-notes/issues/30).
+- `session-review` skill — adds a collaboration lens that routes cross-project user-preference signal (how the user thinks, project motivation, external-system pointers) to the harness memory system instead of the vault. Resolves [#13](https://github.com/SnowboardTechie/athena-notes/issues/13).
 
 ## [0.4.3] — 2026-04-23
 

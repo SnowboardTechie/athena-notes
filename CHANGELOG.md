@@ -4,6 +4,9 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed
+- `archivist` agent — resolves the trunk root via `git rev-parse --path-format=absolute --git-common-dir` before searching, so `.notes/` lookups succeed when the agent is invoked from a worktree. Resolves [#59](https://github.com/SnowboardTechie/athena-notes/issues/59).
+
 ### Added
 - `core/` directory established with [`core/AGENTS.md`](core/AGENTS.md) defining the host-agnostic / host-specific boundary and the rule for where new content goes; `CONTRIBUTING.md`, `README.md`, and `plugins/athena-notes/AGENTS.md` gain forward-pointers. Resolves [#14](https://github.com/SnowboardTechie/athena-notes/issues/14).
 

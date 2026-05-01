@@ -33,13 +33,16 @@ Run the canonical `resolve_trunk_root` pattern. Because of your bash-hygiene rul
 Bash(command="git rev-parse --path-format=absolute --git-common-dir")
 ```
 
-This returns an absolute path ending in `/.git` from either the trunk or a worktree. Drop the trailing `/.git` — the result is `$TRUNK_ROOT`. The vault lives at `$TRUNK_ROOT/.notes/`.
+In a standard non-bare repo this returns an absolute path ending in `/.git` from both the trunk and a worktree — `--git-common-dir` always resolves to the *common* git directory, which lives in the trunk regardless of where you call it from. That's why this single command is equivalent to the canonical two-step `resolve_trunk_root` (check whether `.git` is a file, then conditionally call `dirname` on the common dir): both produce the same `$TRUNK_ROOT`, but the single command satisfies your bash-hygiene rule with one call instead of two.
 
-Use `$TRUNK_ROOT` as the prefix for every `.notes/` path in your search strategies — `path="$TRUNK_ROOT/.notes"`, not `path=".notes"`.
+Strip the `/.git` suffix from the result — what remains is `$TRUNK_ROOT`. Use it as the prefix for every `.notes/` path in your search strategies — `path="$TRUNK_ROOT/.notes"`, not `path=".notes"`.
 
-If the Bash call fails (e.g., the agent was invoked outside a git repo), report "vault not accessible — not in a git repository" and return without searching.
+Error paths:
+- **Bash call fails** (e.g., agent invoked outside a git repo) → report "vault not accessible — not in a git repository" and return without searching.
+- **Output doesn't end with `/.git`** (bare repo, unrecognized worktree layout) → report "vault not accessible — unrecognized repo layout" and return. Don't try to recover; a wrong prefix would walk arbitrary filesystem locations.
+- **Bash succeeds but `$TRUNK_ROOT/.notes/` doesn't exist** (project not set up via `/athena-setup`) → report "vault not found at `$TRUNK_ROOT/.notes/`" and return. Don't silently return empty results — the caller needs to know the difference between "no matches" and "no vault."
 
-**Smoke test:** invoke this agent from a git worktree with a query for content you know exists in the project's `.notes/`. A passing run returns matches with paths under the trunk's absolute `.notes/...`. A failing run reports "vault not accessible" or empty results when content exists — that's the regression.
+(Smoke-test for editors: invoke this agent from a worktree with a query for known vault content; a passing run returns matches under the trunk's absolute `.notes/...`.)
 
 ---
 
@@ -80,8 +83,8 @@ Find any past notes about authentication, OAuth, or JWT.
 Use the **Grep** and **Glob** tools — never shell out to `grep`, `rg`, `ls`, or `find`. Tool-native search matches the plugin's allowlist and avoids permission friction.
 
 The example strategies below span both locations. Filter them by the resolved scope:
-- `scope: published` — drop patterns rooted in `.notes/.agents/*` (e.g., skip Strategy 4 entirely and any `.notes/.agents/athena/...` paths in Strategy 1).
-- `scope: working` — restrict to `.notes/.agents/*` patterns; skip strategies rooted in `.notes/` that aren't under `.agents/`.
+- `scope: published` — drop patterns rooted in `$TRUNK_ROOT/.notes/.agents/*` (e.g., skip Strategy 4 entirely and any `$TRUNK_ROOT/.notes/.agents/athena/...` paths in Strategy 1).
+- `scope: working` — restrict to `$TRUNK_ROOT/.notes/.agents/*` patterns; skip strategies rooted in `$TRUNK_ROOT/.notes/` that aren't under `.agents/`.
 - `scope: both` (or no keyword) — run all applicable strategies.
 
 ### Strategy 1: Frontmatter search
@@ -301,6 +304,4 @@ Bash is reserved for **trunk-root resolution** at startup (see *Startup — Reso
 
 ### Notes Architecture Awareness
 
-`.notes/` is **always** a symlink in a project repo, and that symlink lives **only in the trunk** — never inside a worktree. From any worktree CWD, the relative path `.notes/` doesn't exist.
-
-That's why every search must be rooted at `$TRUNK_ROOT/.notes/` — see *Startup — Resolve Trunk Root* at the top of this body, and the canonical pattern in [`skills/agent-workspace/SKILL.md`](../skills/agent-workspace/SKILL.md) (*Worktree-Aware Resolution*).
+Every search path must be rooted at `$TRUNK_ROOT/.notes/` — see *Startup — Resolve Trunk Root* above, and the canonical pattern in [`skills/agent-workspace/SKILL.md`](../skills/agent-workspace/SKILL.md) (*Worktree-Aware Resolution*).

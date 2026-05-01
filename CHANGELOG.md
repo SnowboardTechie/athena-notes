@@ -4,6 +4,9 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added
+- `core/` directory established with [`core/AGENTS.md`](core/AGENTS.md) defining the host-agnostic / host-specific boundary and the rule for where new content goes; `CONTRIBUTING.md`, `README.md`, and `plugins/athena-notes/AGENTS.md` gain forward-pointers. Resolves [#14](https://github.com/SnowboardTechie/athena-notes/issues/14).
+
 ### Changed
 - `workday-planning` skill — Phase 8 now opens with a persistence receipt: `✅ Wrote: …` on a fresh write, `⏭️ Kept existing: …` when the user declines to overwrite. Resolves [#30](https://github.com/SnowboardTechie/athena-notes/issues/30).
 

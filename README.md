@@ -176,7 +176,9 @@ Copy any of these into your own `~/.claude/agents/` or `~/.claude/skills/` and a
 
 ## Cross-tool portability
 
-The framework conventions live in `AGENTS.md` — readable by Cursor, Aider, Codex, and other tools. The agents and skills themselves are Claude Code-specific, but the conventions translate.
+The framework conventions live in [`plugins/athena-notes/AGENTS.md`](plugins/athena-notes/AGENTS.md) — readable by Cursor, Aider, Codex, and other tools. The agents and skills themselves are Claude Code-specific, but the conventions translate.
+
+[`core/AGENTS.md`](core/AGENTS.md) is the boundary spec for host-agnostic content (skill prose, agent personas, templates) versus host-specific glue (runtime tool calls, agent frontmatter, plugin manifest). Migration issues [#15](https://github.com/SnowboardTechie/athena-notes/issues/15)–[#17](https://github.com/SnowboardTechie/athena-notes/issues/17) will move host-agnostic content under `core/` so that other-host adapters (e.g., the planned [opencode adapter](https://github.com/SnowboardTechie/athena-notes/issues/21)) can consume it directly.
 
 ---
 
@@ -216,13 +218,14 @@ This license was chosen to prevent enclosure: Athena Notes should never become a
 
 Issues and PRs welcome at [github.com/SnowboardTechie/athena-notes](https://github.com/SnowboardTechie/athena-notes). See [CONTRIBUTING.md](CONTRIBUTING.md) for the submission workflow and conventions.
 
-Before contributing an agent or skill, check the four-point filter:
+Before contributing an agent or skill, check the five-point filter:
 - Does it serve the thinking + note-capture core? (vs. being a random utility)
 - Is it Obsidian-aware? (wikilinks, frontmatter, vault conventions)
 - Is it free of personal hardcoding? (no specific names, companies, projects)
 - Would a teammate I've never met find it useful?
+- Is it host-agnostic, or genuinely Claude-Code-specific? (see [`core/AGENTS.md`](core/AGENTS.md))
 
-If yes to all four, open a PR to the main `agents/` or `skills/` tree. If no to one or more, it probably belongs in `examples/` — still welcome, but labeled as a reference, not a utility.
+If yes to all five, open a PR to the main `agents/` or `skills/` tree. If no to one or more, it probably belongs in `examples/` — still welcome, but labeled as a reference, not a utility.
 
 ---
 

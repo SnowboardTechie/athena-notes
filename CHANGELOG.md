@@ -12,6 +12,7 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 - `core/` directory established with [`core/AGENTS.md`](core/AGENTS.md) defining the host-agnostic / host-specific boundary and the rule for where new content goes; `CONTRIBUTING.md`, `README.md`, and `plugins/athena-notes/AGENTS.md` gain forward-pointers. Resolves [#14](https://github.com/SnowboardTechie/athena-notes/issues/14).
 
 ### Changed
+- `AGENTS.md` — adds rule under "When to add a new spoke" preferring a sibling skill over extending an existing spoke when an adjacent reasoning-shape match would otherwise warrant spoke shape.
 - `issue-create` skill — searches for a candidate parent issue before posting and links the new issue under it when the user confirms; Forgejo path skips silently. Resolves [#47](https://github.com/SnowboardTechie/athena-notes/issues/47).
 - `workday-planning` skill — Phase 8 now opens with a persistence receipt: `✅ Wrote: …` on a fresh write, `⏭️ Kept existing: …` when the user declines to overwrite. Resolves [#30](https://github.com/SnowboardTechie/athena-notes/issues/30).
 - `session-review` skill — adds a collaboration lens that routes cross-project user-preference signal (how the user thinks, project motivation, external-system pointers) to the harness memory system instead of the vault. Resolves [#13](https://github.com/SnowboardTechie/athena-notes/issues/13).

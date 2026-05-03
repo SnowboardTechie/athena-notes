@@ -15,6 +15,7 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 ### Changed
 - `AGENTS.md` — adds rule under "When to add a new spoke" preferring a sibling skill over extending an existing spoke when an adjacent reasoning-shape match would otherwise warrant spoke shape.
 - `issue-create` skill — searches for a candidate parent issue before posting and links the new issue under it when the user confirms; Forgejo path skips silently. Resolves [#47](https://github.com/SnowboardTechie/athena-notes/issues/47).
+- `issue-create` skill — adds a collaborative open-questions resolution pass between draft render and approval, and removes the post-create "Start working on this now?" prompt. Resolves [#70](https://github.com/SnowboardTechie/athena-notes/issues/70).
 - `workday-planning` skill — Phase 8 now opens with a persistence receipt: `✅ Wrote: …` on a fresh write, `⏭️ Kept existing: …` when the user declines to overwrite. Resolves [#30](https://github.com/SnowboardTechie/athena-notes/issues/30).
 - `session-review` skill — adds a collaboration lens that routes cross-project user-preference signal (how the user thinks, project motivation, external-system pointers) to the harness memory system instead of the vault. Resolves [#13](https://github.com/SnowboardTechie/athena-notes/issues/13).
 

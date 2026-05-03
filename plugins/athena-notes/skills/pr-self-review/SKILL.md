@@ -144,7 +144,7 @@ Write the merged cache to `{state-dir}/related-issues.json`:
 ]
 ```
 
-`match_reason` distinguishes the four match dimensions. `closes` covers `Closes #N` / `Fixes #N` / `Resolves #N` declarative tags from the PR body — these mark issues the PR commits to closing on merge, so findings tagged with one are about the PR's own implementation. `refs` covers `Refs #N` / `Related #N` body tags and timeline `cross-referenced` events — the PR mentions the issue without committing to close it. `path` and `label` are unchanged from the (B) and (C) dimensions above. Phase 2.3's pre-skip rule reads this field — see the source-issue exception there.
+`match_reason` distinguishes the four match dimensions. `closes` covers `Closes #N` / `Fixes #N` / `Resolves #N` declarative tags from the PR body. `refs` covers `Refs #N` / `Related #N` body tags and timeline `cross-referenced` events. `path` and `label` are unchanged from the (B) and (C) dimensions above. Phase 2.3's pre-skip rule reads this field — see the source-issue exception there.
 
 ### 1.2 Related-notes cache
 
@@ -239,7 +239,7 @@ Options (single-select):
 
 When a finding carries a `related_issue` or `related_note` tag, pre-select `skip` and annotate the label (`skip (related to #{N})` or `skip (settled in [[wikilink]])`). Override stays one keystroke away.
 
-**Source-issue exception.** If the finding's `related_issue: #N` matches a cached issue whose `match_reason` is `closes`, do **not** pre-select `skip` — present `accept` as the active option. Findings tagged with the issue this PR commits to closing are about whether the implementation matches its own intent, not about overlap with separately-tracked work. The exception is intentionally narrow: `match_reason: refs` (and `path` / `label`) keeps the pre-skip default, since those signal looser association without a close-on-merge commitment.
+**Source-issue exception.** If the finding's `related_issue: #N` matches a cached issue whose `match_reason` is `closes`, do **not** pre-select `skip` — pre-select `accept` instead. Findings tagged with the issue this PR commits to closing are about whether the implementation matches its own intent, not about overlap with separately-tracked work. The exception is scoped to `closes` only — `refs`, `path`, and `label` keep the pre-skip default.
 
 `push-back` requires a rationale: on that selection, follow up with a single-line free-text prompt ("Why?"), record the reply keyed to the finding.
 
@@ -269,11 +269,13 @@ Reply with one line per finding:
 Findings you don't mention are treated as skip.
 ```
 
+The pre-skip rule and source-issue exception from per-finding mode apply identically here: findings carrying a `related_issue` or `related_note` tag default to `skip`, except findings whose `related_issue` matches a cached issue with `match_reason: closes`, which default to `accept`. Annotate the default in the batched list (`↳ default: skip (related to #N)` or `↳ default: accept (source issue)`) so the user sees it without re-deriving the rule.
+
 Parse the reply; apply in order. If a `push-back` line arrives with no rationale, re-prompt for that line only — do not re-present the full batch.
 
 **Triage action semantics:**
 
-- **accept** — Claude makes the edit in the worktree. No commit yet; batched at end of pass. **Auto-ack:** if the accepted finding produces no worktree diff by end of pass (typical for observational findings the reviewer prose-flagged as "no fix required"), treat the triage as an acknowledgment: record under `acks` in session state and add the suppression key to `suppression_set` so it doesn't re-surface next pass. No separate verb — the loop infers ack from the absence of a diff. Phase 2.4 owns the detection (see "Auto-ack reconciliation" there).
+- **accept** — Claude makes the edit in the worktree (no commit yet; batched at end of pass) and records the set of files it touched into the finding's `files_touched` field in `accepts_per_pass[pass_count]`. If the edit attempt produces no diff (typical for observational findings the reviewer prose-flagged as "no fix required"), `files_touched` is empty and the finding is auto-classified as an acknowledgment and suppressed — see Phase 2.4's auto-ack reconciliation step.
 - **push-back <reason>** — record reason in session state; add finding key to suppression set.
 - **issue** — hand off to `/issue-create` for dedup + filing. Pre-fill the issue body with the finding text, the offending file:line, and a link back to the PR. Filed-issue URL goes into session state so the same finding isn't re-filed next pass.
 - **skip** — drop silently for this session. Add key to suppression set.
@@ -292,7 +294,8 @@ suppression_set:    Set<string>                                      # suppressi
 pushbacks:          List<{key, reason}>                              # for summary.md
 filed_issues:       List<{key, url}>                                 # auto-suppress on re-surface
 skips:              List<key>                                        # for summary.md
-accepts_per_pass:   List<List<{key, file, line, lens, summary}>>     # for summary.md
+accepts_per_pass:   List<List<{key, file, line, lens, summary, files_touched: Set<string>}>>
+                                                                     # files_touched populated at triage; entries with empty set move to acks at Phase 2.4 reconciliation
 acks:               List<{key, file, line, lens, summary, pass}>     # accept-without-diff; for summary.md
 pass_count:         int
 ```
@@ -303,12 +306,12 @@ At the end of triage, the pass has accumulated a set of accepted edits.
 
 ### 2.4 Commit + push
 
-**Auto-ack reconciliation (run first).** Before deciding whether to commit, walk the pass's `accepts_per_pass[pass_count]` entries and check whether each produced a worktree change. Concretely: `git diff --name-only HEAD` lists files modified since the last commit; for each accepted finding, if the cited `{file}` is **not** in that list (and no other-file edit was made on its behalf), reclassify the finding as an ack:
+**Auto-ack reconciliation (run first).** Walk `accepts_per_pass[pass_count]` and check each entry's `files_touched` set (populated at triage time per the `accept` semantics above). For any entry where `files_touched` is empty:
 
 - Move its `{key, file, line, lens, summary}` from `accepts_per_pass[pass_count]` into `acks` (annotated with `pass: pass_count`).
 - Add its key to `suppression_set` so it doesn't re-surface next pass.
 
-Findings that did produce a diff stay in `accepts_per_pass` and proceed to the commit step below. The suppression-on-ack mirrors the regression-protection invariant: only no-diff accepts are suppressed; accepts that changed code are not (a regression in a later pass should re-surface as a normal finding).
+Findings with non-empty `files_touched` stay in `accepts_per_pass` and proceed to the commit step below. Tracking touched files per finding (rather than diffing the worktree at end of pass) handles the case where a fix lands in a file other than the one the reviewer cited — those count as edits, not acks.
 
 If any edits were accepted this pass (i.e., `accepts_per_pass[pass_count]` is non-empty after reconciliation):
 
@@ -349,11 +352,12 @@ passes: {N}
 
 ## Critical Issues
 
-{Outstanding Critical findings only — those the user pushed back, skipped, or
-filed as issues. Findings that were accepted and fixed during the loop do NOT
-appear here. If none outstanding, write: "None outstanding."}
+{Outstanding Critical findings only — those the user pushed back, skipped,
+filed as issues, or acknowledged without fix. Findings that were accepted
+and fixed during the loop do NOT appear here. If none outstanding, write:
+"None outstanding."}
 
-- [{lens}] [{file}:{line}] {finding} — {triage action: pushed back / skipped / filed as #N}
+- [{lens}] [{file}:{line}] {finding} — {triage action: pushed back / skipped / filed as #N / acknowledged}
 
 ## Major Issues
 
@@ -385,7 +389,7 @@ appear here. If none outstanding, write: "None outstanding."}
 
 ## Acknowledged
 
-{Findings the user accepted but which produced no worktree diff — typically observational findings the reviewer prose-flagged as "no fix required." Distinct from `## Skipped` (silently dropped) and from `## Accepted this session` (accepted and edited).}
+{Findings the user accepted that produced no worktree diff — observational findings the reviewer prose-flagged as no-fix-required.}
 
 - [pass {k}] [{lens}] [{file}:{line}] {finding}
 

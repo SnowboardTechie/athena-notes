@@ -39,11 +39,11 @@ Detect the mode from arguments and context:
 
 ### 0.1 `pre-pr` (invoked from issue-work)
 
-Selected when the invoker passes an explicit `mode: pre-pr` argument (alongside `state_dir`, `worktree_path`, `base_branch`, and `plan_path`). Mode is always explicit — never inferred from the state-dir path prefix, which would break under unusual `$HOME` or relocated state directories. In `pre-pr` mode:
+Selected when the invoker passes an explicit `mode: pre-pr` argument (alongside `state_dir`, `worktree_path`, `base_branch`, `plan_path`, and optionally `source_issue` in `{owner}/{repo}#{N}` form). Mode is always explicit — never inferred from the state-dir path prefix, which would break under unusual `$HOME` or relocated state directories. In `pre-pr` mode:
 
 - Worktree path and branch are already set up.
 - The caller's `plan.md` exists in the state dir — use it as ground truth for reviewers.
-- There is no PR yet. Skip the PR-lookup step; skip all `linked-to-PR` issue fetches (degrade to path-touching + label-matched only).
+- There is no PR yet. Skip the PR-lookup step; the linked-to-PR issue fetch (Phase 1.1 dimension A) degrades to path-touching + label-matched only — **except** for the `source_issue` arg, which is fetched directly and seeded into the cache so the source-issue exception can fire even though no PR body exists yet (see Phase 1.1 dimension A for the synthesis step).
 - Skip the commit-and-push loop's push step for the first pass if the branch is still unpushed — just commit. Let `issue-work` Phase 4.3 drive the eventual push + PR creation via `/ship`.
 
 ### 0.2 `pr-url`
@@ -86,7 +86,7 @@ Two parallel caches. Populate both in a single message where possible.
 
 Three dimensions; union the results; deduplicate by issue number.
 
-**A. Linked to the PR** (skip in `pre-pr` mode — no PR yet):
+**A. Linked to the PR** (degrades in `pre-pr` mode — see synthesis note below):
 
 Parse the PR body + timeline for `Closes #N`, `Fixes #N`, `Resolves #N`, `Refs #N`, `Related #N` (case-insensitive). Also fetch cross-references:
 
@@ -94,6 +94,8 @@ Parse the PR body + timeline for `Closes #N`, `Fixes #N`, `Resolves #N`, `Refs #
 gh api "repos/{owner}/{repo}/issues/{pr-number}/timeline" --paginate \
   --jq '[.[] | select(.event=="cross-referenced") | .source.issue.number] | unique'
 ```
+
+**Pre-pr mode synthesis.** No PR body exists yet, so the body-parse and timeline-fetch above are skipped. If Phase 0.1's `source_issue` arg is set (form `{owner}/{repo}#{N}`), parse the three fields and fetch the issue: `gh issue view {N} --repo {owner}/{repo} --json number,title,url,labels,body`. Inject as a single entry in dimension A's results with `match_reason: "closes"` — the issue this PR commits to closing is treated as if a `Closes #N` tag already existed. If `source_issue` is absent (e.g., a standalone `pre-pr` invocation without an issue-work caller), dimension A produces zero entries and the source-issue exception simply doesn't fire — same as the cleanly-degraded path-touching/label-matched-only mode.
 
 **B. Path-touching** (all modes):
 
@@ -144,7 +146,7 @@ Write the merged cache to `{state-dir}/related-issues.json`:
 ]
 ```
 
-`match_reason` distinguishes the four match dimensions. `closes` covers `Closes #N` / `Fixes #N` / `Resolves #N` declarative tags in the PR body only. `refs` covers `Refs #N` / `Related #N` body tags and all timeline `cross-referenced` events (timeline events never classify as `closes`, even when sourced from a referencing PR's close tag — `closes` is body-scoped). `path` and `label` are unchanged from the (B) and (C) dimensions above. Phase 2.3's pre-skip rule reads this field — see the source-issue exception there.
+`match_reason` distinguishes the four match dimensions. `closes` is body-scoped: it covers `Closes #N` / `Fixes #N` / `Resolves #N` declarative tags found in the PR body. `refs` covers `Refs #N` / `Related #N` body tags and all timeline `cross-referenced` events; timeline cross-references always classify as `refs` regardless of how the referencing PR itself tagged the issue. `path` and `label` are unchanged from the (B) and (C) dimensions above. Phase 2.3's pre-skip rule reads this field — see the source-issue exception there.
 
 ### 1.2 Related-notes cache
 
@@ -266,10 +268,10 @@ Reply with one line per finding:
   {num} issue
   {num} skip
 
-Findings you don't mention are treated as skip.
+Findings you don't mention are treated as skip — even if their annotation suggests `accept`. The annotation is a recommendation to engage; it does not change the omission rule.
 ```
 
-The pre-skip rule and source-issue exception from per-finding mode apply identically here: findings carrying a `related_issue` or `related_note` tag default to `skip`, except findings whose `related_issue` matches a cached issue with `match_reason: closes`, which default to `accept`. Annotate the default in the batched list (`↳ default: skip (related to #N)` or `↳ default: accept (source issue: #N)`) so the user sees it without re-deriving the rule.
+The pre-skip rule and source-issue exception from per-finding mode apply here as **annotation hints** only: findings carrying a `related_issue` or `related_note` tag are annotated `↳ default: skip (related to #N)`, except findings whose `related_issue` matches a cached issue with `match_reason: closes`, which are annotated `↳ default: accept (source issue: #N)`. The annotation tells the user which option to consider when they engage; it never overrides the omission-equals-skip rule above. To accept a source-issue finding, the user must type `{num} accept` explicitly.
 
 Parse the reply; apply in order. If a `push-back` line arrives with no rationale, re-prompt for that line only — do not re-present the full batch.
 
@@ -389,7 +391,7 @@ under `## Acknowledged` below). If none outstanding, write: "None outstanding."}
 
 ## Acknowledged
 
-{Findings the user accepted that produced no worktree diff — observational findings the reviewer prose-flagged as no fix required.}
+{Findings the user accepted that produced no worktree diff. Most are observational findings the reviewer prose-flagged as no fix required, but the trigger is mechanical: any `accept` whose `files_touched` is empty after the pass lands here.}
 
 - [pass {k}] [{lens}] [{file}:{line}] {finding}
 

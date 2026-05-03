@@ -7,7 +7,7 @@ description: Draft a GitHub/Forgejo issue from a rough idea via Q&A, then post i
 
 Turn a rough idea into a well-structured, template-faithful GitHub or Forgejo issue through four stages: **Detect → Q&A → Draft → Post**. The user reviews and approves before anything is posted.
 
-Pairs with `issue-work` — after a successful post, the skill offers to hand off the new issue URL to `issue-work` so you can start implementation immediately.
+Pairs with `issue-work` — the natural next step after posting is to start implementation in a fresh-context session via `/issue-work {url}`.
 
 ---
 
@@ -418,7 +418,56 @@ created: {iso8601}
 - **`checkboxes` fields** → render as `- [ ] {option.label}` bullets under the `### {label}` heading.
 - **`dropdown` fields** → `### {label}\n\n{selected option}`.
 
-### 3.3 Show & iterate
+### 3.3 Collaborative open-questions resolution
+
+Once the draft is rendered, scan the body for a heading whose text matches `Open questions` (case-insensitive) at H2 level (default structure / legacy Markdown templates) or H3 (GitHub YAML form templates), with at least one bullet `- ` underneath. Zero matches → fall through silently to 3.4 with no announcement.
+
+When matches exist, announce the pass positively (per [`AGENTS.md` → "Positive prompts for approval gates"](../../AGENTS.md#positive-prompts-for-approval-gates)):
+
+> Draft has **N** open question(s). Want to resolve them inline before posting? *[yes / post as-is / skip]*
+
+Default action on `yes` (or unambiguous approval like "let's do it"). On `post as-is` or `skip`, fall through to 3.4 with the Open questions section untouched. Treat silence or ambiguity as a re-prompt, not as approval.
+
+For each open question, take one turn:
+
+> Q{i} of N: {question text}
+>
+> Lean: {one-line lean, or "no lean — your call"}
+>
+> *[confirm / override <text> / defer]*
+
+**Where the lean comes from**, in priority order:
+
+1. **Explicit Stage 2 answers** — if the user's problem statement, scope, or hints directly pins down a position on this question, surface that as the lean.
+2. **Implicit conversation signal** — if the surrounding framing implies a direction without naming it (e.g. "this should be cheap to add" implying minimal-change leans), surface that as the lean.
+3. **Otherwise** — say *"no lean — your call"*. Do not fabricate a lean from the open-question text itself; that would be circular.
+
+**Per-question outcomes:**
+
+- **`confirm`** — bake the lean as the resolution.
+- **`override <text>`** — bake the user's text as the resolution.
+- **`defer`** — leave the question in the Open questions section in the re-render, annotated with `(deferred)` so future readers can tell "considered and parked" from "genuinely open."
+- **No reply / skipped turn** — if the lean is `"no lean — your call"`, treat as `defer`. Otherwise commit the lean as a reasonable default and move on.
+
+**Re-render with resolutions baked in.** For each `confirm` / `override` resolution, place it in the section that best fits the question's intent:
+
+- **Scope** — for "is X in or out of scope?" style questions.
+- **Implementation hints** — for "how should X be implemented?" / "which files / what mechanism?" questions.
+- **Acceptance criteria** — for "what does done look like for X?" questions.
+
+When fit is genuinely ambiguous (a meta-decision, a "revisit later" note, or otherwise doesn't slot into any of the three), ask once:
+
+> This resolution doesn't fit cleanly into Scope / Hints / Acceptance. Where should it land? *[Scope / Hints / Acceptance / footnote]*
+
+`footnote` keeps the resolved item in the Open questions section, annotated `(resolved: {answer})`. Don't fall through to footnote silently — that would defeat the point of the pass.
+
+**Trim the Open questions section** in the re-render: drop `confirm`'d and `override`'d items entirely (their resolutions now live in Scope / Hints / Acceptance, except the explicit-`footnote` cases). Keep `(deferred)` items and explicit-`footnote` items. If the section ends up empty, drop the heading entirely.
+
+The same pass applies to template-derived drafts when the template includes an `Open questions` (or equivalent free-form open-ended) field.
+
+Then continue to 3.4 with the re-rendered draft.
+
+### 3.4 Show & iterate
 
 Present the full draft inline. Accept conversational edits: "tighten the problem section", "add a note about X", "change the title to Y". Re-render and re-present until the user approves.
 
@@ -426,7 +475,7 @@ Approval is conversational — "looks good," "approve," "post it," "ship it," al
 
 ---
 
-## Stage 4 — Post & hand off
+## Stage 4 — Post
 
 ### 4.1 Dedup check (best-effort)
 
@@ -742,7 +791,7 @@ On **post failure** (`gh issue create` or Forgejo API failed) → draft stays in
 
 On **type-set failure after retry** (4.4 returned null twice) or **parent-link failure after retry** (4.5.3 still mismatched after retry) → still archive the draft, since the issue exists. Include the relevant manual-retry command in the user-facing report.
 
-### 4.7 Report + handoff
+### 4.7 Report
 
 Show the user:
 
@@ -757,8 +806,6 @@ Type: {set or "—" or "⚠ not set, retry manually"}
 
 Archived draft: {archive path}
 ```
-
-Then ask: "Start working on this now?" If yes, invoke the `issue-work` skill with the new issue URL. If no, stop.
 
 ---
 
@@ -800,6 +847,6 @@ Then ask: "Start working on this now?" If yes, invoke the `issue-work` skill wit
 
 ## Related
 
-- [issue-work/SKILL.md](../issue-work/SKILL.md) — the implementation half; offered as a handoff after successful post
+- [issue-work/SKILL.md](../issue-work/SKILL.md) — the implementation half; invoke manually with the posted URL when you're ready to start
 - [agent-workspace/SKILL.md](../agent-workspace/SKILL.md) — drafts directory conventions + trunk resolution + archive pattern
 - [ship/SKILL.md](../ship/SKILL.md) — source of the forge-detection pattern reused here

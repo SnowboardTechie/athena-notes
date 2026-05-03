@@ -90,6 +90,8 @@ Glob(pattern="$HOME/code/*/*/.git")
 
 If no local clone: ask before running `gh repo clone {owner}/{repo} ~/code/{repo}`.
 
+Bind the resolved clone path as `{TRUNK_ROOT}` — the placeholder Phase 1.5 and Phase 1.6 reference. If the resolved path is itself a worktree, resolve to the trunk via `git -C {path} rev-parse --path-format=absolute --git-common-dir` and strip the trailing `/.git` (same pattern the `archivist` agent uses; see [`agent-workspace/SKILL.md`](../agent-workspace/SKILL.md) → *Worktree-Aware Resolution*).
+
 ### 1.5 Pre-flight checks
 
 Run all of these against the trunk (not a worktree).
@@ -114,24 +116,35 @@ if [[ "$forge" == "forgejo" && -z "${FORGEJO_TOKEN:-${GITEA_TOKEN:-}}" ]]; then
 fi
 
 # Fetch the actual default branch
-git -C "$TRUNK" fetch origin "$DEFAULT_BRANCH"
+git -C "{TRUNK_ROOT}" fetch origin "$DEFAULT_BRANCH"
 
 # Working tree clean? (modified or staged — ignore untracked)
-git -C "$TRUNK" status --porcelain | grep -E '^[ MADRC]'
+git -C "{TRUNK_ROOT}" status --porcelain | grep -E '^[ MADRC]'
 ```
 
 If either auth check fails, stop and surface the error to the user — do not proceed to worktree creation. If the trunk is dirty (modified/staged, not just untracked), stop and offer: stash / commit / abort. Do not silently stash.
 
 ### 1.6 Create worktree
 
-Use the `EnterWorktree` tool with:
+`EnterWorktree` only accepts `name` or `path` — there is no `base_branch` parameter, and `name`-form always branches off the session's current HEAD. From inside another worktree (the common case), that's the wrong base. Create the worktree with `git worktree add` against the trunk first, then enter it by path.
 
-- **Name**: `{repo}.{N}-{kebab-slug}` (max 60 chars)
-  - `kebab-slug` = ticket title, lowercased, non-alphanumerics → `-`, collapsed, trimmed
-- **Base branch**: the default branch from 1.5
-- **Branch name**: `issue-{N}-{kebab-slug}` (or match repo convention if apparent from recent branches)
+Three-step pattern:
 
-After worktree creation, `cd` to the worktree.
+1. **Compute the worktree slug and path.** `kebab-slug` = ticket title, lowercased, non-alphanumerics → `-`, collapsed, trimmed. The full worktree directory name is `{repo}.{N}-{kebab-slug}` (cap at 60 chars). The branch name is `issue-{N}-{kebab-slug}` — or match the repo's branch convention if recent branches in `git -C "{TRUNK_ROOT}" for-each-ref --format='%(refname:short)' --count=20 refs/heads/` suggest a different prefix (e.g., `bryan/issue-…`).
+
+2. **Create the branch + worktree against the trunk.** Pin the base to the remote ref so a stale local default doesn't become the parent commit:
+
+   ```
+   Bash(command="git -C \"{TRUNK_ROOT}\" worktree add -b issue-{N}-{kebab-slug} \"{TRUNK_ROOT}/.claude/worktrees/{repo}.{N}-{kebab-slug}\" \"origin/$DEFAULT_BRANCH\"")
+   ```
+
+3. **Enter the new worktree by path** (path-form, not name-form):
+
+   ```
+   EnterWorktree(path="{TRUNK_ROOT}/.claude/worktrees/{repo}.{N}-{kebab-slug}")
+   ```
+
+**Resume case** (worktree directory already exists at the target path — e.g., `Phase 0 — Resume Check` flagged this ticket as resumed): skip step 2 entirely and call `EnterWorktree(path: ...)` directly. Do not run `git worktree add` against an existing path; it will error and the desired branch is already in place.
 
 ### 1.7 Write initial progress.md
 
@@ -359,7 +372,7 @@ Present the review outcome inline in this order:
 
 | Case | Behavior |
 |---|---|
-| Worktree already exists for this ticket | Skip creation; `EnterWorktree` into it; resume from `progress.md` status |
+| Worktree already exists for this ticket | Skip the `git worktree add` step in Phase 1.6; call `EnterWorktree(path: ...)` directly; resume from `progress.md` status |
 | Trunk dirty (modified/staged) | Stop. List files. Offer stash / commit / abort |
 | Ticket is a PR (review work, not new work) | Skip worktree creation; `gh pr checkout {N}` in trunk or fetch branch; swap Phase 3 for "review against plan"; Phase 4 reviewers still run |
 | Tests fail 3× | Stop; surface last failure output; ask user |

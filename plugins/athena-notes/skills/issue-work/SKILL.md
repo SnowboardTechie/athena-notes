@@ -128,7 +128,7 @@ If either auth check fails, stop and surface the error to the user — do not pr
 
 `EnterWorktree` only accepts `name` or `path` — there is no `base_branch` parameter, and `name`-form always branches off the session's current HEAD. From inside another worktree (the common case), that's the wrong base. Create the worktree with `git worktree add` against the trunk first, then enter it by path.
 
-Two-step pattern:
+Three-step pattern:
 
 1. **Compute the worktree slug and path.** `kebab-slug` = ticket title, lowercased, non-alphanumerics → `-`, collapsed, trimmed. The full worktree directory name is `{repo}.{N}-{kebab-slug}` (cap at 60 chars). The branch name is `issue-{N}-{kebab-slug}` — or match the repo's branch convention if recent branches in `git -C "{TRUNK_ROOT}" for-each-ref --format='%(refname:short)' --count=20 refs/heads/` suggest a different prefix (e.g., `bryan/issue-…`).
 

@@ -95,7 +95,13 @@ gh api "repos/{owner}/{repo}/issues/{pr-number}/timeline" --paginate \
   --jq '[.[] | select(.event=="cross-referenced") | .source.issue.number] | unique'
 ```
 
-**Pre-pr mode synthesis.** No PR body exists yet, so the body-parse and timeline-fetch above are skipped. If Phase 0.1's `source_issue` arg is set (form `{owner}/{repo}#{N}`), parse the three fields and fetch the issue: `gh issue view {N} --repo {owner}/{repo} --json number,title,url,labels,body`. Inject as a single entry in dimension A's results with `match_reason: "closes"` — the issue this PR commits to closing is treated as if a `Closes #N` tag already existed. If `source_issue` is absent (e.g., a standalone `pre-pr` invocation without an issue-work caller), dimension A produces zero entries and the source-issue exception simply doesn't fire — same as the cleanly-degraded path-touching/label-matched-only mode.
+**Pre-pr mode synthesis.** No PR body exists yet, so the body-parse and timeline-fetch above are skipped. If Phase 0.1's `source_issue` arg is set (form `{owner}/{repo}#{N}`):
+
+1. Parse the three fields. **Validate before any shell interpolation:** `owner` and `repo` must each match `^[A-Za-z0-9_.-]+$`; `N` must match `^[0-9]+$`. Mismatch → refuse and surface the malformed value. Mirrors the metacharacter rejection rule in dimension B below — `source_issue` crosses the trust boundary into `gh` and needs the same guard.
+2. Fetch the issue: `gh issue view {N} --repo {owner}/{repo} --json number,title,url,labels,body`.
+3. Inject as a single entry in dimension A's results with `match_reason: "closes"` — the issue this PR commits to closing is treated as if a `Closes #N` tag already existed.
+
+If `source_issue` is absent (e.g., a standalone `pre-pr` invocation without an issue-work caller), dimension A produces zero entries and the source-issue exception simply doesn't fire — same as the cleanly-degraded path-touching/label-matched-only mode.
 
 **B. Path-touching** (all modes):
 
@@ -268,16 +274,16 @@ Reply with one line per finding:
   {num} issue
   {num} skip
 
-Findings you don't mention are treated as skip — even if their annotation suggests `accept`. The annotation is a recommendation to engage; it does not change the omission rule.
+Findings you don't mention are treated as skip. Annotations describe what the user should consider when engaging; they never override the omission rule.
 ```
 
-The pre-skip rule and source-issue exception from per-finding mode apply here as **annotation hints** only: findings carrying a `related_issue` or `related_note` tag are annotated `↳ default: skip (related to #N)`, except findings whose `related_issue` matches a cached issue with `match_reason: closes`, which are annotated `↳ default: accept (source issue: #N)`. The annotation tells the user which option to consider when they engage; it never overrides the omission-equals-skip rule above. To accept a source-issue finding, the user must type `{num} accept` explicitly.
+The pre-skip rule and source-issue exception from per-finding mode (above) apply here as annotation hints. Findings carrying a `related_issue` or `related_note` tag are annotated `↳ related to #N — type {num} accept to triage` (or `↳ settled in [[wikilink]] — type {num} accept to triage`); findings whose `related_issue` matches a cached issue with `match_reason: closes` are annotated `↳ source issue: #N — type {num} accept to triage`. The annotation tells the user which findings need explicit engagement to land an `accept`; omission still maps to skip in every case.
 
 Parse the reply; apply in order. If a `push-back` line arrives with no rationale, re-prompt for that line only — do not re-present the full batch.
 
 **Triage action semantics:**
 
-- **accept** — Claude makes the edit in the worktree (no commit yet; batched at end of pass) and records the set of files it touched into the finding's `files_touched` field in `accepts_per_pass[pass_count]`. If the edit attempt produces no diff (typical for observational findings the reviewer prose-flagged as "no fix required"), `files_touched` is empty and the finding is auto-classified as an acknowledgment and suppressed — see Phase 2.4's auto-ack reconciliation step.
+- **accept** — Claude makes the edit in the worktree (no commit yet; batched at end of pass) and records the set of files it touched into the finding's `files_touched` field in `accepts_per_pass[pass_count]`. If no edit is attempted (e.g., the reviewer prose-flagged the finding as "no fix required" and Claude agrees) or the edit attempt produces no diff, populate `files_touched` as an empty set explicitly — never leave it undefined. An empty `files_touched` after the pass auto-classifies the finding as an acknowledgment and suppresses it; see Phase 2.4's auto-ack reconciliation step.
 - **push-back <reason>** — record reason in session state; add finding key to suppression set.
 - **issue** — hand off to `/issue-create` for dedup + filing. Pre-fill the issue body with the finding text, the offending file:line, and a link back to the PR. Filed-issue URL goes into session state so the same finding isn't re-filed next pass.
 - **skip** — drop silently for this session. Add key to suppression set.

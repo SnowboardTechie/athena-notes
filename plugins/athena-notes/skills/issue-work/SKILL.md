@@ -90,6 +90,8 @@ Glob(pattern="$HOME/code/*/*/.git")
 
 If no local clone: ask before running `gh repo clone {owner}/{repo} ~/code/{repo}`.
 
+Bind the resolved clone path as `{TRUNK_ROOT}` — the placeholder Phase 1.5 and Phase 1.6 reference. If the resolved path is itself a worktree, resolve to the trunk via `git -C {path} rev-parse --path-format=absolute --git-common-dir` and strip the trailing `/.git` (same pattern the `archivist` agent uses; see [`agent-workspace/SKILL.md`](../agent-workspace/SKILL.md) → *Worktree-Aware Resolution*).
+
 ### 1.5 Pre-flight checks
 
 Run all of these against the trunk (not a worktree).
@@ -128,17 +130,15 @@ If either auth check fails, stop and surface the error to the user — do not pr
 
 Two-step pattern:
 
-1. **Compute the worktree slug and path.** `kebab-slug` = ticket title, lowercased, non-alphanumerics → `-`, collapsed, trimmed. The full worktree directory name is `{repo}.{N}-{kebab-slug}` (cap at 60 chars). The branch name is `issue-{N}-{kebab-slug}` — or match the repo's branch convention if recent branches in `git -C "{TRUNK_ROOT}" log --format='%D' -20` suggest a different prefix (e.g., `bryan/issue-…`).
+1. **Compute the worktree slug and path.** `kebab-slug` = ticket title, lowercased, non-alphanumerics → `-`, collapsed, trimmed. The full worktree directory name is `{repo}.{N}-{kebab-slug}` (cap at 60 chars). The branch name is `issue-{N}-{kebab-slug}` — or match the repo's branch convention if recent branches in `git -C "{TRUNK_ROOT}" for-each-ref --format='%(refname:short)' --count=20 refs/heads/` suggest a different prefix (e.g., `bryan/issue-…`).
 
-2. **Create the branch + worktree against the trunk.** `{TRUNK_ROOT}` is the local-clone path resolved in Phase 1.4. Pin the base to the remote ref so a stale local default doesn't become the parent commit:
+2. **Create the branch + worktree against the trunk.** Pin the base to the remote ref so a stale local default doesn't become the parent commit:
 
    ```
-   Bash(command="git -C {TRUNK_ROOT} worktree add -b issue-{N}-{kebab-slug} {TRUNK_ROOT}/.claude/worktrees/{repo}.{N}-{kebab-slug} origin/{DEFAULT_BRANCH}")
+   Bash(command="git -C \"{TRUNK_ROOT}\" worktree add -b issue-{N}-{kebab-slug} \"{TRUNK_ROOT}/.claude/worktrees/{repo}.{N}-{kebab-slug}\" \"origin/$DEFAULT_BRANCH\"")
    ```
 
-   Running against `{TRUNK_ROOT}` matters: if the session's cwd is another worktree, `git worktree add` invoked there would still resolve the same git common dir, but routing the call through the trunk path makes the intent explicit and keeps the new worktree under the trunk's `.claude/worktrees/` regardless of where the session was started.
-
-3. **Enter the new worktree by path** — `path`-form, not `name`-form. `name`-form would create a *second* worktree branched off the session's HEAD instead of entering the one just created:
+3. **Enter the new worktree by path** (path-form, not name-form):
 
    ```
    EnterWorktree(path="{TRUNK_ROOT}/.claude/worktrees/{repo}.{N}-{kebab-slug}")

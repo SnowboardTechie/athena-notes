@@ -4,6 +4,8 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-05-03
+
 ### Fixed
 - `archivist` agent — resolves the trunk root via `git rev-parse --path-format=absolute --git-common-dir` before searching, so `.notes/` lookups succeed when the agent is invoked from a worktree. Resolves [#59](https://github.com/SnowboardTechie/athena-notes/issues/59).
 - `archivist` agent — vault-existence error path now specifies a `Glob` check rather than leaving the verification mechanism implicit; placeholder syntax switched from `$TRUNK_ROOT` to `{TRUNK_ROOT}` to match `agent-workspace`. Follow-up to [#59](https://github.com/SnowboardTechie/athena-notes/issues/59).
@@ -125,7 +127,8 @@ First public release. Complete port from the OpenCode/OhMyOpenAgent implementati
 ### Removed
 - `PORTING.md` — internal tracker from the OpenCode → Claude Code port. The port is done; the file was stale (GitHub repo already exists, "remaining" items all landed). Historical context preserved in git history.
 
-[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.5.0
 [0.4.3]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.3
 [0.4.2]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.2
 [0.4.1]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.1

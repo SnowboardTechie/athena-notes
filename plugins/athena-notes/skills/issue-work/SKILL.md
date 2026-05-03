@@ -341,6 +341,7 @@ Phase 4 hands off to the [`pr-self-review`](../pr-self-review/SKILL.md) skill in
 - `worktree_path`: the absolute path from `progress.md`
 - `base_branch`: the value from `progress.md` `base:`
 - `plan_path`: `~/.claude/issue-work/{owner}-{repo}-{N}/plan.md`
+- `source_issue`: `{owner}/{repo}#{N}` — the ticket this work is for; lets pr-self-review fire its source-issue exception (findings tagged with this issue surface for triage instead of pre-skipping) without waiting for a PR body to exist.
 
 Invoke it via the `Skill` tool (not by running commands). The skill writes `review-{lens}.md` files and a final `summary.md` into the state dir, matching the shape Phase 4.3 reads below. When it returns, `summary.md` is ready.
 

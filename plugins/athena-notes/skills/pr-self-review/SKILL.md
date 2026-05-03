@@ -1,6 +1,6 @@
 ---
 name: pr-self-review
-description: Iterative self-review loop for PRs you authored. Runs the three-lens parallel review (correctness / security / simplicity), pre-feeds reviewers with related open issues and project-note context so they can defer overlaps, and walks findings through a four-action triage (accept / push-back / issue / skip) that commits accepted edits and loops until the diff is clean. Triggers on `/pr-self-review [pr-url]`, "review my PR", or invocation from `issue-work` Phase 4.
+description: Iterative self-review loop for PRs you authored. Runs the three-lens parallel review (correctness / security / simplicity), pre-feeds reviewers with related open issues and project-note context so they can defer overlaps, and walks findings through a four-action triage (accept / push-back / issue / skip) that commits accepted edits and loops until the diff is clean. Accept auto-promotes to ack when the edit produces no diff, so observational findings stop re-surfacing. Triggers on `/pr-self-review [pr-url]`, "review my PR", or invocation from `issue-work` Phase 4.
 ---
 
 # PR Self-Review
@@ -29,7 +29,7 @@ Three entry points:
 
 so `review-{lens}.md` / `summary.md` land at the path `issue-work` Phase 4.3 already reads. Do not create a second parallel dir for pre-pr runs.
 
-Session state (push-back rationales, skip list, suppressed-finding keys, filed-issue URLs) is **in-memory only** — never persisted across skill runs. Cache files (related-issues, related-notes) overwrite on each run.
+Session state (push-back rationales, skip list, acks, suppressed-finding keys, filed-issue URLs) is **in-memory only** — never persisted across skill runs. Cache files (related-issues, related-notes) overwrite on each run.
 
 ---
 
@@ -39,11 +39,11 @@ Detect the mode from arguments and context:
 
 ### 0.1 `pre-pr` (invoked from issue-work)
 
-Selected when the invoker passes an explicit `mode: pre-pr` argument (alongside `state_dir`, `worktree_path`, `base_branch`, and `plan_path`). Mode is always explicit — never inferred from the state-dir path prefix, which would break under unusual `$HOME` or relocated state directories. In `pre-pr` mode:
+Selected when the invoker passes an explicit `mode: pre-pr` argument (alongside `state_dir`, `worktree_path`, `base_branch`, `plan_path`, and optionally `source_issue` in `{owner}/{repo}#{N}` form). Mode is always explicit — never inferred from the state-dir path prefix, which would break under unusual `$HOME` or relocated state directories. In `pre-pr` mode:
 
 - Worktree path and branch are already set up.
 - The caller's `plan.md` exists in the state dir — use it as ground truth for reviewers.
-- There is no PR yet. Skip the PR-lookup step; skip all `linked-to-PR` issue fetches (degrade to path-touching + label-matched only).
+- There is no PR yet. Skip the PR-lookup step; the linked-to-PR issue fetch (Phase 1.1 dimension A) degrades to path-touching + label-matched only — **except** for the `source_issue` arg, which is fetched directly and seeded into the cache so the source-issue exception can fire even though no PR body exists yet (see Phase 1.1 dimension A for the synthesis step).
 - Skip the commit-and-push loop's push step for the first pass if the branch is still unpushed — just commit. Let `issue-work` Phase 4.3 drive the eventual push + PR creation via `/ship`.
 
 ### 0.2 `pr-url`
@@ -86,14 +86,22 @@ Two parallel caches. Populate both in a single message where possible.
 
 Three dimensions; union the results; deduplicate by issue number.
 
-**A. Linked to the PR** (skip in `pre-pr` mode — no PR yet):
+**A. Linked to the PR** (degrades in `pre-pr` mode — see synthesis note below):
 
-Parse the PR body + timeline for `Closes #N`, `Fixes #N`, `Refs #N`, `Related #N` (case-insensitive). Also fetch cross-references:
+Parse the PR body + timeline for `Closes #N`, `Fixes #N`, `Resolves #N`, `Refs #N`, `Related #N` (case-insensitive). Also fetch cross-references:
 
 ```bash
 gh api "repos/{owner}/{repo}/issues/{pr-number}/timeline" --paginate \
   --jq '[.[] | select(.event=="cross-referenced") | .source.issue.number] | unique'
 ```
+
+**Pre-pr mode synthesis.** No PR body exists yet, so the body-parse and timeline-fetch above are skipped. If Phase 0.1's `source_issue` arg is set (form `{owner}/{repo}#{N}`):
+
+1. Parse the three fields. **Validate before any shell interpolation:** `owner` and `repo` must each match `^[A-Za-z0-9_.-]+$`; `N` must match `^[0-9]+$`. Mismatch → refuse and surface the malformed value. Mirrors the metacharacter rejection rule in dimension B below — `source_issue` crosses the trust boundary into `gh` and needs the same guard.
+2. Fetch the issue: `gh issue view {N} --repo {owner}/{repo} --json number,title,url,labels,body`. **Truncate the `body` field to its first 400 characters before storing it in session state or rendering it in any prompt** — same boundary the `body_excerpt` schema field uses at write time. Apply the truncation at ingest, not just at write, so the full body never enters LLM context.
+3. Inject as a single entry in dimension A's results with `match_reason: "closes"` — the issue this PR commits to closing is treated as if a `Closes #N` tag already existed.
+
+If `source_issue` is absent (e.g., a standalone `pre-pr` invocation without an issue-work caller), dimension A produces zero entries and the source-issue exception simply doesn't fire — same as the cleanly-degraded path-touching/label-matched-only mode.
 
 **B. Path-touching** (all modes):
 
@@ -138,11 +146,13 @@ Write the merged cache to `{state-dir}/related-issues.json`:
     "title": "...",
     "url": "https://...",
     "labels": ["tech-debt"],
-    "match_reason": "linked | path | label",
+    "match_reason": "closes | refs | path | label",
     "body_excerpt": "first 400 chars"
   }
 ]
 ```
+
+`match_reason` distinguishes the four match dimensions. `closes` is body-scoped: it covers `Closes #N` / `Fixes #N` / `Resolves #N` declarative tags found in the PR body. `refs` covers `Refs #N` / `Related #N` body tags and all timeline `cross-referenced` events; timeline cross-references always classify as `refs` regardless of how the referencing PR itself tagged the issue. `path` and `label` are unchanged from the (B) and (C) dimensions above. Phase 2.3's pre-skip rule reads this field — see the source-issue exception there.
 
 ### 1.2 Related-notes cache
 
@@ -217,9 +227,11 @@ Cross-lens observations (the reviewer's optional bottom-of-file section) surface
 
 ### 2.3 Triage
 
-Walk unsuppressed findings from Critical → Major → Minor → Nit. Two UI modes:
+Walk unsuppressed findings from Critical → Major → Minor → Nit. Before choosing a UI mode, **separate source-issue findings from the rest**: a finding is source-issue if its `related_issue: #N` matches a cached issue with `match_reason: closes`. Source-issue findings always go through per-finding mode regardless of total count, then the remaining (non-source-issue) findings dispatch normally per the threshold below. Rationale: batch mode's omission-equals-skip rule defeats the source-issue exception's protection (annotation alone doesn't prevent a silent skip when the user omits a line); per-finding mode's pre-selected `accept` is the active option, which preserves the exception's guarantee that a defect about the PR's own intent surfaces for explicit triage.
 
-**Per-finding mode** (default when unsuppressed findings ≤ 5): one `AskUserQuestion` per finding. Options are fixed across findings — always these four:
+After the source-issue findings are triaged, dispatch the remaining findings:
+
+**Per-finding mode** (default when remaining unsuppressed findings ≤ 5): one `AskUserQuestion` per finding. Options are fixed across findings — always these four:
 
 ```
 Question: {lens} • {file}:{line}
@@ -237,9 +249,11 @@ Options (single-select):
 
 When a finding carries a `related_issue` or `related_note` tag, pre-select `skip` and annotate the label (`skip (related to #{N})` or `skip (settled in [[wikilink]])`). Override stays one keystroke away.
 
+**Source-issue exception.** If the finding's `related_issue: #N` matches a cached issue whose `match_reason` is `closes`, do **not** pre-select `skip` — pre-select `accept` instead. Findings tagged with the issue this PR commits to closing are about whether the implementation matches its own intent, not about overlap with separately-tracked work. The exception is scoped to `closes` only — `refs`, `path`, and `label` keep the pre-skip default.
+
 `push-back` requires a rationale: on that selection, follow up with a single-line free-text prompt ("Why?"), record the reply keyed to the finding.
 
-**Batch mode** (fallback when unsuppressed findings > 5): running 12 `AskUserQuestion` prompts in a row is obnoxious. Switch to a single batched prompt — numbered list grouped by severity, related context shown inline, single free-text reply with one action per line:
+**Batch mode** (fallback when **remaining** unsuppressed findings > 5, after the source-issue separation above): running 12 `AskUserQuestion` prompts in a row is obnoxious. Switch to a single batched prompt — numbered list grouped by severity, related context shown inline, single free-text reply with one action per line:
 
 ```
 Findings this pass:
@@ -262,14 +276,16 @@ Reply with one line per finding:
   {num} issue
   {num} skip
 
-Findings you don't mention are treated as skip.
+Findings you don't mention are treated as skip. Annotations describe what the user should consider when engaging; they never override the omission rule.
 ```
+
+The pre-skip rule from per-finding mode (above) applies here as an annotation hint. Findings carrying a `related_issue` or `related_note` tag are annotated `↳ related to #N — type {num} accept to triage` (or `↳ settled in [[wikilink]] — type {num} accept to triage`). The annotation tells the user which findings need explicit engagement to land an `accept`; omission still maps to skip. Source-issue findings (the exception case) never reach batch mode — they were split off above and triaged individually.
 
 Parse the reply; apply in order. If a `push-back` line arrives with no rationale, re-prompt for that line only — do not re-present the full batch.
 
 **Triage action semantics:**
 
-- **accept** — Claude makes the edit in the worktree. No commit yet; batched at end of pass.
+- **accept** — Claude makes the edit in the worktree (no commit yet; batched at end of pass) and records the set of files it touched into the finding's `files_touched` field in `accepts_per_pass[pass_count]`. If no edit is attempted (e.g., the reviewer prose-flagged the finding as "no fix required" and Claude agrees) or the edit attempt produces no diff, populate `files_touched` as an empty set explicitly — never leave it undefined. An empty `files_touched` after the pass auto-classifies the finding as an acknowledgment and suppresses it; see Phase 2.4's auto-ack reconciliation step.
 - **push-back <reason>** — record reason in session state; add finding key to suppression set.
 - **issue** — hand off to `/issue-create` for dedup + filing. Pre-fill the issue body with the finding text, the offending file:line, and a link back to the PR. Filed-issue URL goes into session state so the same finding isn't re-filed next pass.
 - **skip** — drop silently for this session. Add key to suppression set.
@@ -288,7 +304,9 @@ suppression_set:    Set<string>                                      # suppressi
 pushbacks:          List<{key, reason}>                              # for summary.md
 filed_issues:       List<{key, url}>                                 # auto-suppress on re-surface
 skips:              List<key>                                        # for summary.md
-accepts_per_pass:   List<List<{key, file, line, lens, summary}>>     # for summary.md
+accepts_per_pass:   List<List<{key, file, line, lens, summary, files_touched: Set<string>}>>
+                                                                     # files_touched populated at triage; entries with empty set move to acks at Phase 2.4 reconciliation
+acks:               List<{key, file, line, lens, summary, pass}>     # accept-without-diff; for summary.md
 pass_count:         int
 ```
 
@@ -298,7 +316,14 @@ At the end of triage, the pass has accumulated a set of accepted edits.
 
 ### 2.4 Commit + push
 
-If any edits were accepted this pass:
+**Auto-ack reconciliation (run first).** Walk `accepts_per_pass[pass_count]` and check each entry's `files_touched` set (populated at triage time per the `accept` semantics above). For any entry where `files_touched` is empty:
+
+- Move its `{key, file, line, lens, summary}` from `accepts_per_pass[pass_count]` into `acks` (annotated with `pass: pass_count`).
+- Add its key to `suppression_set` so it doesn't re-surface next pass.
+
+Findings with non-empty `files_touched` stay in `accepts_per_pass` and proceed to the commit step below. Tracking touched files per finding (rather than diffing the worktree at end of pass) handles the case where a fix lands in a file other than the one the reviewer cited — those count as edits, not acks.
+
+If any edits were accepted this pass (i.e., `accepts_per_pass[pass_count]` is non-empty after reconciliation):
 
 - Stage only the touched files (no `git add -A`).
 - Commit with a message that names the lens(es) involved: `review: address {correctness,simplicity} findings` (or whichever lenses contributed). Never add AI-attribution trailers.
@@ -306,13 +331,13 @@ If any edits were accepted this pass:
 - Push to the PR branch: `git push origin HEAD` — **skip the push in `pre-pr` mode if the branch is still unpushed locally** (let `issue-work` Phase 4.3 / `/ship` drive the first push).
 - Never use `--no-verify`.
 
-If no edits were accepted (all push-back / issue / skip), skip the commit and push.
+If no edits were accepted (all push-back / issue / skip / ack), skip the commit and push.
 
 ### 2.5 Loop check
 
 - **Zero unsuppressed findings on the pass** (nothing to triage) → diff is clean. Exit the loop.
-- **All unsuppressed findings were push-back / issue / skip, with zero accepts** → the code didn't change; reviewing the same diff again would produce the same findings. Exit the loop.
-- **Any accepts** → loop back to Phase 2.1 (HEAD moved; the range is still `{base}...HEAD`). Cap at 5 passes to prevent runaway loops; on the 5th pass, stop and ask the user whether to continue.
+- **No diff was committed this pass** (all push-back / issue / skip / ack — i.e., post-reconciliation `accepts_per_pass[pass_count]` is empty) → the code didn't change; reviewing the same diff again would produce the same findings. Exit the loop.
+- **Any accepts that produced a diff** → loop back to Phase 2.1 (HEAD moved; the range is still `{base}...HEAD`). Cap at 5 passes to prevent runaway loops; on the 5th pass, stop and ask the user whether to continue.
 - **User says "done" at any point** → exit loop immediately.
 
 ---
@@ -339,7 +364,8 @@ passes: {N}
 
 {Outstanding Critical findings only — those the user pushed back, skipped, or
 filed as issues. Findings that were accepted and fixed during the loop do NOT
-appear here. If none outstanding, write: "None outstanding."}
+appear here, nor do findings the user acknowledged without fix (those land
+under `## Acknowledged` below). If none outstanding, write: "None outstanding."}
 
 - [{lens}] [{file}:{line}] {finding} — {triage action: pushed back / skipped / filed as #N}
 
@@ -371,12 +397,18 @@ appear here. If none outstanding, write: "None outstanding."}
 
 - [{lens}] [{file}:{line}] {finding}
 
+## Acknowledged
+
+{Findings the user accepted that produced no worktree diff. Most are observational findings the reviewer prose-flagged as no fix required, but the trigger is mechanical: any `accept` whose `files_touched` is empty after the pass lands here.}
+
+- [pass {k}] [{lens}] [{file}:{line}] {finding}
+
 ## Ship Readiness
 
 {Clear recommendation: "Ready to merge" | "Outstanding criticals — do not merge" | "User opted to exit with open findings"}
 ```
 
-Two-axis shape: the `## Critical Issues` / `## Major Issues` / `## Minor / Nit` sections preserve the `issue-work` Phase 4.3 contract (Phase 4.3 reads these to present outstanding findings before the ship gate). The `## Accepted` / `## Pushed back` / `## Filed as issues` / `## Skipped` sections preserve the triage audit trail unique to this skill. Both belong; don't drop either half.
+Two-axis shape: the `## Critical Issues` / `## Major Issues` / `## Minor / Nit` sections preserve the `issue-work` Phase 4.3 contract (Phase 4.3 reads these to present outstanding findings before the ship gate). The `## Accepted this session` / `## Pushed back` / `## Filed as issues` / `## Skipped` / `## Acknowledged` sections preserve the triage audit trail unique to this skill. Both belong; don't drop either half.
 
 Frontmatter `ticket:` field is retained (not renamed) so tools that key on it keep working — for `pr-url` mode it's the PR URL, for `pre-pr` mode it's the issue URL from the caller, for `branch-inference` mode it's the PR URL discovered from the branch.
 
@@ -397,7 +429,7 @@ Frontmatter `ticket:` field is retained (not renamed) so tools that key on it ke
 | `.notes/` missing | Skip archivist phase silently; write `related-notes.json` as `[]`; proceed. |
 | `gh` not authenticated | Stop. Surface the auth error. |
 | Archivist returns nothing for every topic | `related-notes.json = []`; proceed. |
-| A pass's fix introduces a regression | Next pass flags it as a normal finding. Suppression only filters **explicit push-backs** and **skips**, not accepts. |
+| A pass's fix introduces a regression | Next pass flags it as a normal finding. Suppression filters **push-backs**, **skips**, and **acks** (accepts that produced no diff); accepts that did change code are **not** suppressed, so a regression introduced by a fix re-surfaces normally. |
 | User says "done" mid-triage | Finish any accepted edits from this pass, commit + push, write summary, exit. |
 | 5 passes reached | Ask the user whether to continue for another 5 or exit. |
 | Worktree already exists for this PR | Reuse it; don't nest. |

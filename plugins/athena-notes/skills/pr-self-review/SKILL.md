@@ -1,6 +1,6 @@
 ---
 name: pr-self-review
-description: Iterative self-review loop for PRs you authored. Runs the three-lens parallel review (correctness / security / simplicity), pre-feeds reviewers with related open issues and project-note context so they can defer overlaps, and walks findings through a four-action triage (accept / push-back / issue / skip) that commits accepted edits and loops until the diff is clean. Triggers on `/pr-self-review [pr-url]`, "review my PR", or invocation from `issue-work` Phase 4.
+description: Iterative self-review loop for PRs you authored. Runs the three-lens parallel review (correctness / security / simplicity), pre-feeds reviewers with related open issues and project-note context so they can defer overlaps, and walks findings through a four-action triage (accept / push-back / issue / skip) that commits accepted edits and loops until the diff is clean. Accept auto-promotes to ack when the edit produces no diff, so observational findings stop re-surfacing. Triggers on `/pr-self-review [pr-url]`, "review my PR", or invocation from `issue-work` Phase 4.
 ---
 
 # PR Self-Review
@@ -29,7 +29,7 @@ Three entry points:
 
 so `review-{lens}.md` / `summary.md` land at the path `issue-work` Phase 4.3 already reads. Do not create a second parallel dir for pre-pr runs.
 
-Session state (push-back rationales, skip list, suppressed-finding keys, filed-issue URLs) is **in-memory only** — never persisted across skill runs. Cache files (related-issues, related-notes) overwrite on each run.
+Session state (push-back rationales, skip list, acks, suppressed-finding keys, filed-issue URLs) is **in-memory only** — never persisted across skill runs. Cache files (related-issues, related-notes) overwrite on each run.
 
 ---
 
@@ -144,7 +144,7 @@ Write the merged cache to `{state-dir}/related-issues.json`:
 ]
 ```
 
-`match_reason` distinguishes the four match dimensions. `closes` covers `Closes #N` / `Fixes #N` / `Resolves #N` declarative tags from the PR body. `refs` covers `Refs #N` / `Related #N` body tags and timeline `cross-referenced` events. `path` and `label` are unchanged from the (B) and (C) dimensions above. Phase 2.3's pre-skip rule reads this field — see the source-issue exception there.
+`match_reason` distinguishes the four match dimensions. `closes` covers `Closes #N` / `Fixes #N` / `Resolves #N` declarative tags in the PR body only. `refs` covers `Refs #N` / `Related #N` body tags and all timeline `cross-referenced` events (timeline events never classify as `closes`, even when sourced from a referencing PR's close tag — `closes` is body-scoped). `path` and `label` are unchanged from the (B) and (C) dimensions above. Phase 2.3's pre-skip rule reads this field — see the source-issue exception there.
 
 ### 1.2 Related-notes cache
 
@@ -269,7 +269,7 @@ Reply with one line per finding:
 Findings you don't mention are treated as skip.
 ```
 
-The pre-skip rule and source-issue exception from per-finding mode apply identically here: findings carrying a `related_issue` or `related_note` tag default to `skip`, except findings whose `related_issue` matches a cached issue with `match_reason: closes`, which default to `accept`. Annotate the default in the batched list (`↳ default: skip (related to #N)` or `↳ default: accept (source issue)`) so the user sees it without re-deriving the rule.
+The pre-skip rule and source-issue exception from per-finding mode apply identically here: findings carrying a `related_issue` or `related_note` tag default to `skip`, except findings whose `related_issue` matches a cached issue with `match_reason: closes`, which default to `accept`. Annotate the default in the batched list (`↳ default: skip (related to #N)` or `↳ default: accept (source issue: #N)`) so the user sees it without re-deriving the rule.
 
 Parse the reply; apply in order. If a `push-back` line arrives with no rationale, re-prompt for that line only — do not re-present the full batch.
 
@@ -352,12 +352,12 @@ passes: {N}
 
 ## Critical Issues
 
-{Outstanding Critical findings only — those the user pushed back, skipped,
-filed as issues, or acknowledged without fix. Findings that were accepted
-and fixed during the loop do NOT appear here. If none outstanding, write:
-"None outstanding."}
+{Outstanding Critical findings only — those the user pushed back, skipped, or
+filed as issues. Findings that were accepted and fixed during the loop do NOT
+appear here, nor do findings the user acknowledged without fix (those land
+under `## Acknowledged` below). If none outstanding, write: "None outstanding."}
 
-- [{lens}] [{file}:{line}] {finding} — {triage action: pushed back / skipped / filed as #N / acknowledged}
+- [{lens}] [{file}:{line}] {finding} — {triage action: pushed back / skipped / filed as #N}
 
 ## Major Issues
 
@@ -389,7 +389,7 @@ and fixed during the loop do NOT appear here. If none outstanding, write:
 
 ## Acknowledged
 
-{Findings the user accepted that produced no worktree diff — observational findings the reviewer prose-flagged as no-fix-required.}
+{Findings the user accepted that produced no worktree diff — observational findings the reviewer prose-flagged as no fix required.}
 
 - [pass {k}] [{lens}] [{file}:{line}] {finding}
 

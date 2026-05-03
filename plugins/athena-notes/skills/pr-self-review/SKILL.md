@@ -98,7 +98,7 @@ gh api "repos/{owner}/{repo}/issues/{pr-number}/timeline" --paginate \
 **Pre-pr mode synthesis.** No PR body exists yet, so the body-parse and timeline-fetch above are skipped. If Phase 0.1's `source_issue` arg is set (form `{owner}/{repo}#{N}`):
 
 1. Parse the three fields. **Validate before any shell interpolation:** `owner` and `repo` must each match `^[A-Za-z0-9_.-]+$`; `N` must match `^[0-9]+$`. Mismatch → refuse and surface the malformed value. Mirrors the metacharacter rejection rule in dimension B below — `source_issue` crosses the trust boundary into `gh` and needs the same guard.
-2. Fetch the issue: `gh issue view {N} --repo {owner}/{repo} --json number,title,url,labels,body`.
+2. Fetch the issue: `gh issue view {N} --repo {owner}/{repo} --json number,title,url,labels,body`. **Truncate the `body` field to its first 400 characters before storing it in session state or rendering it in any prompt** — same boundary the `body_excerpt` schema field uses at write time. Apply the truncation at ingest, not just at write, so the full body never enters LLM context.
 3. Inject as a single entry in dimension A's results with `match_reason: "closes"` — the issue this PR commits to closing is treated as if a `Closes #N` tag already existed.
 
 If `source_issue` is absent (e.g., a standalone `pre-pr` invocation without an issue-work caller), dimension A produces zero entries and the source-issue exception simply doesn't fire — same as the cleanly-degraded path-touching/label-matched-only mode.
@@ -227,9 +227,11 @@ Cross-lens observations (the reviewer's optional bottom-of-file section) surface
 
 ### 2.3 Triage
 
-Walk unsuppressed findings from Critical → Major → Minor → Nit. Two UI modes:
+Walk unsuppressed findings from Critical → Major → Minor → Nit. Before choosing a UI mode, **separate source-issue findings from the rest**: a finding is source-issue if its `related_issue: #N` matches a cached issue with `match_reason: closes`. Source-issue findings always go through per-finding mode regardless of total count, then the remaining (non-source-issue) findings dispatch normally per the threshold below. Rationale: batch mode's omission-equals-skip rule defeats the source-issue exception's protection (annotation alone doesn't prevent a silent skip when the user omits a line); per-finding mode's pre-selected `accept` is the active option, which preserves the exception's guarantee that a defect about the PR's own intent surfaces for explicit triage.
 
-**Per-finding mode** (default when unsuppressed findings ≤ 5): one `AskUserQuestion` per finding. Options are fixed across findings — always these four:
+After the source-issue findings are triaged, dispatch the remaining findings:
+
+**Per-finding mode** (default when remaining unsuppressed findings ≤ 5): one `AskUserQuestion` per finding. Options are fixed across findings — always these four:
 
 ```
 Question: {lens} • {file}:{line}
@@ -251,7 +253,7 @@ When a finding carries a `related_issue` or `related_note` tag, pre-select `skip
 
 `push-back` requires a rationale: on that selection, follow up with a single-line free-text prompt ("Why?"), record the reply keyed to the finding.
 
-**Batch mode** (fallback when unsuppressed findings > 5): running 12 `AskUserQuestion` prompts in a row is obnoxious. Switch to a single batched prompt — numbered list grouped by severity, related context shown inline, single free-text reply with one action per line:
+**Batch mode** (fallback when **remaining** unsuppressed findings > 5, after the source-issue separation above): running 12 `AskUserQuestion` prompts in a row is obnoxious. Switch to a single batched prompt — numbered list grouped by severity, related context shown inline, single free-text reply with one action per line:
 
 ```
 Findings this pass:
@@ -277,7 +279,7 @@ Reply with one line per finding:
 Findings you don't mention are treated as skip. Annotations describe what the user should consider when engaging; they never override the omission rule.
 ```
 
-The pre-skip rule and source-issue exception from per-finding mode (above) apply here as annotation hints. Findings carrying a `related_issue` or `related_note` tag are annotated `↳ related to #N — type {num} accept to triage` (or `↳ settled in [[wikilink]] — type {num} accept to triage`); findings whose `related_issue` matches a cached issue with `match_reason: closes` are annotated `↳ source issue: #N — type {num} accept to triage`. The annotation tells the user which findings need explicit engagement to land an `accept`; omission still maps to skip in every case.
+The pre-skip rule from per-finding mode (above) applies here as an annotation hint. Findings carrying a `related_issue` or `related_note` tag are annotated `↳ related to #N — type {num} accept to triage` (or `↳ settled in [[wikilink]] — type {num} accept to triage`). The annotation tells the user which findings need explicit engagement to land an `accept`; omission still maps to skip. Source-issue findings (the exception case) never reach batch mode — they were split off above and triaged individually.
 
 Parse the reply; apply in order. If a `push-back` line arrives with no rationale, re-prompt for that line only — do not re-present the full batch.
 
@@ -406,7 +408,7 @@ under `## Acknowledged` below). If none outstanding, write: "None outstanding."}
 {Clear recommendation: "Ready to merge" | "Outstanding criticals — do not merge" | "User opted to exit with open findings"}
 ```
 
-Two-axis shape: the `## Critical Issues` / `## Major Issues` / `## Minor / Nit` sections preserve the `issue-work` Phase 4.3 contract (Phase 4.3 reads these to present outstanding findings before the ship gate). The `## Accepted` / `## Pushed back` / `## Filed as issues` / `## Skipped` / `## Acknowledged` sections preserve the triage audit trail unique to this skill. Both belong; don't drop either half.
+Two-axis shape: the `## Critical Issues` / `## Major Issues` / `## Minor / Nit` sections preserve the `issue-work` Phase 4.3 contract (Phase 4.3 reads these to present outstanding findings before the ship gate). The `## Accepted this session` / `## Pushed back` / `## Filed as issues` / `## Skipped` / `## Acknowledged` sections preserve the triage audit trail unique to this skill. Both belong; don't drop either half.
 
 Frontmatter `ticket:` field is retained (not renamed) so tools that key on it keep working — for `pr-url` mode it's the PR URL, for `pre-pr` mode it's the issue URL from the caller, for `branch-inference` mode it's the PR URL discovered from the branch.
 

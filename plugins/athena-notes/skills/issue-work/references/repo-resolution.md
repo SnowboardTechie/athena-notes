@@ -110,7 +110,7 @@ Rules:
   ```
 
 - All `git fetch`, dirty-tree checks, and default-branch lookups should happen against the trunk.
-- The `EnterWorktree` tool handles actual worktree creation; pass it the trunk path, the desired worktree name, and the base branch.
+- `EnterWorktree` only switches the session into an existing worktree (`name` or `path`); it does **not** accept a base branch. Worktree creation goes through `git -C "{TRUNK_ROOT}" worktree add -b {branch} {path} origin/{DEFAULT_BRANCH}` first, then `EnterWorktree(path: ...)` to switch in. See `issue-work` Phase 1.6.
 
 ---
 

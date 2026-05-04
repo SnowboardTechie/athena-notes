@@ -107,7 +107,7 @@ Run each candidate against the four questions above. Drop any that don't pass.
 - **Vault-route candidates** (AGENTS.md / `.notes/` / daily plan): all four questions must pass.
 - **Memory-route candidates** (harness memory): Q2 (durable & scoped), Q3 (future-actionable), and Q4 (readable in six months) all apply. Q1 (novel-in-vault) doesn't — memory is a separate index from the vault. A preference that wouldn't change any future agent decision still fails Q3.
 - **Issue-route candidates** (GitHub issue against this repo via `/issue-create`): all four apply, with these route-specific tunings:
-  - **Q1 (Novel)** — dedup also against the open issue list. Run `gh issue list --repo SnowboardTechie/athena-notes --state open --search "<keywords>"` against the candidate's topic; keywords come from the candidate itself (skill or agent name, the misbehavior verb, the affected workflow). If a clearly-matching open issue exists, drop the candidate; the existing issue *is* the signal.
+  - **Q1 (Novel)** — dedup also against the open issue list. Run `gh issue list --repo SnowboardTechie/athena-notes --state open --search "<keywords>"` against the candidate's topic; keywords come from the candidate itself (skill or agent name, the misbehavior verb, the affected workflow). If a clearly-matching open issue exists, drop the candidate; the existing issue *is* the signal. **Keyword hygiene:** pass `--search` as a separate argument token — never interpolate keywords into a single shell string. If a candidate-derived term contains shell-special characters (`"`, `;`, `$`, backticks), strip them before constructing the command. Keep the full query under ~200 characters; trim to the most specific 3–4 tokens if the candidate description is long, since longer queries hit GitHub's Search API per-qualifier limit and silently return zero matches (which would falsely pass Q1).
   - **Q2 (Durable & scoped)** — read as *"reproducible miss, not one-off hiccup."* The scope sub-check (only `plugins/athena-notes/` agents/skills) is already enforced by the lens definition in Step 1; Q2 doesn't need to re-filter for it.
   - **Q3 (Future-actionable)** — read as *"would implementing the fix change future agent or skill behavior in a real way, or is it cosmetic?"* If a fix wouldn't change any future agent's output, the candidate is a vibe rather than a defect; drop.
   - **Q4 (Readable in six months)** — read as *"triage-worthy reading the issue backlog cold months later — title and first paragraph make the problem clear?"* If a future-you scrolling the backlog wouldn't know what to do with it, compress the framing or drop.
@@ -205,7 +205,9 @@ For each approved GitHub-issue draft, invoke `/issue-create` directly with the d
 Skill(skill="athena-notes:issue-create", args="<draft body>")
 ```
 
-The draft body is everything from the line `Filing this against SnowboardTechie/athena-notes:` through the final `## Open questions` section — *not* the `### Proposed GitHub Issue` meta header, the `**Target:** / **Surfaced agent/skill:** / **Trigger moment:**` lines, the horizontal rules, or the trailing italic approval line. `/issue-create` reads what you pass as the user's initial framing (its Stage 2.1: *"Use the user's initial framing as the seed — if they already answered an area, skip the question"*); the seed's default-structure headings cover Problem / Proposed behavior / Scope / Acceptance / Open questions, so most of `/issue-create`'s Stage 2 Q&A skips and the user lands on its Stage 3 (Show & iterate) approval gate to confirm the post itself.
+The draft body is everything from the line `Filing this against SnowboardTechie/athena-notes:` through the final `## Open questions` section (or `## Acceptance criteria` if Open questions was dropped) — *not* the `### Proposed GitHub Issue` meta header, the `**Target:** / **Surfaced agent/skill:** / **Trigger moment:**` lines, the horizontal rules, or the trailing italic approval line. `/issue-create` reads what you pass as the user's initial framing (its Stage 2.1: *"Use the user's initial framing as the seed — if they already answered an area, skip the question"*); the seed's default-structure headings cover Problem / Proposed behavior / Scope / Implementation hints / Acceptance / Open questions, so most of `/issue-create`'s Stage 2 Q&A skips and the user lands on its Stage 3 (Show & iterate) approval gate to confirm the post itself.
+
+**Cwd-mismatch caveat.** The `Filing this against SnowboardTechie/athena-notes:` lead-in is a hint, not an override. `/issue-create` Stage 1.1 resolves the target repo from `git remote get-url origin` in the *current* directory; if `session-review` is running from a worktree whose origin is a different repo (e.g., the user's personal dotfiles), Stage 1.1 will detect the mismatch and ask before posting — that prompt is the right place to confirm the plugin repo as the target.
 
 Two gates total: this skill's Step 5 catches *"is this worth filing?"*, `/issue-create`'s Stage 3.4 catches *"is the post correct?"*. If the user approves a draft here but later declines at `/issue-create`'s gate, the draft stays in `/issue-create`'s drafts directory for future iteration — this skill's job is done as soon as the handoff fires.
 
@@ -308,6 +310,10 @@ Filing this against `SnowboardTechie/athena-notes`:
 
 - {related-but-separate concern worth not pulling in}
 
+## Implementation hints
+
+{Constraints, prior art (e.g., a related PR or note), or `(none)` if not load-bearing. Cover this section in the seed when you have it — `/issue-create`'s Stage 2.4 will otherwise re-ask the same Implementation-hints area.}
+
 ## Acceptance criteria
 
 - [ ] {testable outcome 1}
@@ -315,7 +321,7 @@ Filing this against `SnowboardTechie/athena-notes`:
 
 ## Open questions
 
-- {a question worth flagging for the issue body, if any}
+- {a question worth flagging for the issue body — or drop this entire `## Open questions` section, heading and all, if there are none. Leaving placeholder bullets here makes `/issue-create`'s Stage 3.3 fire on a non-question.}
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: session-review
-description: Review conversation sessions for project-specific learnings (AGENTS.md / .notes/), cross-project user-collaboration preferences (harness memory), and resolved tracked items (today's daily plan)
+description: Review conversation sessions for project-specific learnings (AGENTS.md / .notes/), cross-project user-collaboration preferences (harness memory), resolved tracked items (today's daily plan), and Athena Notes plugin-misbehavior signal (GitHub issues via /issue-create)
 ---
 
 # Session Review
@@ -38,7 +38,7 @@ Good sessions produce knowledge that shouldn't live only in your head. This skil
 
 ## Signal Test
 
-Before categorizing or drafting, every candidate must pass the questions that apply to its route — vault-route candidates take all four, memory-route candidates take the subset noted in Step 1.5. Any "no" on a question that applies drops the candidate.
+Before categorizing or drafting, every candidate must pass the questions that apply to its route — vault-route candidates take all four, memory-route candidates take the subset noted in Step 1.5, and issue-route candidates take all four with route-specific tunings (also in Step 1.5). Any "no" on a question that applies drops the candidate.
 
 **Exemption:** Daily-plan status updates from Step 1.6 (tracked-item resolutions) skip this filter — they're state changes, not durable insights, and the questions are tuned for knowledge. A session with zero insight-signal can still close a planned loop.
 
@@ -78,7 +78,13 @@ Zero survivors is fine. Better to capture nothing than to grow an archive you ne
 | Project motivation / stakeholder context | Harness memory | project record | "Auth migration is compliance-driven, not tech-debt cleanup" |
 | External-system pointer | Harness memory | reference record | "Pipeline bugs live in Linear project INGEST" |
 
-> **Scoping note.** Pointers that name internal infrastructure (private URLs, internal IDs, internal tooling) are project-scoped — write them to `.notes/` on the originating project, not to cross-project memory.
+**Issue routes** (Athena Notes plugin-improvement signal; routed to a GitHub issue against this repo via `/issue-create`. The skill drafts the candidate at the approval gate; on approval it invokes `/issue-create` with the draft as seed text and `/issue-create` runs its own approval flow before posting):
+
+| Learning Type | Destination | Target | Example |
+|---------------|-------------|--------|---------|
+| Plugin-improvement candidate | GitHub issue (this repo) | `/issue-create` | "scribe wrote the meeting note to the wrong vault when invoked from a worktree" |
+
+> **Scoping note.** Pointers that name internal infrastructure (private URLs, internal IDs, internal tooling) are project-scoped — write them to `.notes/` on the originating project, not to cross-project memory. Plugin-improvement candidates are scoped to `plugins/athena-notes/` agents and skills only — gripes about other plugins, other tools, or the harness itself route through the collaboration lens to memory, not through this channel.
 
 ---
 
@@ -86,12 +92,13 @@ Zero survivors is fine. Better to capture nothing than to grow an archive you ne
 
 ### Step 1: Scan the conversation
 
-Read back through the session with **two lenses**:
+Read back through the session with **three lenses**:
 
 - **Technical lens.** Moments where something about the code, architecture, or project state was discovered, decided, or clarified.
 - **Collaboration lens.** Moments where the user redirected your framing, elevated a "minor" suggestion to a main issue, repeatedly anchored to a standard or principle, or endorsed an unusual approach without pushback. Signal about *how the user thinks* — routes to the harness memory system, not AGENTS.md / `.notes/`.
+- **Plugin-improvement lens.** Moments where an agent or skill shipped under `plugins/athena-notes/` misbehaved or has a clear sharp edge worth filing — confusing output, a missed routing rule, a workflow that wasted a turn, a guardrail that fired in the wrong direction. Signal about *the plugin itself* — routes to a GitHub issue against this repo via `/issue-create`, not vault or memory. Strictly scoped: cross-plugin gripes (other plugins, the harness itself, unrelated tools) don't qualify here — those are user-collaboration preferences and route through the collaboration lens to memory instead.
 
-A session can have signal in one lens, both, or neither. Ignore routine task execution. Flag candidates — no quota. Most sessions produce zero to two.
+A session can have signal in one lens, several, or none. Ignore routine task execution. Flag candidates — no quota. Most sessions produce zero to two.
 
 ### Step 1.5: Apply the Signal Test
 
@@ -99,8 +106,13 @@ Run each candidate against the four questions above. Drop any that don't pass.
 
 - **Vault-route candidates** (AGENTS.md / `.notes/` / daily plan): all four questions must pass.
 - **Memory-route candidates** (harness memory): Q2 (durable & scoped), Q3 (future-actionable), and Q4 (readable in six months) all apply. Q1 (novel-in-vault) doesn't — memory is a separate index from the vault. A preference that wouldn't change any future agent decision still fails Q3.
+- **Issue-route candidates** (GitHub issue against this repo via `/issue-create`): all four apply, with these route-specific tunings:
+  - **Q1 (Novel)** — dedup also against the open issue list. Run `gh issue list --repo SnowboardTechie/athena-notes --state open --search "<keywords>"` against the candidate's topic; keywords come from the candidate itself (skill or agent name, the misbehavior verb, the affected workflow). If a clearly-matching open issue exists, drop the candidate; the existing issue *is* the signal.
+  - **Q2 (Durable & scoped)** — read as *"reproducible miss, not one-off hiccup."* The scope sub-check (only `plugins/athena-notes/` agents/skills) is already enforced by the lens definition in Step 1; Q2 doesn't need to re-filter for it.
+  - **Q3 (Future-actionable)** — read as *"would implementing the fix change future agent or skill behavior in a real way, or is it cosmetic?"* If a fix wouldn't change any future agent's output, the candidate is a vibe rather than a defect; drop.
+  - **Q4 (Readable in six months)** — read as *"triage-worthy reading the issue backlog cold months later — title and first paragraph make the problem clear?"* If a future-you scrolling the backlog wouldn't know what to do with it, compress the framing or drop.
 
-Routing is by destination row, not by which lens flagged the candidate — a technical-lens finding can land on memory-routes if it fits a project-motivation or external-system-pointer row.
+Routing is by destination row, not by which lens flagged the candidate — a technical-lens finding can land on memory-routes if it fits a project-motivation or external-system-pointer row, and a collaboration-lens finding about an Athena Notes agent's specific misbehavior can land on issue-routes.
 
 This is the filter that does the real work; downstream steps only handle survivors.
 
@@ -139,6 +151,7 @@ Check for existing notes about {topic}. Return matches with type, path, and a 1-
 
    If archivist returns a match, treat the candidate as an **update** to that note, not a new one. Draft it using the Update template below.
 3. **Harness memory** — for memory-route candidates (collaboration / project-motivation / external-system-pointer), skip the `@archivist` call. Archivist searches `.notes/`, not the harness memory system. The user — or a hub agent with memory access — is responsible for the dedupe pass at the approval gate.
+4. **Open issues against this repo** — for issue-route candidates (plugin-improvement), the dedup check ran in Step 1.5 Q1 (`gh issue list --repo SnowboardTechie/athena-notes --state open --search …`); skip `@archivist` here. Archivist's index is `.notes/`, not GitHub.
 
 Run archivist lookups in parallel — emit all Task calls in one assistant message so they run concurrently, not one per turn. This step should add seconds, not minutes.
 
@@ -148,7 +161,7 @@ Map each candidate to the row that fits its content (see Step 1.5 for the routin
 
 ### Step 4: Draft inline
 
-Write out proposed content for each item using the templates below. Keep drafts concise — one table row for AGENTS.md, a filled template for a new `.notes/` note, a targeted patch for an update, or a Memory recommendation for memory-route candidates.
+Write out proposed content for each item using the templates below. Keep drafts concise — one table row for AGENTS.md, a filled template for a new `.notes/` note, a targeted patch for an update, a Memory recommendation for memory-route candidates, or a GitHub-issue draft for issue-route candidates.
 
 ### Step 5: APPROVAL GATE
 
@@ -183,6 +196,20 @@ For each approved daily-plan edit from Step 1.6, apply it directly via the Edit 
 ### Step 9: Hand off approved memory recommendations
 
 Memory-route candidates have **no automated write step**. After approval, the skill's job is done — the user (or a hub agent with memory access, e.g. an `athena` invocation that can write to `~/.claude/projects/*/memory/`) makes the actual write. Surface the approved recommendations one more time at the end of the run with the harness-specific destination clearly marked, so the next handoff has everything it needs.
+
+### Step 10: Hand off approved plugin-improvement issues
+
+For each approved GitHub-issue draft, invoke `/issue-create` directly with the draft body as the seed:
+
+```
+Skill(skill="athena-notes:issue-create", args="<draft body>")
+```
+
+The draft body is everything from the line `Filing this against SnowboardTechie/athena-notes:` through the final `## Open questions` section — *not* the `### Proposed GitHub Issue` meta header, the `**Target:** / **Surfaced agent/skill:** / **Trigger moment:**` lines, the horizontal rules, or the trailing italic approval line. `/issue-create` reads what you pass as the user's initial framing (its Stage 2.1: *"Use the user's initial framing as the seed — if they already answered an area, skip the question"*); the seed's default-structure headings cover Problem / Proposed behavior / Scope / Acceptance / Open questions, so most of `/issue-create`'s Stage 2 Q&A skips and the user lands on its Stage 3 (Show & iterate) approval gate to confirm the post itself.
+
+Two gates total: this skill's Step 5 catches *"is this worth filing?"*, `/issue-create`'s Stage 3.4 catches *"is the post correct?"*. If the user approves a draft here but later declines at `/issue-create`'s gate, the draft stays in `/issue-create`'s drafts directory for future iteration — this skill's job is done as soon as the handoff fires.
+
+Declining at this skill's Step 5 drops the candidate entirely; `/issue-create` is never invoked.
 
 ---
 
@@ -247,6 +274,54 @@ Use this for memory-route candidates (collaboration / project-motivation / exter
 *Approve to record this.*
 ```
 
+### GitHub-issue draft
+
+Use this for plugin-improvement candidates that survived the issue-route Signal Test. The body — everything from `Filing this against …` through the final `## Open questions` section — mirrors `/issue-create` Stage 1.3's default-structure headings verbatim, so when the user approves at Step 5 the body becomes seed text for `/issue-create`'s Stage 2 and most areas already-answered are skipped.
+
+```markdown
+### Proposed GitHub Issue
+
+**Target:** `SnowboardTechie/athena-notes`
+**Surfaced agent/skill:** {e.g., `scribe`, `workday-planning`, `archivist`}
+**Trigger moment:** {one-line — the conversation moment this surfaced from}
+
+---
+
+Filing this against `SnowboardTechie/athena-notes`:
+
+## Problem / Motivation
+
+{One paragraph — what the agent or skill did, when, and what behavior the user or a future agent will hit if it's left as-is.}
+
+## Proposed behavior
+
+{What the agent or skill should do instead. Concrete, not aspirational.}
+
+## Scope
+
+### In scope
+
+- {affected `SKILL.md` / agent file path and section}
+- {related guardrail or step that also needs to change}
+
+### Out of scope
+
+- {related-but-separate concern worth not pulling in}
+
+## Acceptance criteria
+
+- [ ] {testable outcome 1}
+- [ ] {testable outcome 2}
+
+## Open questions
+
+- {a question worth flagging for the issue body, if any}
+
+---
+
+*Approve to invoke `/issue-create` with this draft as the seed. `/issue-create` will run its own approval flow before posting.*
+```
+
 ### Daily-plan update
 
 Use this for Step 1.6 outputs. Show the existing line and the proposed replacement so the user can eyeball the edit before approving.
@@ -270,9 +345,11 @@ Use this for Step 1.6 outputs. Show the existing line and the proposed replaceme
 
 ## Edge Cases
 
-**No survivors (common):** Most sessions execute rather than discover. "No survivors" means all three channels — technical lens, collaboration lens, and the Step 1.6 daily-plan scan — came up empty. When that's the case, report `No signal — routine execution` and stop. This isn't failure; it's the expected outcome. If only one channel has output (e.g., the collaboration lens surfaced a single user-preference candidate, or Step 1.6 surfaced a daily-plan edit), present that alone at the approval gate — a session with signal in just one channel is still allowed to close.
+**No survivors (common):** Most sessions execute rather than discover. "No survivors" means all four channels — technical lens, collaboration lens, plugin-improvement lens, and the Step 1.6 daily-plan scan — came up empty. When that's the case, report `No signal — routine execution` and stop. This isn't failure; it's the expected outcome. If only one channel has output (e.g., the collaboration lens surfaced a single user-preference candidate, or Step 1.6 surfaced a daily-plan edit, or the plugin-improvement lens surfaced one issue draft), present that alone at the approval gate — a session with signal in just one channel is still allowed to close.
 
 **No daily plan for today:** Step 1.6 handles this — silently skip, no prompt.
+
+**Zero plugin-improvement candidates:** Same expectation as the other lenses — most sessions don't expose plugin sharp edges. Silent on zero; no quota; no special "everything's fine" report.
 
 **No AGENTS.md in project:** Skip the AGENTS.md section entirely. Still offer `.notes/` drafts for survivors.
 
@@ -292,5 +369,6 @@ Use this for Step 1.6 outputs. Show the existing line and the proposed replaceme
 - Do NOT handle worktree path resolution — that's @scribe's job via the agent-workspace skill. (Daily-plan paths are personal-vault paths, not worktree paths; Step 1.6 resolves them directly from identity config.)
 - Do NOT write prose-heavy narratives. Notes must be scannable in Obsidian at a glance — tables, bullets, wikilinks to related notes, short paragraphs. A 300-word reflective essay is the failure mode, not the goal.
 - Do NOT hit a quota. If only one candidate survives the Signal Test, propose one. If none survive, propose none. Never pad.
-- Do NOT report `No signal — routine execution` without confirming all three channels came up empty (see Edge Cases — No survivors).
+- Do NOT report `No signal — routine execution` without confirming all four channels came up empty (see Edge Cases — No survivors).
 - Do NOT write to harness memory directly. Memory-route candidates are presented at the approval gate as recommendations; the user (or a hub agent with memory access) makes the actual write. The skill is a router, not the destination owner.
+- Do NOT post issues to GitHub directly. Plugin-improvement candidates are presented at the approval gate as drafts; on approval, `/issue-create` is invoked with the draft as seed and runs its own approval flow before posting (two gates total). Same router-not-poster shape as the memory-route handoff.

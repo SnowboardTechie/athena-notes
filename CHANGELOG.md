@@ -4,6 +4,9 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed
+- `session-review` skill — adds a plugin-improvement lens that routes Athena Notes agent/skill misbehavior signal to a GitHub issue against this repo via `/issue-create`. Resolves [#75](https://github.com/SnowboardTechie/athena-notes/issues/75).
+
 ## [0.5.0] — 2026-05-03
 
 ### Fixed

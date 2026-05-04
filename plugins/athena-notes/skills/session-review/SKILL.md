@@ -42,11 +42,12 @@ Before categorizing or drafting, every candidate must pass the questions that ap
 
 **Exemption:** Daily-plan status updates from Step 1.6 (tracked-item resolutions) skip this filter — they're state changes, not durable insights, and the questions are tuned for knowledge. A session with zero insight-signal can still close a planned loop.
 
-1. **Novel.** Is the rule, decision, or pattern already captured in AGENTS.md or an existing `.notes/` note? If so, the existing record *is* the signal. (For issue-route candidates this also covers the open GitHub issue list — see Step 1.5 Q1.)
-2. **Durable & scoped.** The candidate routes to one of two destinations:
+1. **Novel.** Is the rule, decision, or pattern already captured in AGENTS.md or an existing `.notes/` note? If so, the existing record *is* the signal. (Issue-route candidates extend this dedup to the open GitHub issue list — see Step 1.5 Q1.)
+2. **Durable & scoped.** The candidate routes to one of three destinations:
 
    - **Vault** (→ AGENTS.md / `.notes/`) — project-specific to Athena Notes: agents, skills, vaults, identity, hub-spoke, this repo's layout.
    - **Harness memory** — cross-project user-collaboration preference (how this user thinks, anchors, decides), project motivation / stakeholder context, or external-system pointer.
+   - **GitHub issue against this repo** — Athena Notes plugin-improvement signal (a `plugins/athena-notes/` agent or skill misbehaved); see Step 1.5's issue-route tunings for the reading.
 
    A transient session vibe isn't durable; a general engineering truism isn't scoped. Neither qualifies.
 3. **Future-actionable.** Will a concrete decision — in a future chat or by your future self — change because this note exists? If removing the note wouldn't change any future outcome, it's a log.
@@ -84,7 +85,7 @@ Zero survivors is fine. Better to capture nothing than to grow an archive you ne
 |---------------|-------------|--------|---------|
 | Plugin-improvement candidate | GitHub issue (this repo) | `/issue-create` | "scribe wrote the meeting note to the wrong vault when invoked from a worktree" |
 
-> **Scoping note.** Pointers that name internal infrastructure (private URLs, internal IDs, internal tooling) are project-scoped — write them to `.notes/` on the originating project, not to cross-project memory. (The plugin-improvement lens carries its own scope rule in Step 1; see there rather than restating it here.)
+> **Scoping note.** Pointers that name internal infrastructure (private URLs, internal IDs, internal tooling) are project-scoped — write them to `.notes/` on the originating project, not to cross-project memory.
 
 ---
 
@@ -95,7 +96,7 @@ Zero survivors is fine. Better to capture nothing than to grow an archive you ne
 Read back through the session with **three lenses**:
 
 - **Technical lens.** Moments where something about the code, architecture, or project state was discovered, decided, or clarified.
-- **Collaboration lens.** Moments where the user redirected your framing, elevated a "minor" suggestion to a main issue, repeatedly anchored to a standard or principle, or endorsed an unusual approach without pushback. Signal about *how the user thinks* — routes to the harness memory system, not AGENTS.md / `.notes/`. (One exception: when the redirected framing is specifically about an Athena Notes agent or skill misbehaving, Step 1.5's cross-lens routing rule lets the candidate land on issue-routes instead.)
+- **Collaboration lens.** Moments where the user redirected your framing, elevated a "minor" suggestion to a main issue, repeatedly anchored to a standard or principle, or endorsed an unusual approach without pushback. Signal about *how the user thinks* — routes to the harness memory system, not AGENTS.md / `.notes/`. (One exception: when the redirected framing is specifically about an Athena Notes agent or skill misbehaving, Step 1.5's destination-row routing lets the candidate land on issue-routes instead.)
 - **Plugin-improvement lens.** Moments where an agent or skill shipped under `plugins/athena-notes/` misbehaved or has a clear sharp edge worth filing — confusing output, a missed routing rule, a workflow that wasted a turn, a guardrail that fired in the wrong direction. Signal about *the plugin itself* — routes to a GitHub issue against this repo via `/issue-create`, not vault or memory. Strictly scoped: cross-plugin gripes (other plugins, the harness itself, unrelated tools) don't qualify here — those are user-collaboration preferences and route through the collaboration lens to memory instead.
 
 A session can have signal in one lens, several, or none. Ignore routine task execution. Flag candidates — no quota. Most sessions produce zero to two.
@@ -112,7 +113,7 @@ Run each candidate against the four questions above. Drop any that don't pass.
   - **Q3 (Future-actionable)** — read as *"would implementing the fix change future agent or skill behavior in a real way, or is it cosmetic?"* If a fix wouldn't change any future agent's output, the candidate is a vibe rather than a defect; drop.
   - **Q4 (Readable in six months)** — read as *"triage-worthy reading the issue backlog cold months later — title and first paragraph make the problem clear?"* If a future-you scrolling the backlog wouldn't know what to do with it, compress the framing or drop.
 
-  > **Keyword hygiene for the Q1 search.** Pass `--search` as a separate argument token — never interpolate keywords into a single shell string. Strip any character from candidate-derived terms that is not alphanumeric, hyphen, underscore, or whitespace before passing them to `gh`; a positive allowlist avoids the recurring trap of an enumerative strip list missing a metacharacter. Keep the full query under ~200 characters; trim to the most specific 3–4 tokens if the candidate description is long, since longer queries hit GitHub's Search API per-qualifier limit and silently return zero matches (which would falsely pass Q1).
+  > **Keyword hygiene for the Q1 search.** Pass `--search` as a separate argument token — never interpolate keywords into a single shell string. Strip any character from candidate-derived terms that is not alphanumeric, hyphen, underscore, or whitespace before passing them to `gh`; a positive allowlist avoids the recurring trap of an enumerative strip list missing a metacharacter. Keep the full query under ~200 characters; trim to the most specific 3–4 tokens if the candidate description is long, since longer queries hit GitHub's Search API total-query-length limit and silently return zero matches (which would falsely pass Q1).
 
 Routing is by destination row, not by which lens flagged the candidate — a technical-lens finding can land on memory-routes if it fits a project-motivation or external-system-pointer row, and a collaboration-lens finding about an Athena Notes agent's specific misbehavior can land on issue-routes.
 
@@ -153,7 +154,7 @@ Check for existing notes about {topic}. Return matches with type, path, and a 1-
 
    If archivist returns a match, treat the candidate as an **update** to that note, not a new one. Draft it using the Update template below.
 3. **Harness memory** — for memory-route candidates (collaboration / project-motivation / external-system-pointer), skip the `@archivist` call. Archivist searches `.notes/`, not the harness memory system. The user — or a hub agent with memory access — is responsible for the dedupe pass at the approval gate.
-4. **Open issues against this repo** — for issue-route candidates (plugin-improvement), the dedup check ran in Step 1.5 Q1 (`gh issue list --repo SnowboardTechie/athena-notes --state open --search …`); skip `@archivist` here. Archivist's index is `.notes/`, not GitHub.
+4. **Open issues against this repo** — for issue-route candidates (plugin-improvement), skip `@archivist` here; the dedup ran in Step 1.5 Q1, and archivist's index is `.notes/`, not GitHub.
 
 Run archivist lookups in parallel — emit all Task calls in one assistant message so they run concurrently, not one per turn. This step should add seconds, not minutes.
 
@@ -209,7 +210,7 @@ Skill(skill="athena-notes:issue-create", args="<draft body>")
 
 The draft body is everything from the line `Filing this against SnowboardTechie/athena-notes:` through the final `## Open questions` section (or `## Acceptance criteria` if Open questions was dropped) — *not* the `### Proposed GitHub Issue` meta header, the `**Target:** / **Surfaced agent/skill:** / **Trigger moment:**` lines, the horizontal rules, or the trailing italic approval line. `/issue-create` reads what you pass as the user's initial framing (its Stage 2.1: *"Use the user's initial framing as the seed — if they already answered an area, skip the question"*); the seed's default-structure headings cover Problem / Proposed behavior / Scope / Implementation hints / Acceptance / Open questions, so most of `/issue-create`'s Stage 2 Q&A skips and the user lands on its Stage 3 (Show & iterate) approval gate to confirm the post itself.
 
-**Cwd-mismatch caveat.** The `Filing this against SnowboardTechie/athena-notes:` lead-in is a hint, not an override. `/issue-create` Stage 1.1 resolves the target repo from `git remote get-url origin` in the *current* directory; if `session-review` is running from a worktree whose origin is a different repo (e.g., the user's personal dotfiles), Stage 1.1's "user's initial message references a different repo than cwd" branch should fire on the lead-in and ask before posting — confirm the plugin repo as the target there if that prompt appears, and call it out manually at `/issue-create`'s Stage 3.4 gate if it doesn't.
+**Caveats for the handoff.** The `Filing this against SnowboardTechie/athena-notes:` lead-in is a hint, not an override. `/issue-create` Stage 1.1 resolves the target repo from `git remote get-url origin` in the *current* directory; if `session-review` is running from a worktree whose origin is a different repo, Stage 1.1's "user's initial message references a different repo than cwd" branch may fire on the lead-in, but verify the target repo explicitly at `/issue-create`'s Stage 3.4 gate regardless — that's where the post target is unambiguous. While reviewing at Stage 3.4, also re-read the rendered draft for anything that shouldn't appear in a public issue — the seed lifts text verbatim from session content, which can include private URLs, internal identifiers, or content from external documents the user pasted during the session.
 
 Two gates total: this skill's Step 5 catches *"is this worth filing?"*, `/issue-create`'s Stage 3.4 catches *"is the post correct?"*. If the user approves a draft here but later declines at `/issue-create`'s gate, the draft stays in `/issue-create`'s drafts directory for future iteration — this skill's job is done as soon as the handoff fires.
 
@@ -314,7 +315,7 @@ Filing this against `SnowboardTechie/athena-notes`:
 
 ## Implementation hints
 
-{Constraints, prior art (e.g., a related PR or note), or `(none)` if not load-bearing. Cover this section in the seed when you have it — `/issue-create`'s Stage 2.4 will otherwise re-ask the same Implementation-hints area.}
+{Constraints, prior art (e.g., a related PR or note), or `(none)` if not load-bearing. Cover this section in the seed when you have it — `/issue-create`'s Stage 2.1 area 4 will otherwise re-ask the same Implementation-hints area.}
 
 ## Acceptance criteria
 

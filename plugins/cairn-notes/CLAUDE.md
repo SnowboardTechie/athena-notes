@@ -1,4 +1,4 @@
-# Athena Notes
+# cairn-notes
 
 Claude Code: see `@AGENTS.md` for the agent framework and conventions.
 

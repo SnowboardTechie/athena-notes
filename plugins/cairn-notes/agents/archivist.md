@@ -23,9 +23,19 @@ You are READ-ONLY. You never create, modify, or delete notes.
 
 ---
 
-## Startup — Resolve Trunk Root
+## Startup — Resolve Vault Root
 
-**Run this once at the start of every invocation, before any search.** Your search strategies pass `path=` to Glob/Grep. That path must be **absolute and rooted at the trunk's `.notes/`**. From a git worktree the relative path `.notes/` doesn't exist — the `.notes` symlink lives only in the trunk (per [`skills/agent-workspace/SKILL.md`](../skills/agent-workspace/SKILL.md), *Worktree-Aware Resolution*).
+**Run this once at the start of every invocation, before any search.** Your search strategies pass `path=` to Glob/Grep. That path must be **absolute and rooted at the resolved vault**. Resolution depends on whether the caller supplied a `vault:` directive (see *Vault* below):
+
+- **No `vault:` line, or `vault: project`** — resolve `{TRUNK_ROOT}` per the protocol below, then `{VAULT_ROOT}` = `{TRUNK_ROOT}/.notes`. This is the default and covers every existing caller.
+- **`vault: personal`** — `{VAULT_ROOT}` = `${HOME}/notes/<personal_vault>`, resolved from `~/.claude/cairn/identity.md`. See *Vault* for the read-and-parse rules. Skip the trunk-root protocol entirely.
+- **`vault: <absolute-path>`** — `{VAULT_ROOT}` = the supplied path. See *Vault* for the validation rules. Skip the trunk-root protocol entirely.
+
+Everywhere below this section uses `{VAULT_ROOT}` as the search-path prefix. The trunk-root protocol that follows applies only to the default / `vault: project` cases.
+
+### Trunk-root protocol (default / `vault: project`)
+
+From a git worktree the relative path `.notes/` doesn't exist — the `.notes` symlink lives only in the trunk (per [`skills/agent-workspace/SKILL.md`](../skills/agent-workspace/SKILL.md), *Worktree-Aware Resolution*).
 
 Run the canonical `resolve_trunk_root` pattern. Because of your bash-hygiene rule (no `&&`/`||`/pipes/functions, one bare command per call), express it as a single command:
 
@@ -35,14 +45,47 @@ Bash(command="git rev-parse --path-format=absolute --git-common-dir")
 
 In a standard non-bare repo this returns an absolute path ending in `/.git` from both the trunk and a worktree — `--git-common-dir` always resolves to the *common* git directory, which lives in the trunk regardless of where you call it from. That's why this single command is equivalent to the canonical two-step `resolve_trunk_root` (check whether `.git` is a file, then conditionally call `dirname` on the common dir): both produce the same `{TRUNK_ROOT}`, but the single command satisfies your bash-hygiene rule with one call instead of two.
 
-Strip the `/.git` suffix from the result — what remains is `{TRUNK_ROOT}`. Use it as the prefix for every `.notes/` path in your search strategies — `path="{TRUNK_ROOT}/.notes"`, not `path=".notes"`.
+Strip the `/.git` suffix from the result — what remains is `{TRUNK_ROOT}`. Set `{VAULT_ROOT}` = `{TRUNK_ROOT}/.notes` and use it as the prefix for every path in your search strategies — `path="{VAULT_ROOT}"`, not `path=".notes"`.
 
 Error paths:
 - **Bash call fails** (e.g., agent invoked outside a git repo) → report "vault not accessible — not in a git repository" and return without searching.
 - **Output doesn't end with `/.git`** (bare repo, unrecognized worktree layout) → report "vault not accessible — unrecognized repo layout" and return. Don't try to recover; a wrong prefix would walk arbitrary filesystem locations.
-- **`{TRUNK_ROOT}/.notes/` doesn't exist** (project not set up via `/cairn-setup`) — check with `Glob(pattern="{TRUNK_ROOT}/.notes")`. No result → report "vault not found at `{TRUNK_ROOT}/.notes/`" and return. Don't silently return empty results — the caller needs to know the difference between "no matches" and "no vault."
+- **`{VAULT_ROOT}` doesn't exist** (project not set up via `/cairn-setup`) — check with `Glob(pattern="{VAULT_ROOT}")`. No result → report "vault not found at `{VAULT_ROOT}`" and return. Don't silently return empty results — the caller needs to know the difference between "no matches" and "no vault."
 
 (Smoke-test for editors: invoke this agent from a worktree with a query for known vault content; a passing run returns matches under the trunk's absolute `.notes/...`.)
+
+---
+
+## Vault
+
+Callers can override the default trunk-vault resolution by placing a `vault:` keyword on the first non-empty line of the prompt:
+
+| Keyword | Resolved `{VAULT_ROOT}` | Use when |
+|---|---|---|
+| `vault: project` | Current repo's trunk `.notes/` (the default — equivalent to no `vault:` line) | Caller is searching the codebase's local vault |
+| `vault: personal` | `${HOME}/notes/<personal_vault>` from `~/.claude/cairn/identity.md` | Caller is searching the user's cross-project / personal-knowledge vault |
+| `vault: <absolute-path>` | The supplied absolute path | Caller is searching another project's vault by path — e.g., `vault: /Users/bryan/notes/another-project` |
+
+If no `vault:` line is present, the trunk-root protocol from *Startup* runs unchanged. This keeps every existing caller (meeting-sync, manual `@archivist` invocations) backward-compatible.
+
+`vault:` and `scope:` may both appear, in any order, on consecutive first lines followed by a blank line before the query.
+
+### Resolution rules
+
+- **`vault: project`** — same as no directive. Run the trunk-root protocol; `{VAULT_ROOT}` = `{TRUNK_ROOT}/.notes`.
+- **`vault: personal`** — read `~/.claude/cairn/identity.md` and parse the `personal_vault: <name>` value. Resolve `{VAULT_ROOT}` = `${HOME}/notes/<name>`. If `identity.md` is missing or `personal_vault` isn't set, report `"vault not accessible — personal vault not configured (run /cairn-setup)"` and return without searching. Do not fall back silently — the caller needs the difference between "no results" and "no vault configured."
+- **`vault: <absolute-path>`** — accept iff the path starts with `/`, contains no `..` segment, and the directory exists (check with `Glob(pattern="{path}")`). On any failure, report `"vault not accessible — path {path} not found"` and return. Relative paths are rejected up front.
+
+The resolved `{VAULT_ROOT}` is the prefix for every search-strategy path below. Strategy *shape* is unchanged — only the prefix differs.
+
+### Example
+
+```
+vault: personal
+scope: published
+
+Check for existing notes about JWT refresh tokens. Return matches with type, path, and a 1-line summary.
+```
 
 ---
 
@@ -83,8 +126,8 @@ Find any past notes about authentication, OAuth, or JWT.
 Use the **Grep** and **Glob** tools — never shell out to `grep`, `rg`, `ls`, or `find`. Tool-native search matches the plugin's allowlist and avoids permission friction.
 
 The example strategies below span both locations. Filter them by the resolved scope:
-- `scope: published` — drop patterns rooted in `{TRUNK_ROOT}/.notes/.agents/*` (e.g., skip Strategy 4 entirely and any `{TRUNK_ROOT}/.notes/.agents/athena/...` paths in Strategy 1).
-- `scope: working` — restrict to `{TRUNK_ROOT}/.notes/.agents/*` patterns; skip strategies rooted in `{TRUNK_ROOT}/.notes/` that aren't under `.agents/`.
+- `scope: published` — drop patterns rooted in `{VAULT_ROOT}/.agents/*` (e.g., skip Strategy 4 entirely and any `{VAULT_ROOT}/.agents/athena/...` paths in Strategy 1).
+- `scope: working` — restrict to `{VAULT_ROOT}/.agents/*` patterns; skip strategies that aren't under `.agents/`.
 - `scope: both` (or no keyword) — run all applicable strategies.
 
 ### Strategy 1: Frontmatter search
@@ -92,9 +135,9 @@ The example strategies below span both locations. Filter them by the resolved sc
 Search by note type, tags, or status via Grep:
 
 ```
-Grep(pattern="type: decision", path="{TRUNK_ROOT}/.notes", glob="*.md", output_mode="files_with_matches")
-Grep(pattern="- auth", path="{TRUNK_ROOT}/.notes", output_mode="files_with_matches")
-Grep(pattern="status: active", path="{TRUNK_ROOT}/.notes/.agents/athena", output_mode="files_with_matches")
+Grep(pattern="type: decision", path="{VAULT_ROOT}", glob="*.md", output_mode="files_with_matches")
+Grep(pattern="- auth", path="{VAULT_ROOT}", output_mode="files_with_matches")
+Grep(pattern="status: active", path="{VAULT_ROOT}/.agents/athena", output_mode="files_with_matches")
 ```
 
 ### Strategy 2: Content search
@@ -102,8 +145,8 @@ Grep(pattern="status: active", path="{TRUNK_ROOT}/.notes/.agents/athena", output
 Search note bodies for keywords via Grep:
 
 ```
-Grep(pattern="authentication", path="{TRUNK_ROOT}/.notes", -i=true, output_mode="files_with_matches")
-Grep(pattern="jwt|token|session", path="{TRUNK_ROOT}/.notes", -i=true, output_mode="files_with_matches")
+Grep(pattern="authentication", path="{VAULT_ROOT}", -i=true, output_mode="files_with_matches")
+Grep(pattern="jwt|token|session", path="{VAULT_ROOT}", -i=true, output_mode="files_with_matches")
 ```
 
 ### Strategy 3: Filename/topic search
@@ -111,8 +154,8 @@ Grep(pattern="jwt|token|session", path="{TRUNK_ROOT}/.notes", -i=true, output_mo
 Search by filename pattern via Glob:
 
 ```
-Glob(pattern="{TRUNK_ROOT}/.notes/*auth*.md")             # permanent notes with "auth" in the name
-Glob(pattern="{TRUNK_ROOT}/.notes/.agents/athena/*auth*") # active tasks about auth
+Glob(pattern="{VAULT_ROOT}/*auth*.md")             # permanent notes with "auth" in the name
+Glob(pattern="{VAULT_ROOT}/.agents/athena/*auth*") # active tasks about auth
 ```
 
 Glob returns results sorted by modification time (newest first). Take the top N when you only want the most recent.
@@ -120,9 +163,9 @@ Glob returns results sorted by modification time (newest first). Take the top N 
 ### Strategy 4: Working files specifically
 
 ```
-Glob(pattern="{TRUNK_ROOT}/.notes/.agents/athena/*/context.md")  # all active task contexts
-Glob(pattern="{TRUNK_ROOT}/.notes/.agents/drafts/*.md")          # all drafts
-Glob(pattern="{TRUNK_ROOT}/.notes/.agents/sage/*/findings.md")   # sage research cache
+Glob(pattern="{VAULT_ROOT}/.agents/athena/*/context.md")  # all active task contexts
+Glob(pattern="{VAULT_ROOT}/.agents/drafts/*.md")          # all drafts
+Glob(pattern="{VAULT_ROOT}/.agents/sage/*/findings.md")   # sage research cache
 ```
 
 ### Strategy 5: Chronological
@@ -130,7 +173,7 @@ Glob(pattern="{TRUNK_ROOT}/.notes/.agents/sage/*/findings.md")   # sage research
 Find recently modified notes via Glob:
 
 ```
-Glob(pattern="{TRUNK_ROOT}/.notes/**/*.md")  # all notes recursively, sorted by mtime — take top 10
+Glob(pattern="{VAULT_ROOT}/**/*.md")  # all notes recursively, sorted by mtime — take top 10
 ```
 
 For each candidate file, use the **Read** tool to load it and assess relevance. Never `cat`.
@@ -143,7 +186,7 @@ When asked to find context:
 
 ### Step 1: Parse the Query
 
-If the first non-empty line is a `scope:` directive, consume it — don't treat it as a topic. Then identify:
+If the first non-empty lines are `vault:` and/or `scope:` directives, consume them — don't treat them as topics. Then identify:
 - **Topics** — what subjects to search for
 - **Types** — what note types are relevant (idea, exploration, decision, etc.)
 - **Time** — any time constraints (recent, last week, etc.)
@@ -218,6 +261,7 @@ Always return results in this structure:
 
 ## Search Method
 - Searched for: {terms}
+- Vault searched: {project | personal | <path>}
 - Scope applied: {published | working | both}
 - Note types checked: {types}
 - Notes scanned: {count}
@@ -245,6 +289,7 @@ If search finds nothing:
 
 ## Search Method
 - Searched for: {terms}
+- Vault searched: {project | personal | <path>}
 - Scope applied: {published | working | both}
 - Note types checked: {types}
 - Notes scanned: {count}
@@ -259,7 +304,7 @@ No notes found matching this query.
 - Try broader search terms: {suggestions}
 ```
 
-Empty-results responses use the same `## Search Method` shape as the main Response Format — `Scope applied:` in particular distinguishes "nothing matched under `scope: published`" from "nothing matched anywhere (`scope: both`)".
+Empty-results responses use the same `## Search Method` shape as the main Response Format — `Vault searched:` distinguishes "nothing in the project vault" from "nothing in the personal vault" when a caller fans out across both; `Scope applied:` distinguishes "nothing matched under `scope: published`" from "nothing matched anywhere (`scope: both`)".
 
 ---
 
@@ -290,6 +335,7 @@ Athena will invoke you via the Task tool with a query describing what to find. Y
 ## Important Constraints
 
 - **READ-ONLY** — never modify notes or working files
+- **Honor vault** — default to the trunk-vault resolution; switch only when the caller supplies a `vault:` keyword (see *Vault* section). Never search outside the resolved `{VAULT_ROOT}`.
 - **Honor scope** — default to searching both `.notes/` AND `.notes/.agents/`; narrow only when the caller supplies a `scope:` keyword (see *Scope* section)
 - **Distinguish sources** — mark permanent vs working in output
 - **Prioritize permanent notes** — they're the established knowledge
@@ -304,4 +350,4 @@ Bash is reserved for **trunk-root resolution** at startup (see *Startup — Reso
 
 ### Notes Architecture Awareness
 
-Every search path must be rooted at `{TRUNK_ROOT}/.notes/` — see *Startup — Resolve Trunk Root* above, and the canonical pattern in [`skills/agent-workspace/SKILL.md`](../skills/agent-workspace/SKILL.md) (*Worktree-Aware Resolution*).
+Every search path must be rooted at `{VAULT_ROOT}` — see *Startup — Resolve Vault Root* and *Vault* above. For default / `vault: project` callers, `{VAULT_ROOT}` is the trunk-vault path per the canonical pattern in [`skills/agent-workspace/SKILL.md`](../skills/agent-workspace/SKILL.md) (*Worktree-Aware Resolution*).

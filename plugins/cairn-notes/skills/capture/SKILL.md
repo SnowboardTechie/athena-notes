@@ -113,20 +113,20 @@ Task(subagent_type="archivist", prompt="scope: published
 Find notes related to this capture: {2-3 sentence summary of the body, drawn from its strongest topical keywords}. Return up to 5 wikilinks with one-line relevance notes.")
 ```
 
-`scope: published` excludes `.notes/.agents/` working files. No `vault:` directive — pre-link only searches the current vault (project or personal, per scribe's resolution). Multi-vault pre-linking is out of scope for v0.6.0.
+`scope: published` excludes `.notes/.agents/` working files. No `vault:` directive — archivist falls through to its trunk-root protocol, so **pre-link only fires in project-vault captures** (cwd inside a git repo). Personal-vault and Direct-vault captures proceed without a pre-link in v0.6.0 — archivist would fail with "not in a git repository" and `/capture` would skip the `Related notes:` line per the failure-path rule below. Multi-vault and personal-vault pre-linking are deferred follow-ups.
 
 Archivist's response yields up to 5 wikilink candidates. Take the top 3 most relevant and inline them into the scribe prompt (Step 6).
 
 **On archivist failure or empty result.** Drop the `Related notes:` line from the scribe prompt entirely. Don't write "Related notes: (none found)" — that's noise in the note body. If archivist returned an error (vault inaccessible, malformed response), note the failure in the Step 7 user-facing summary; the capture still proceeds.
 
-**Why not parallel?** A common temptation is to fire archivist and scribe in the same assistant turn to save a round-trip. It doesn't work — scribe's prompt template includes a `Related notes: [[slug-a]], ...` line populated from archivist's response, so scribe can't be composed until archivist returns. Compare to [`meeting-sync`](../meeting-sync/SKILL.md)'s archivist↔archivist parallelism, which works because the two archivist calls don't depend on each other.
+The two calls are sequential — scribe's prompt depends on archivist's wikilinks. (Unlike [`meeting-sync`](../meeting-sync/SKILL.md)'s archivist↔archivist parallelism, which works because the two archivist calls are independent.)
 
 ### Step 6: Dispatch scribe
 
 Compose the scribe Task call:
 
 ```
-Task(subagent_type="scribe", prompt="Write a {TYPE} note. Body:
+Task(subagent_type="scribe", prompt="Write {TYPE} note. Body:
 
 {captured text}
 
@@ -135,11 +135,13 @@ Task(subagent_type="scribe", prompt="Write a {TYPE} note. Body:
 
 Trust scribe's handling — no explicit vault path, no folder selection override, no filename argument. Scribe applies its three-mode vault resolution (Project / Direct vault / Default per [`scribe.md`](../../agents/scribe.md)), its Note Reuse Protocol (update over duplicate), its folder selection (existing project structure or cairn defaults), and the appropriate template from the [`cairn-notes`](../cairn-notes/SKILL.md) reference skill.
 
-`/capture` only forwards `(type, body, related_links)`. Match meeting-sync's pattern: trust scribe's resolution.
+`/capture` only forwards `(type, body, related_links)`. Match meeting-sync's pattern: trust scribe's resolution. To target the personal vault from inside a project repo, `cd ~/notes/{{PERSONAL_VAULT}}` first.
 
 ### Step 7: Report
 
 After scribe returns its `Wrote: {relative_path}` line, present to the user.
+
+**Validate before rendering.** If `{relative_path}` contains a `..` segment or starts with `/`, do *not* render it as a clickable link — display the path as plain text and surface the anomaly to the user. Scribe should never emit a path with traversal, but the assertion costs nothing and prevents a hyperlink that clicks through to an unexpected location.
 
 **Path prefixing.** Scribe's `{relative_path}` is *vault-relative* (e.g., `decisions/foo.md`), not cwd-relative. For the clickable link to resolve from the user's terminal, prefix it to match the resolution mode scribe used:
 
@@ -149,7 +151,7 @@ After scribe returns its `Wrote: {relative_path}` line, present to the user.
 | Inside `~/notes/<vault>/` (Direct vault mode) | `{relative_path}` (cwd already is the vault root) |
 | Anywhere else (Default mode — scribe wrote to the personal vault) | The absolute path scribe expanded `~/notes/<personal_vault>/{relative_path}` to; if you don't know it, fall back to `{relative_path}` |
 
-Detect mode with a single `Bash(command="git rev-parse --show-toplevel")` and a `Glob` for the `.notes/` symlink — same protocol scribe uses. Cache the resolution; mode doesn't change inside one capture turn.
+Detect mode with `Bash(command="git rev-parse --path-format=absolute --git-common-dir")` (the same single-command shape archivist's Startup uses — see [`archivist.md`](../../agents/archivist.md#startup-resolve-vault-root)), then `Glob` for `.notes/` under that trunk path to confirm the vault symlink. From a worktree, `--show-toplevel` would return the worktree root and miss the trunk-only `.notes/` symlink; `--git-common-dir` correctly resolves to the trunk. Cache the resolution; mode doesn't change inside one capture turn.
 
 Then present:
 
@@ -168,20 +170,6 @@ Then present:
 The display text stays `{relative_path}` so the user sees the canonical vault-relative shape; only the href is prefixed for click-through. No `Co-Authored-By:` trailers.
 
 See [`references/examples.md`](references/examples.md) for four end-to-end worked captures showing the report shape for each branch.
-
----
-
-## Vault routing
-
-`/capture` does not handle vault routing — it inherits scribe's three-mode detection. The natural consequence:
-
-| Where invoked | Where the capture lands |
-|---|---|
-| Inside a project repo (cwd has `.git` and a `.notes/` symlink, or scribe auto-creates one) | Project vault — `~/notes/{project}/` via `.notes` symlink |
-| Inside `~/notes/{{PERSONAL_VAULT}}/` directly | Current directory |
-| Anywhere else (not in a git repo, not in a vault) | Personal vault — `~/notes/{{PERSONAL_VAULT}}/` |
-
-This matches [`meeting-sync`](../meeting-sync/SKILL.md#vault-routing) exactly. v0.6.0 has no `vault:` flag on `/capture`; cross-vault capture is a deferred follow-up (see plan §"Open implementation questions"). To capture into the personal vault from inside a project repo, `cd ~/notes/{{PERSONAL_VAULT}}` first.
 
 ---
 
@@ -207,8 +195,6 @@ This matches [`meeting-sync`](../meeting-sync/SKILL.md#vault-routing) exactly. v
 - Do NOT pass an explicit vault path to scribe. Trust the three-mode detection.
 - Do NOT chain into `/meeting-sync` inline. Report the handoff and stop; the user re-invokes.
 - Do NOT block on the archivist pre-link if it fails. Capture is the priority; linkage is best-effort.
-- Do NOT add a `#cairn` brand tag to captured notes. Brand-tag-free per the plan's reframing decisions.
-- Do NOT add `Co-Authored-By:` trailers to note bodies.
 - Do NOT prompt for confirmation before scribe writes. Scribe is the only writer; `/capture` only gates on type ambiguity (Step 3) and on the MEETING handoff (Step 4).
 
 ---

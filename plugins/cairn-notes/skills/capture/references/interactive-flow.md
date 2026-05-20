@@ -101,7 +101,7 @@ Respond:
 
 > Run `/meeting-sync` and paste the same text. The skill will walk you through the anchor + spin-offs.
 
-Stop. Do not invoke `/meeting-sync` from inside `/capture` — nested slash-command invocation is awkward in Claude Code, and the user's re-invocation is the natural next step. (Logged here so a future iteration that *does* support nested invocation doesn't accidentally regress this behavior; revisit if it surfaces as friction.)
+Stop. Do not invoke `/meeting-sync` from inside `/capture` — nested slash-command invocation is awkward in Claude Code, and the user's re-invocation is the natural next step.
 
 ### Branch: `capture as a single SESSION note anyway`
 

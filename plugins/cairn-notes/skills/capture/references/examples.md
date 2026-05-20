@@ -45,7 +45,7 @@ Take top 2 (only 2 returned). Inline into Step 6.
 **Step 6 — Dispatch scribe.** After archivist's response is in hand, in the next assistant turn:
 
 ```
-Task(subagent_type="scribe", prompt="Write a DECISION note. Body:
+Task(subagent_type="scribe", prompt="Write DECISION note. Body:
 
 We decided to switch the default model to Sonnet 4.6 — Haiku 4.5 hits rate limits in CI.
 
@@ -92,7 +92,7 @@ Switched default model from Haiku 4.5 to Sonnet 4.6 due to CI rate-limit hits.
 **Step 6 — Dispatch scribe.**
 
 ```
-Task(subagent_type="scribe", prompt="Write a IDEA note. Body:
+Task(subagent_type="scribe", prompt="Write IDEA note. Body:
 
 What if forge could read planning sources from a per-project file instead of the global one")
 ```
@@ -164,7 +164,7 @@ Archivist returns one match:
 **Step 6 — Dispatch scribe.**
 
 ```
-Task(subagent_type="scribe", prompt="Write a EXPLORATION note. Body:
+Task(subagent_type="scribe", prompt="Write EXPLORATION note. Body:
 
 We decided JWT but the tradeoffs around revocation are still nagging me.
 

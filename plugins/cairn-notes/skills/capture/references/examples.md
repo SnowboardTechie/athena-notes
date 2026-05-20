@@ -20,7 +20,7 @@ Loaded by [`/capture`](../SKILL.md) on request, or when an implementer or new co
 
 **Step 4 — MEETING handoff.** Skipped (type is DECISION, not MEETING).
 
-**Step 5 — Pre-link via archivist.** DECISION fires the pre-link. Single assistant turn, archivist Task call:
+**Step 5 — Pre-link via archivist.** DECISION fires the pre-link. Dispatch archivist and **await its response** before composing Step 6 — the scribe prompt depends on archivist's wikilinks. Archivist Task call:
 
 ```
 Task(subagent_type="archivist", prompt="scope: published
@@ -42,7 +42,7 @@ Archivist returns:
 
 Take top 2 (only 2 returned). Inline into Step 6.
 
-**Step 6 — Dispatch scribe.** Same assistant turn (parallel with Step 5's archivist call):
+**Step 6 — Dispatch scribe.** After archivist's response is in hand, in the next assistant turn:
 
 ```
 Task(subagent_type="scribe", prompt="Write a DECISION note. Body:
@@ -62,7 +62,7 @@ Type: permanent (decision)
 **Step 7 — Report:**
 
 ```
-✓ Captured as DECISION: [decisions/default-model-sonnet-4-6.md](decisions/default-model-sonnet-4-6.md)
+✓ Captured as DECISION: [decisions/default-model-sonnet-4-6.md](.notes/decisions/default-model-sonnet-4-6.md)
 
 Switched default model from Haiku 4.5 to Sonnet 4.6 due to CI rate-limit hits.
 
@@ -107,7 +107,7 @@ Type: permanent (idea)
 **Step 7 — Report:**
 
 ```
-✓ Captured as IDEA: [ideas/forge-per-project-planning-sources.md](ideas/forge-per-project-planning-sources.md)
+✓ Captured as IDEA: [ideas/forge-per-project-planning-sources.md](.notes/ideas/forge-per-project-planning-sources.md)
 
 Sparked: forge could read planning sources from a per-project file instead of the global one.
 ```
@@ -181,11 +181,13 @@ Type: permanent (exploration) — updated existing note
 **Step 7 — Report:**
 
 ```
-✓ Updated existing note: [explorations/exploration-auth.md](explorations/exploration-auth.md)
+✓ Updated existing note: [explorations/exploration-auth.md](.notes/explorations/exploration-auth.md)
 
 Added the revocation-tradeoff thread to the existing JWT exploration.
 
 → Linked: [[exploration-auth]]
+
+(All three examples above are invoked from inside a project repo — `.notes/` prefix applied per Step 7's path-prefixing table. If Example 2 were invoked from `~/notes/{{PERSONAL_VAULT}}/` directly, the href would be `ideas/forge-per-project-planning-sources.md` with no prefix.)
 ```
 
 (Scribe's reuse-over-duplicate behavior is honored — the Step 7 verb is "Updated," not "Captured.")

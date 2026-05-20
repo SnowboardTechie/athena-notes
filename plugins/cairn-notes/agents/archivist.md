@@ -28,7 +28,7 @@ You are READ-ONLY. You never create, modify, or delete notes.
 **Run this once at the start of every invocation, before any search.** Your search strategies pass `path=` to Glob/Grep. That path must be **absolute and rooted at the resolved vault**. Resolution depends on whether the caller supplied a `vault:` directive (see *Vault* below):
 
 - **No `vault:` line, or `vault: project`** — resolve `{TRUNK_ROOT}` per the protocol below, then `{VAULT_ROOT}` = `{TRUNK_ROOT}/.notes`. This is the default and covers every existing caller.
-- **`vault: personal`** — `{VAULT_ROOT}` = `${HOME}/notes/<personal_vault>`, resolved from `~/.claude/cairn/identity.md`. See *Vault* for the read-and-parse rules. Skip the trunk-root protocol entirely.
+- **`vault: personal`** — `{VAULT_ROOT}` = `{notes_root}/{personal_vault}`, both values parsed from `~/.claude/cairn/identity.md` (mirrors [`scribe`](scribe.md#startup-check-first-action-every-session)'s Startup Check). See *Vault* for the read-and-parse rules. Skip the trunk-root protocol entirely.
 - **`vault: <absolute-path>`** — `{VAULT_ROOT}` = the supplied path. See *Vault* for the validation rules. Skip the trunk-root protocol entirely.
 
 Everywhere below this section uses `{VAULT_ROOT}` as the search-path prefix. The trunk-root protocol that follows applies only to the default / `vault: project` cases.
@@ -63,7 +63,7 @@ Callers can override the default trunk-vault resolution by placing a `vault:` ke
 | Keyword | Resolved `{VAULT_ROOT}` | Use when |
 |---|---|---|
 | `vault: project` | Current repo's trunk `.notes/` (the default — equivalent to no `vault:` line) | Caller is searching the codebase's local vault |
-| `vault: personal` | `${HOME}/notes/<personal_vault>` from `~/.claude/cairn/identity.md` | Caller is searching the user's cross-project / personal-knowledge vault |
+| `vault: personal` | `{notes_root}/{personal_vault}` from `~/.claude/cairn/identity.md` | Caller is searching the user's cross-project / personal-knowledge vault |
 | `vault: <absolute-path>` | The supplied absolute path | Caller is searching another project's vault by path — e.g., `vault: /Users/bryan/notes/another-project` |
 
 If no `vault:` line is present, the trunk-root protocol from *Startup* runs unchanged. This keeps every existing caller (meeting-sync, manual `@archivist` invocations) backward-compatible.
@@ -73,7 +73,7 @@ If no `vault:` line is present, the trunk-root protocol from *Startup* runs unch
 ### Resolution rules
 
 - **`vault: project`** — same as no directive. Run the trunk-root protocol; `{VAULT_ROOT}` = `{TRUNK_ROOT}/.notes`.
-- **`vault: personal`** — read `~/.claude/cairn/identity.md` and parse the `personal_vault: <name>` value. Resolve `{VAULT_ROOT}` = `${HOME}/notes/<name>`. If `identity.md` is missing or `personal_vault` isn't set, report `"vault not accessible — personal vault not configured (run /cairn-setup)"` and return without searching. Do not fall back silently — the caller needs the difference between "no results" and "no vault configured."
+- **`vault: personal`** — read `~/.claude/cairn/identity.md` and parse **both** the `notes_root: <path>` and `personal_vault: <name>` values (same parse [`scribe`](scribe.md#startup-check-first-action-every-session) does at its Startup Check, so the two agents always agree on the path). Resolve `{VAULT_ROOT}` = `{notes_root}/{personal_vault}`. If `identity.md` is missing, fall back to scribe's defaults — `notes_root` = `~/notes/` and `personal_vault` = `second-brain` — and note the missing identity in your response. If the file exists but one of the values is unset, report `"vault not accessible — personal vault not configured (run /cairn-setup)"` and return without searching. Don't fall back silently when only one of the two values is missing — that signals a half-configured identity, and the caller needs the difference between "no results" and "no vault configured."
 - **`vault: <absolute-path>`** — accept iff the path starts with `/`, contains no `..` segment, and the directory exists (check with `Glob(pattern="{path}")`). On any failure, report `"vault not accessible — path {path} not found"` and return. Relative paths are rejected up front.
 
 The resolved `{VAULT_ROOT}` is the prefix for every search-strategy path below. Strategy *shape* is unchanged — only the prefix differs.
@@ -118,6 +118,28 @@ An un-narrowed call omits the keyword entirely:
 ```
 Find any past notes about authentication, OAuth, or JWT.
 ```
+
+---
+
+## Filters
+
+Callers may include one or more `Filter to ...` clauses *after* the query body. Each clause is a separate constraint that narrows the result set by frontmatter field. Filters are AND-ed together — a note must satisfy every active filter to appear in results.
+
+The supported clauses (used by [`/recall`](../skills/recall/SKILL.md) Step 3 — see [`recall/references/query-shapes.md`](../skills/recall/references/query-shapes.md) for how the user-facing flags translate into these clauses):
+
+| Clause shape | Semantics |
+|---|---|
+| `Filter to notes whose frontmatter contains 'type: {value}'.` | Restrict to notes with frontmatter `type: {value}`. Implemented via [Strategy 1: Frontmatter search](#strategy-1-frontmatter-search) on the `type:` line. |
+| `Filter to notes whose frontmatter 'date:' field is on or after {YYYY-MM-DD}.` | Read each candidate's frontmatter `date:` field; keep only notes with `date >= {YYYY-MM-DD}`. Notes lacking a `date:` field are **excluded** under this filter — this is the v0.6.0 contract; revisit if frequent misses surface. ISO `YYYY-MM-DD` only. |
+| `Filter to MEETING notes whose 'attendees:' frontmatter list includes ALL of: {names}.` | Restrict to notes with frontmatter `type: meeting` whose `attendees:` YAML list contains every name in the comma-separated list (case-sensitive substring match per attendee). Implies the type filter. |
+
+How to apply filters in practice:
+1. Run the relevant search strategies normally for the query body.
+2. For each candidate, Read the file (which you already do for relevance assessment).
+3. While reading, also check whether the frontmatter satisfies every `Filter to ...` clause. Exclude candidates that fail any filter.
+4. The `## Search Method` block in your response should mention which filters were active (e.g., `Filters applied: type=decision, since=2026-04-01`).
+
+If a `Filter to ...` clause doesn't match any of the documented shapes above, treat it as a freeform additional constraint and apply your best interpretation — but the documented shapes are the contract. Adding a new flag to `/recall` means adding a row to this section first.
 
 ---
 
@@ -190,6 +212,7 @@ If the first non-empty lines are `vault:` and/or `scope:` directives, consume th
 - **Topics** — what subjects to search for
 - **Types** — what note types are relevant (idea, exploration, decision, etc.)
 - **Time** — any time constraints (recent, last week, etc.)
+- **Filter clauses** — any `Filter to ...` lines after the query body. See *Filters* above for the contract.
 
 ### Step 2: Execute Multi-Strategy Search
 
@@ -203,7 +226,8 @@ Run 2-3 search strategies in parallel:
 For each potentially relevant note:
 1. Read the full note
 2. Assess relevance to the query
-3. Extract key information
+3. Apply any active filter clauses (drop candidates that fail any filter)
+4. Extract key information
 
 ### Step 4: Return Structured Summary
 
@@ -263,6 +287,7 @@ Always return results in this structure:
 - Searched for: {terms}
 - Vault searched: {project | personal | <path>}
 - Scope applied: {published | working | both}
+- Filters applied: {comma-separated list of active filters, e.g. `type=decision, since=2026-04-01`; or `none`}
 - Note types checked: {types}
 - Notes scanned: {count}
 
@@ -291,6 +316,7 @@ If search finds nothing:
 - Searched for: {terms}
 - Vault searched: {project | personal | <path>}
 - Scope applied: {published | working | both}
+- Filters applied: {comma-separated list of active filters, e.g. `type=decision, since=2026-04-01`; or `none`}
 - Note types checked: {types}
 - Notes scanned: {count}
 

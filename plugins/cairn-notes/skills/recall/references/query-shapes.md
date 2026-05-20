@@ -57,6 +57,8 @@ Natural-language dates (`last week`, `yesterday`, `Q1`) are out of scope for v0.
 
 Validation: split the value on `,` and trim whitespace from each name. No type-checking on the names themselves — frontmatter attendees can be any string.
 
+**Names with spaces are not supported in v0.6.0.** The flag-parsing regex `^(?:[a-z]+:[^\s]+\s+)*` treats whitespace as a flag separator, so `attendees:Alice Smith,Bob` would parse as `attendees:Alice` plus `Smith,Bob` falling into the query. Use a single-token form per attendee (`attendees:alice,bob`) and let archivist's frontmatter match handle case folding. Quoted-value support is a v0.7+ follow-up.
+
 `attendees:` implies `type:meeting`. If the user passes both `attendees:` and `type:` where `type:` is not `meeting`, stop with: *"`attendees:` only applies to MEETING notes. Drop `type:{value}` or change it to `type:meeting`."*
 
 Multi-name intersection — `attendees:bryan,alice` returns meetings where *both* attended, not either-or. Union/either-of is a deferred follow-up.

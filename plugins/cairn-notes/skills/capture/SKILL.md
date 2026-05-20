@@ -97,9 +97,9 @@ Treat silence or ambiguity as a re-prompt, not as approval.
 
 ### Step 5: Pre-link via archivist (DECISION + EXPLORATION only)
 
-For **DECISION** and **EXPLORATION** captures, fire `archivist` in parallel with drafting the scribe prompt — one assistant turn, both Task calls in the same message. The pre-link surfaces relevant prior notes so the new capture lands with its lineage attached.
+For **DECISION** and **EXPLORATION** captures, dispatch `archivist` first, **await its response**, then proceed to Step 6 with the wikilinks inlined into the scribe prompt. The two calls are sequential by force — scribe's prompt has a data dependency on archivist's output, so they can't run in parallel even though both go through `Task`. The pre-link surfaces relevant prior notes so the new capture lands with its lineage attached.
 
-For **IDEA / TASK / SESSION / THREAD**, skip this step entirely. Speed > linkage:
+For **IDEA / TASK / SESSION / THREAD**, skip this step entirely (go straight to Step 6). Speed > linkage:
 - IDEA — the point is catching the spark; an extra hop adds latency.
 - TASK — linkage usually sits in the ticket id (in the body or filename), not in cross-references.
 - SESSION — user-initiated summary; user names the links if they want.
@@ -119,6 +119,8 @@ Archivist's response yields up to 5 wikilink candidates. Take the top 3 most rel
 
 **On archivist failure or empty result.** Drop the `Related notes:` line from the scribe prompt entirely. Don't write "Related notes: (none found)" — that's noise in the note body. If archivist returned an error (vault inaccessible, malformed response), note the failure in the Step 7 user-facing summary; the capture still proceeds.
 
+**Why not parallel?** A common temptation is to fire archivist and scribe in the same assistant turn to save a round-trip. It doesn't work — scribe's prompt template includes a `Related notes: [[slug-a]], ...` line populated from archivist's response, so scribe can't be composed until archivist returns. Compare to [`meeting-sync`](../meeting-sync/SKILL.md)'s archivist↔archivist parallelism, which works because the two archivist calls don't depend on each other.
+
 ### Step 6: Dispatch scribe
 
 Compose the scribe Task call:
@@ -137,10 +139,22 @@ Trust scribe's handling — no explicit vault path, no folder selection override
 
 ### Step 7: Report
 
-After scribe returns its `Wrote: {relative_path}` line, present to the user:
+After scribe returns its `Wrote: {relative_path}` line, present to the user.
+
+**Path prefixing.** Scribe's `{relative_path}` is *vault-relative* (e.g., `decisions/foo.md`), not cwd-relative. For the clickable link to resolve from the user's terminal, prefix it to match the resolution mode scribe used:
+
+| Cwd state when `/capture` was invoked | Link href |
+|---|---|
+| Inside a project repo (cwd or trunk has a `.notes/` symlink) | `.notes/{relative_path}` |
+| Inside `~/notes/<vault>/` (Direct vault mode) | `{relative_path}` (cwd already is the vault root) |
+| Anywhere else (Default mode — scribe wrote to the personal vault) | The absolute path scribe expanded `~/notes/<personal_vault>/{relative_path}` to; if you don't know it, fall back to `{relative_path}` |
+
+Detect mode with a single `Bash(command="git rev-parse --show-toplevel")` and a `Glob` for the `.notes/` symlink — same protocol scribe uses. Cache the resolution; mode doesn't change inside one capture turn.
+
+Then present:
 
 ```
-✓ Captured as {TYPE}: [{relative_path}]({relative_path})
+✓ Captured as {TYPE}: [{relative_path}]({prefixed_href})
 
 {1-2 line summary of what was written, derived from scribe's response}
 
@@ -151,7 +165,7 @@ After scribe returns its `Wrote: {relative_path}` line, present to the user:
 ⓘ No related notes pre-linked.}
 ```
 
-The path is a clickable markdown link (per the user's "preserve links" rule). No `Co-Authored-By:` trailers.
+The display text stays `{relative_path}` so the user sees the canonical vault-relative shape; only the href is prefixed for click-through. No `Co-Authored-By:` trailers.
 
 See [`references/examples.md`](references/examples.md) for four end-to-end worked captures showing the report shape for each branch.
 

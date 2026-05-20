@@ -1,11 +1,11 @@
 # Changelog
 
-All notable changes to Athena Notes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [Semantic Versioning](https://semver.org/).
+All notable changes to cairn-notes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
 ### Added
-- `/capture` skill — primary capture surface. Accepts freeform input (`/capture <text>`), explicit-prefix (`/capture <type>: <text>`), or no-args interactive. Auto-detects note type with high/medium/low confidence tiers; medium and low confidence gate via `AskUserQuestion`. DECISION and EXPLORATION captures fire `archivist` in parallel to pre-link related prior notes. MEETING-shape inputs hand off to `/meeting-sync`. Tracks [#86](https://github.com/SnowboardTechie/cairn-notes/issues/86) (Phase A).
+- `/capture` skill — primary capture surface. Accepts freeform input (`/capture <text>`), explicit-prefix (`/capture <type>: <text>`), or no-args interactive. Auto-detects note type with high/medium/low confidence tiers; medium and low confidence gate via `AskUserQuestion`. DECISION and EXPLORATION captures dispatch `archivist` first, then inline the returned wikilinks into the `scribe` prompt (sequential by force — scribe's prompt depends on archivist's output). MEETING-shape inputs hand off to `/meeting-sync`. Tracks [#86](https://github.com/SnowboardTechie/cairn-notes/issues/86) (Phase A).
 - `/recall` skill — primary retrieval surface. Freeform query plus optional `scope:project|personal|both`, `type:`, `since:`, and `attendees:` flags. `scope:both` fires two parallel `archivist` calls (one per vault) via the new `vault:` directive. Single match across all searched vaults auto-includes the full note body; multi-match groups results by vault. Published-only — `.notes/.agents/` working files are excluded. Tracks [#86](https://github.com/SnowboardTechie/cairn-notes/issues/86) (Phase A).
 
 ### Changed

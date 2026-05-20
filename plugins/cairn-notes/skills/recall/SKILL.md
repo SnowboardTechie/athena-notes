@@ -57,35 +57,47 @@ If the args are empty (`/recall` with nothing after), prompt:
 
 Use the user's reply as the args and re-parse.
 
-See [`references/query-shapes.md`](references/query-shapes.md) for the flag-translation rules — how each flag becomes part of the archivist prompt.
+**Cross-flag validation** (after parsing, before dispatch):
+
+- `attendees:` is meeting-only. If `attendees:` is present alongside `type:` where `type:` ≠ `meeting`, stop with: *"`attendees:` only applies to MEETING notes. Drop `type:{value}` or change it to `type:meeting`."*
+- Same flag passed twice → stop with: *"Each flag can appear at most once. Got `{flag}:` twice."*
+- `type:` / `since:` / `attendees:` value validation fails → stop with the specific error from the [Edge cases](#edge-cases) table.
+
+Cross-flag validation runs *before* scope resolution so the user sees the error before any archivist call.
+
+See [`references/query-shapes.md`](references/query-shapes.md) for the flag-translation rules — how each flag becomes part of the archivist prompt — and for the parsing edge cases (whitespace in values, colons in values, etc.).
 
 ### Step 2: Resolve scope
 
 Determine which vault(s) to search.
 
-**Default scope** depends on `cwd`:
-- Inside a project repo (cwd has `.git` and a `.notes/` symlink) → default `scope:project`.
-- Inside `~/notes/{{PERSONAL_VAULT}}/` → default `scope:personal`.
-- Anywhere else → default `scope:personal` (mirrors scribe's fallback).
+**Default scope** depends on `cwd` and mirrors [`scribe`](../../agents/scribe.md#notes-path-resolution)'s three-mode detection so retrieval reaches the same vault that capture would write to:
 
-The flag overrides the default. Three resolved scopes:
+- **Project mode** — cwd is inside a git repo (with or without a `.notes/` symlink) → default `scope:project`.
+- **Direct vault mode** — cwd is inside `{notes_root}/<vault>/` (any vault directory under `notes_root`, not just `{{PERSONAL_VAULT}}`) → default `scope:<absolute-path-to-that-vault>`. Parse `notes_root` from `~/.claude/cairn/identity.md`. This handles the user who `cd`s into `~/notes/another-project/` to work in that vault directly.
+- **Default mode** — anywhere else → default `scope:personal`.
+
+The flag overrides the default. Resolved scopes:
 
 | Resolved scope | Archivist calls |
 |---|---|
 | `project` | One call with `vault: project` (or no `vault:` line — same effect) |
 | `personal` | One call with `vault: personal` |
+| `<absolute-path>` (Direct vault default only — not user-facing as a flag in v0.6.0) | One call with `vault: <absolute-path>` |
 | `both` | Two parallel calls in one assistant turn — one with `vault: project`, one with `vault: personal` |
 
-`scope:both` is the prerequisite that depends on the [archivist `vault:` extension](../../agents/archivist.md#vault) added in this same release.
+`scope:both` and the Direct-vault default both depend on the [archivist `vault:` extension](../../agents/archivist.md#vault) added in this same release.
+
+Out of scope for v0.6.0: a user-facing `scope:<path>` flag, or `scope:all` across every `{notes_root}/*` vault. Direct-vault recall happens implicitly when cwd lands in that vault. The deferred `scope:` extensions are a v0.7+ follow-up.
 
 ### Step 3: Dispatch archivist
 
 Build the archivist prompt(s) per the resolved scope.
 
-#### Single-vault call (scope:project or scope:personal)
+#### Single-vault call (scope:project, scope:personal, or Direct vault default)
 
 ```
-Task(subagent_type="archivist", prompt="vault: {project|personal}
+Task(subagent_type="archivist", prompt="vault: {project|personal|<absolute-path>}
 scope: published
 
 Find notes about: {query}.
@@ -192,6 +204,8 @@ After a multi-result list, do NOT prompt for "pick a number to view the body." T
 | `attendees:` with one or more names containing special characters | Pass the raw value to archivist — it does a frontmatter match against the YAML `attendees:` list, where Bryan's notes can contain any string. Quoting is the archivist's problem. |
 | `scope:both` when `~/.claude/cairn/identity.md` is missing or `personal_vault:` unset | The personal-vault archivist call returns the "personal vault not configured" error. Present that as a partial result in Step 4: project-vault results still show, plus a one-line `ⓘ Personal vault not configured — run /cairn-setup to enable.` Do not fail the whole recall — project results are still useful. |
 | `scope:project` from outside a git repo | Stop with: *"`scope:project` requires a git repo. Run from inside a project, or use `scope:personal`."* |
+| Direct vault default — cwd is `{notes_root}/<vault>/` but `<vault>` is the personal vault | Treat as Project's sibling — resolve to `vault: <absolute-path>` so the search hits that vault directly. (Equivalent to `vault: personal` in practice, but the absolute-path form skips the identity-file lookup; behavior is identical.) |
+| Direct vault default — `~/.claude/cairn/identity.md` missing, so `notes_root` can't be parsed | Fall back to Default mode (`scope:personal` with the `~/notes/` default), and surface the missing-identity message in the response. Don't fail recall — the user gets results from somewhere reasonable. |
 | One vault returns results, the other returns zero (scope:both) | Show the populated vault's results normally; under a second heading, show `"No matches in {other-vault}."` Don't suppress the empty section — the user wants to know the absence is real, not a bug. |
 | Archivist times out or errors on one of two parallel calls | Show the successful call's results; under a heading for the failed vault, show `"⚠ {vault} search failed: {error}."` Don't fail the whole recall. |
 | Single result has no `date:` frontmatter and a `since:` filter was active | Archivist's filter excludes it. The user gets a "no results" response. If this turns out to be common (many older notes lack `date:`), revisit by making `since:` skip filtering when the field is missing. |

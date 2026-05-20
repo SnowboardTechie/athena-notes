@@ -1,11 +1,11 @@
 ---
 name: cairn-notes
-description: Note type system for Athena - templates, linking patterns, capture triggers, and vault structure
+description: Note type system for cairn-notes — templates, linking patterns, capture triggers, and vault structure. Loaded by `/capture`, `meeting-sync`, `session-review`, and other capture-flow skills as the source of truth for note shapes.
 ---
 
-# Athena Notes - Thinking System Foundation
+# cairn-notes — Note Type Foundation
 
-Standardized note types and patterns for the Athena thinking system. This skill defines HOW thoughts are captured, organized, and connected.
+Standardized note types and patterns for the cairn-notes capture system. This skill defines HOW thoughts are captured, organized, and connected; user-facing skills like `/capture` and `meeting-sync` defer here for templates and capture triggers rather than duplicating them.
 
 ## CRITICAL: Notes Location
 
@@ -87,10 +87,10 @@ sparked_by: "[[source note or conversation]]"  # optional
 
 ### 2. EXPLORATION - Thinking Session
 
-Athena conversations, deep dives, question-driven exploration. The core output of thinking sessions.
+Deep dives, question-driven exploration, multi-turn thinking sessions. The core output of substantial thinking work.
 
 **When to use:**
-- Athena session produces insights
+- Exploratory conversation produced new insights
 - Working through a problem
 - Exploring options/approaches
 
@@ -225,7 +225,7 @@ superseded_by: "[[newer decision]]"  # if status: superseded
 Full session capture when a thinking conversation was particularly valuable.
 
 **When to use:**
-- End of significant athena session
+- End of a significant thinking session
 - Conversation worth preserving in full
 - Multiple topics covered
 
@@ -440,21 +440,23 @@ source: pasted | other
 
 ## Capture Triggers
 
-### When Athena Should Auto-Capture
+### When to capture
 
 | Signal | Note Type | Action |
 |--------|-----------|--------|
-| "That's interesting" or insight emerges | IDEA | @scribe quick capture |
-| Session explores topic deeply | EXPLORATION | @scribe at natural pause |
-| "I've decided" or choice made | DECISION | @scribe decision record |
-| Session ending, was valuable | SESSION | @scribe session summary |
-| Same topic 3+ times | THREAD | @scribe thread note |
-| Checking ticket/PR status | TASK | @scribe update/create task note |
+| "That's interesting" or insight emerges | IDEA | `/capture <insight>` (auto-detects IDEA) |
+| Session explores topic deeply | EXPLORATION | `/capture exploration: …` at natural pause |
+| "I've decided" or choice made | DECISION | `/capture decision: …` |
+| Session ending, was valuable | SESSION | `/capture session: …` |
+| Same topic 3+ times | THREAD | `/capture thread: …` |
+| Checking ticket/PR status | TASK | `/capture task: …` |
 | Meeting notes pasted with attendees/date | MEETING | `/meeting-sync` — anchor + spin-offs |
 
-### Capture Prompts
+`/capture` auto-detects the type from text content; the explicit-prefix form (`/capture decision: …`) skips detection when you already know the type. Skills internally invoking the capture flow can dispatch `scribe` directly via Task with the resolved type and template — the calling skill owns any approval gate.
 
-Athena should use these internal prompts:
+### Capture prompts (internal framing)
+
+When `/capture` (or another capture-flow skill) is about to write, these internal framings keep the rationale visible to the caller:
 
 ```
 IDEA CAPTURE:

@@ -1,6 +1,8 @@
 # Examples
 
-Personal agents and skills Bryan built on top of Athena Notes. They are **reference implementations, not parts of the plugin** — they will not run unless you copy them into your own Claude Code agents/skills directory and adapt them.
+Personal agents and skills Bryan built on top of cairn-notes. They are **reference implementations, not parts of the plugin** — they will not run unless you copy them into your own Claude Code agents/skills directory and adapt them.
+
+> These examples predate the v0.6.0 capture-first reframing and contain "Integration with Athena" sections that reference a retired agent. When you adapt one, treat those sections as a pattern to translate — wherever an example agent says "hand off to Athena", route to the equivalent slash command (`/capture`, `/recall`, `/plan-workday`, etc.) or invoke a spoke directly via Task.
 
 ## What's here
 
@@ -37,7 +39,7 @@ Personal agents and skills Bryan built on top of Athena Notes. They are **refere
 
 4. **Review tool permissions.** Make sure the `tools:` list matches what your adapted agent actually needs — read-only audit agents should not carry `Write`/`Edit`.
 
-5. **Test it.** Invoke it from Athena (`@mywriter …`) or trigger the skill and verify it does what you expect.
+5. **Test it.** Invoke the agent directly (`@mywriter …`) or trigger the skill and verify it does what you expect.
 
 ## Contributing back
 

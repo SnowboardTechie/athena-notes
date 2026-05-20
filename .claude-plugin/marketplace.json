@@ -1,18 +1,18 @@
 {
-  "name": "athena-notes",
+  "name": "cairn-notes",
   "owner": {
     "name": "Bryan Thompson"
   },
   "metadata": {
-    "description": "Single-plugin marketplace for the Athena Notes plugin — an Obsidian-native thinking and note-capture system."
+    "description": "Single-plugin marketplace for the Cairn Notes plugin — an Obsidian-native note-capture system for Claude Code."
   },
   "plugins": [
     {
-      "name": "athena-notes",
-      "description": "Obsidian-native thinking and note-capture system. Hub-spoke of Claude Code agents (athena, scribe, archivist, sage, forge, and more) that captures your thinking into Obsidian vaults with zero setup friction.",
+      "name": "cairn-notes",
+      "description": "Obsidian-native note-capture system for Claude Code. Captures your thinking into Obsidian vaults with zero setup friction.",
       "category": "productivity",
-      "source": "./plugins/athena-notes",
-      "homepage": "https://github.com/SnowboardTechie/athena-notes",
+      "source": "./plugins/cairn-notes",
+      "homepage": "https://github.com/SnowboardTechie/cairn-notes",
       "license": "AGPL-3.0-or-later"
     }
   ]

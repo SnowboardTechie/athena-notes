@@ -4,21 +4,21 @@ Issues and PRs welcome. This plugin is maintained in the open because the hub-sp
 
 ## Before you start
 
-Read [`plugins/athena-notes/AGENTS.md`](plugins/athena-notes/AGENTS.md). It's the framework spec — identity, vault routing, worktree resolution, the "users talk only to Athena" convention, cross-tool portability rules. Every agent and skill in this plugin obeys it. Yours should too.
+Read [`plugins/cairn-notes/AGENTS.md`](plugins/cairn-notes/AGENTS.md). It's the framework spec — identity, vault routing, worktree resolution, the "users talk only to Athena" convention, cross-tool portability rules. Every agent and skill in this plugin obeys it. Yours should too.
 
-If your contribution is host-agnostic prose (skill bodies, agent personas, templates, vault spec), also read [`core/AGENTS.md`](core/AGENTS.md). It defines the boundary between content that belongs under `core/` and content that belongs in a host-specific layer like `plugins/athena-notes/`.
+If your contribution is host-agnostic prose (skill bodies, agent personas, templates, vault spec), also read [`core/AGENTS.md`](core/AGENTS.md). It defines the boundary between content that belongs under `core/` and content that belongs in a host-specific layer like `plugins/cairn-notes/`.
 
 ## The five-point filter (for agents & skills)
 
 Before opening a PR that adds an agent or skill to the main tree, check:
 
-_While migration into `core/` is in progress, host-agnostic content can land in `plugins/athena-notes/` alongside its glue — flag the choice in your PR description so reviewers can route it later._
+_While migration into `core/` is in progress, host-agnostic content can land in `plugins/cairn-notes/` alongside its glue — flag the choice in your PR description so reviewers can route it later._
 
 1. **Does it serve the thinking + note-capture core?** Not every useful utility belongs here. A Godot project assistant is useful, but it isn't about thinking — it's an example, not a utility.
 2. **Is it Obsidian-aware?** Wikilinks, frontmatter, and the existing vault structure should feel native. If your skill writes raw JSON to a flat file, rethink it.
-3. **Is it free of personal hardcoding?** No specific names, companies, projects, vault paths, or domain-specific jargon (VA.gov, HHS, "my SnowboardTechie brand"). Use placeholders (`{{USER_NAME}}`, `{{NOTES_ROOT}}`, `{{PERSONAL_VAULT}}`) read from `~/.claude/athena/identity.md`.
-4. **Would a teammate you've never met find it useful?** If the honest answer is "only people who work exactly like me," it's an example — open a PR to `plugins/athena-notes/examples/` instead.
-5. **Is it host-agnostic, or genuinely Claude-Code-specific?** Prose-only content (skill bodies, agent personas, templates) belongs eventually under `core/`; anything that calls runtime tools, reads host config paths (`~/.claude/`), or depends on Claude-Code-specific frontmatter stays in `plugins/athena-notes/`. See [`core/AGENTS.md`](core/AGENTS.md).
+3. **Is it free of personal hardcoding?** No specific names, companies, projects, vault paths, or domain-specific jargon (VA.gov, HHS, "my SnowboardTechie brand"). Use placeholders (`{{USER_NAME}}`, `{{NOTES_ROOT}}`, `{{PERSONAL_VAULT}}`) read from `~/.claude/cairn/identity.md`.
+4. **Would a teammate you've never met find it useful?** If the honest answer is "only people who work exactly like me," it's an example — open a PR to `plugins/cairn-notes/examples/` instead.
+5. **Is it host-agnostic, or genuinely Claude-Code-specific?** Prose-only content (skill bodies, agent personas, templates) belongs eventually under `core/`; anything that calls runtime tools, reads host config paths (`~/.claude/`), or depends on Claude-Code-specific frontmatter stays in `plugins/cairn-notes/`. See [`core/AGENTS.md`](core/AGENTS.md).
 
 Hit all five → main tree. Miss one or more → `examples/`, still welcome, labeled as reference.
 
@@ -34,7 +34,7 @@ Users should only talk to Athena. Specialist agents (scribe, archivist, forge, e
 
 ### Identity is authoritative
 
-Every agent that needs `{{USER_NAME}}`, `{{TIMEZONE}}`, `{{NOTES_ROOT}}`, `{{WORKING_HOURS}}`, or `{{COGNITIVE_PEAK}}` reads `~/.claude/athena/identity.md` on startup and substitutes at runtime. Don't hardcode. Degrade gracefully if the file is missing.
+Every agent that needs `{{USER_NAME}}`, `{{TIMEZONE}}`, `{{NOTES_ROOT}}`, `{{WORKING_HOURS}}`, or `{{COGNITIVE_PEAK}}` reads `~/.claude/cairn/identity.md` on startup and substitutes at runtime. Don't hardcode. Degrade gracefully if the file is missing.
 
 ### Cross-tool portable
 
@@ -90,9 +90,9 @@ Skills are prose instructions keyed by name. Keep the description specific enoug
 
 ## Reporting issues
 
-Open a [GitHub issue](https://github.com/SnowboardTechie/athena-notes/issues). Helpful content:
+Open a [GitHub issue](https://github.com/SnowboardTechie/cairn-notes/issues). Helpful content:
 
 - What you expected.
 - What happened instead.
-- Your `~/.claude/athena/identity.md` (with sensitive bits redacted) — vault paths and working hours matter for reproducing behavior.
+- Your `~/.claude/cairn/identity.md` (with sensitive bits redacted) — vault paths and working hours matter for reproducing behavior.
 - The relevant agent/skill name and a short excerpt of the conversation.

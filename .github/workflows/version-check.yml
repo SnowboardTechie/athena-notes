@@ -31,12 +31,12 @@ jobs:
           needs_changelog=false
           while IFS= read -r f; do
             case "$f" in
-              plugins/athena-notes/agents/*|\
-              plugins/athena-notes/commands/*|\
-              plugins/athena-notes/skills/*|\
-              plugins/athena-notes/AGENTS.md|\
-              plugins/athena-notes/CLAUDE.md|\
-              plugins/athena-notes/.claude-plugin/*|\
+              plugins/cairn-notes/agents/*|\
+              plugins/cairn-notes/commands/*|\
+              plugins/cairn-notes/skills/*|\
+              plugins/cairn-notes/AGENTS.md|\
+              plugins/cairn-notes/CLAUDE.md|\
+              plugins/cairn-notes/.claude-plugin/*|\
               .claude-plugin/*)
                 needs_changelog=true
                 echo "Touches versionable path: $f"
@@ -59,7 +59,7 @@ jobs:
             exit 1
           fi
 
-          manifest="plugins/athena-notes/.claude-plugin/plugin.json"
+          manifest="plugins/cairn-notes/.claude-plugin/plugin.json"
           base_version=$(git show "$BASE_SHA:$manifest" | jq -r '.version')
           head_version=$(jq -r '.version' "$manifest")
 

@@ -6,11 +6,11 @@ This file documents the conventions agents follow in the Athena Notes system. It
 
 ## Identity
 
-User identity lives at `~/.claude/athena/identity.md` and is populated by the `/athena-setup` slash command on first use. Agents read this file at invocation to resolve `{{USER_NAME}}`, `{{TIMEZONE}}`, `{{PERSONAL_VAULT}}`, `{{WORKING_HOURS}}`, `{{COGNITIVE_PEAK}}`, and `{{PRONOUNS}}`.
+User identity lives at `~/.claude/cairn/identity.md` and is populated by the `/cairn-setup` slash command on first use. Agents read this file at invocation to resolve `{{USER_NAME}}`, `{{TIMEZONE}}`, `{{PERSONAL_VAULT}}`, `{{WORKING_HOURS}}`, `{{COGNITIVE_PEAK}}`, and `{{PRONOUNS}}`.
 
 **If identity is missing:**
-- Athena runs `/athena-setup` inline before proceeding with the user's request
-- Other agents stop and direct the user to athena or `/athena-setup`
+- Athena runs `/cairn-setup` inline before proceeding with the user's request
+- Other agents stop and direct the user to athena or `/cairn-setup`
 
 Never hard-code user-specific values in agent bodies.
 
@@ -54,7 +54,7 @@ A new spoke is warranted only when at least one applies:
 
 If none apply, the work stays in the invoking skill. Interactive multi-turn flows (user Q&A loops, triage) are the wrong shape for spokes — spokes return a single artifact, not a conversation. MCPs and skills cover architectures that look agent-shaped but aren't: MCP for tool surfaces exposed to many agents; skill for user-facing orchestration.
 
-When an existing spoke already does adjacent reasoning, prefer a sibling skill over extending the spoke — even if the criteria above would otherwise warrant spoke shape. Spokes derive value from focus; spreading forge's daily-goal sequencing into life-spanning option ranking dilutes its current value. Surfaced while drafting [#73](https://github.com/SnowboardTechie/athena-notes/issues/73).
+When an existing spoke already does adjacent reasoning, prefer a sibling skill over extending the spoke — even if the criteria above would otherwise warrant spoke shape. Spokes derive value from focus; spreading forge's daily-goal sequencing into life-spanning option ranking dilutes its current value. Surfaced while drafting [#73](https://github.com/SnowboardTechie/cairn-notes/issues/73).
 
 ### Parallel agents write to distinct output paths
 
@@ -153,16 +153,16 @@ Scribe writes immediately on invocation. No previews, no confirmation prompts.
 - **No AI attribution in commits.** Never add `Co-authored-by: Claude`, `Co-Authored-By: Claude Code`, `Generated with`, or similar. The human is the sole author.
 - **Atomic commits.** Small, focused commits grouped by concern, not by time.
 - **Never commit unverified work.** Confirm builds pass, tests pass, no regressions before committing.
-- **Feature branches + PR only.** Never commit directly to `main`/`master`. In this repo (`SnowboardTechie/athena-notes`), `main` is branch-protected — direct pushes are rejected with "Changes must be made through a pull request." Even when the user says "commit to main," the mechanical path is: feature branch → `gh pr create` → merge. That satisfies the user's intent within the repo's rules.
+- **Feature branches + PR only.** Never commit directly to `main`/`master`. In this repo (`SnowboardTechie/cairn-notes`), `main` is branch-protected — direct pushes are rejected with "Changes must be made through a pull request." Even when the user says "commit to main," the mechanical path is: feature branch → `gh pr create` → merge. That satisfies the user's intent within the repo's rules.
 - **Changelog-first, release-on-bump.** This repo follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) + SemVer. Version bumps happen on *release* PRs, not on every change. `version-check` CI enforces both halves.
 
   **Versionable paths** (changes here require a `CHANGELOG.md` update; everything else is exempt):
-  - `plugins/athena-notes/agents/*`
-  - `plugins/athena-notes/commands/*`
-  - `plugins/athena-notes/skills/*`
-  - `plugins/athena-notes/AGENTS.md`
-  - `plugins/athena-notes/CLAUDE.md`
-  - `plugins/athena-notes/.claude-plugin/*`
+  - `plugins/cairn-notes/agents/*`
+  - `plugins/cairn-notes/commands/*`
+  - `plugins/cairn-notes/skills/*`
+  - `plugins/cairn-notes/AGENTS.md`
+  - `plugins/cairn-notes/CLAUDE.md`
+  - `plugins/cairn-notes/.claude-plugin/*`
   - repo-root `.claude-plugin/*`
 
   **Non-release PR (the common case).** Add a bullet under `## [Unreleased]` in `CHANGELOG.md` describing the change. Do **not** bump `plugin.json`. CI just needs `CHANGELOG.md` in the diff.
@@ -170,10 +170,10 @@ Scribe writes immediately on invocation. No previews, no confirmation prompts.
   **Fixed is for previously-shipped behavior only.** Within `[Unreleased]`, entries belong under **Fixed** only if they describe a change to behavior users could have seen in a prior release. Mid-PR iteration — fixes to code added on the same branch that never landed on `main` — folds into the **Added**/**Changed** bullet that describes the new feature. Readers skimming a release changelog never experienced the pre-fix state, so a separate Fixed bullet is noise. Squash-merge preserves the iteration trail in `git log`.
 
   **Release PR (when cutting `vX.Y.Z`).** All of the following, in the same PR:
-  1. Bump `plugins/athena-notes/.claude-plugin/plugin.json` `version` → `X.Y.Z`.
+  1. Bump `plugins/cairn-notes/.claude-plugin/plugin.json` `version` → `X.Y.Z`.
   2. Promote `[Unreleased]` contents under a new `## [X.Y.Z] — YYYY-MM-DD` heading; reset `[Unreleased]` to `_No unreleased changes._`.
-  3. Add footer: `[X.Y.Z]: https://github.com/SnowboardTechie/athena-notes/releases/tag/vX.Y.Z`.
-  4. Retarget: `[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/vX.Y.Z...HEAD`.
+  3. Add footer: `[X.Y.Z]: https://github.com/SnowboardTechie/cairn-notes/releases/tag/vX.Y.Z`.
+  4. Retarget: `[Unreleased]: https://github.com/SnowboardTechie/cairn-notes/compare/vX.Y.Z...HEAD`.
   5. **After merge**, create the tag + GitHub release: `gh release create vX.Y.Z --target <merge-sha> --title "vX.Y.Z — <summary>" --notes-file <notes>`. Without this step the footer link 404s.
 
   Files outside the versionable list — README, CONTRIBUTING, CHANGELOG itself (when it's the only thing touched), LICENSE, `.github/` — are exempt from the CHANGELOG requirement. See `.github/workflows/version-check.yml` for the exact rules.
@@ -207,31 +207,31 @@ Not:
 
 > Do not auto-open the PR. User approves ship.
 
-Prohibitions leave the orchestrator to fill the positive shape, which often lands as a silent stop — the user has to pull the thread ("why did you stop?") to get moving. Discovered in [#10](https://github.com/SnowboardTechie/athena-notes/issues/10) / [#31](https://github.com/SnowboardTechie/athena-notes/pull/31); `issue-work/SKILL.md` Phase 4.3 was rewritten from the negative form to the positive form.
+Prohibitions leave the orchestrator to fill the positive shape, which often lands as a silent stop — the user has to pull the thread ("why did you stop?") to get moving. Discovered in [#10](https://github.com/SnowboardTechie/cairn-notes/issues/10) / [#31](https://github.com/SnowboardTechie/cairn-notes/pull/31); `issue-work/SKILL.md` Phase 4.3 was rewritten from the negative form to the positive form.
 
 ### Per-user config vs per-project state vs plugin-local
 
-Three storage surfaces. The decision rule is: "does this vary by user?" → `~/.claude/athena/`. "Does this vary by project?" → `.notes/.agents/{skill}/`. "Neither?" → ship it in the plugin body.
+Three storage surfaces. The decision rule is: "does this vary by user?" → `~/.claude/cairn/`. "Does this vary by project?" → `.notes/.agents/{skill}/`. "Neither?" → ship it in the plugin body.
 
 | Surface | Varies by | Examples |
 |---|---|---|
-| `~/.claude/athena/*.md` | User (name, vault path, working hours, source lists) | `identity.md` (via `/athena-setup`), `planning-sources.md` (via `/plan-workday`) |
+| `~/.claude/cairn/*.md` | User (name, vault path, working hours, source lists) | `identity.md` (via `/cairn-setup`), `planning-sources.md` (via `/plan-workday`) |
 | `.notes/.agents/{skill}/` | Project (per-repo caches, drafts, session context) | `.notes/.agents/drafts/`, `.notes/.agents/issue-create/type-ids.md` |
 | Plugin body (`SKILL.md`, `references/`) | Neither — ships with the plugin | Static instruction text, example templates |
 
-Per-user config files are bootstrapped by the owning skill on first use (prompt → write → proceed), matching the `/athena-setup` pattern. Per-project state uses the worktree-aware trunk-resolution protocol from [agent-workspace/SKILL.md](skills/agent-workspace/SKILL.md).
+Per-user config files are bootstrapped by the owning skill on first use (prompt → write → proceed), matching the `/cairn-setup` pattern. Per-project state uses the worktree-aware trunk-resolution protocol from [agent-workspace/SKILL.md](skills/agent-workspace/SKILL.md).
 
 ### Shared config: preserve foreign keys
 
-When one skill owns a `~/.claude/athena/*.md` config file and a sibling skill extends it with its own nested key (e.g., `weekly-planning` adds `weekly_planning:` to `workday-planning`'s `planning-sources.md`), the owner's bootstrap/rewrite path must preserve top-level frontmatter keys it doesn't own. A bootstrap that writes the file from scratch will silently drop sibling-skill keys and break the sibling with no error.
+When one skill owns a `~/.claude/cairn/*.md` config file and a sibling skill extends it with its own nested key (e.g., `weekly-planning` adds `weekly_planning:` to `workday-planning`'s `planning-sources.md`), the owner's bootstrap/rewrite path must preserve top-level frontmatter keys it doesn't own. A bootstrap that writes the file from scratch will silently drop sibling-skill keys and break the sibling with no error.
 
 Pattern: before emitting the final YAML, read the existing file, extract every top-level key outside the owner's schema, and splice those pairs back into the assembled frontmatter. Show the full preserved YAML in the confirmation prompt so a mis-preservation is caught before the write. Add a Guardrail like "Do NOT drop top-level frontmatter keys this skill doesn't own" so future changes don't regress.
 
-Surfaced in [#39](https://github.com/SnowboardTechie/athena-notes/issues/39) / [#40](https://github.com/SnowboardTechie/athena-notes/pull/40); implemented as `workday-planning/SKILL.md` Bootstrap Flow Step 0.
+Surfaced in [#39](https://github.com/SnowboardTechie/cairn-notes/issues/39) / [#40](https://github.com/SnowboardTechie/cairn-notes/pull/40); implemented as `workday-planning/SKILL.md` Bootstrap Flow Step 0.
 
 ### Command files vs. skill auto-registration
 
-A plugin skill at `skills/<name>/SKILL.md` is auto-registered as both `/<name>` and `/athena-notes:<name>` by Claude Code — no command file required. Adding a `commands/<name>.md` file with the **same name** as a skill shadows that auto-registration and breaks the bare form (`/<name>` returns "Unknown command"), while the namespaced form keeps working.
+A plugin skill at `skills/<name>/SKILL.md` is auto-registered as both `/<name>` and `/cairn-notes:<name>` by Claude Code — no command file required. Adding a `commands/<name>.md` file with the **same name** as a skill shadows that auto-registration and breaks the bare form (`/<name>` returns "Unknown command"), while the namespaced form keeps working.
 
 Decide by role:
 
@@ -241,7 +241,7 @@ Decide by role:
 | Alias to a differently-named skill (e.g., `/plan-workday` → `workday-planning`) | No (different name) | Yes — it's a user-facing shortcut |
 | Shim that just re-invokes a same-named skill | Yes | **No** — delete it; auto-reg handles both forms |
 
-Surfaced in [#49](https://github.com/SnowboardTechie/athena-notes/pull/49) (v0.4.2) after `/issue-create` failed across every worktree despite shipping both a command file and a skill. Removing the shims restored the bare form without regressing the namespaced form.
+Surfaced in [#49](https://github.com/SnowboardTechie/cairn-notes/pull/49) (v0.4.2) after `/issue-create` failed across every worktree despite shipping both a command file and a skill. Removing the shims restored the bare form without regressing the namespaced form.
 
 ---
 
@@ -255,7 +255,7 @@ When posting review comments to a forge (GitHub, Gitea, Forgejo), **always post 
 
 This plugin is designed primarily for Claude Code but uses `AGENTS.md` format so the conventions port to Cursor, Aider, Codex, and other tools that respect this file. The agents and skills themselves are Claude Code-specific, but forks for other platforms can use this file as the shared spec.
 
-The repo-level [`core/AGENTS.md`](../../core/AGENTS.md) defines the host-agnostic / host-specific boundary — what eventually belongs under `core/` versus what stays in this plugin (or a future per-host adapter). New skill or agent contributions that are pure prose are host-agnostic candidates; anything calling Claude Code tools (`AskUserQuestion`, host-specific `Bash` shapes) or reading `~/.claude/` config paths is host-specific. Migration of existing content is tracked under the [portability epic](https://github.com/SnowboardTechie/athena-notes/issues/22).
+The repo-level [`core/AGENTS.md`](../../core/AGENTS.md) defines the host-agnostic / host-specific boundary — what eventually belongs under `core/` versus what stays in this plugin (or a future per-host adapter). New skill or agent contributions that are pure prose are host-agnostic candidates; anything calling Claude Code tools (`AskUserQuestion`, host-specific `Bash` shapes) or reading `~/.claude/` config paths is host-specific. Migration of existing content is tracked under the [portability epic](https://github.com/SnowboardTechie/cairn-notes/issues/22).
 
 ---
 

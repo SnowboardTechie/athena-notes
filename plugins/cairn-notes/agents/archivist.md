@@ -40,7 +40,7 @@ Strip the `/.git` suffix from the result — what remains is `{TRUNK_ROOT}`. Use
 Error paths:
 - **Bash call fails** (e.g., agent invoked outside a git repo) → report "vault not accessible — not in a git repository" and return without searching.
 - **Output doesn't end with `/.git`** (bare repo, unrecognized worktree layout) → report "vault not accessible — unrecognized repo layout" and return. Don't try to recover; a wrong prefix would walk arbitrary filesystem locations.
-- **`{TRUNK_ROOT}/.notes/` doesn't exist** (project not set up via `/athena-setup`) — check with `Glob(pattern="{TRUNK_ROOT}/.notes")`. No result → report "vault not found at `{TRUNK_ROOT}/.notes/`" and return. Don't silently return empty results — the caller needs to know the difference between "no matches" and "no vault."
+- **`{TRUNK_ROOT}/.notes/` doesn't exist** (project not set up via `/cairn-setup`) — check with `Glob(pattern="{TRUNK_ROOT}/.notes")`. No result → report "vault not found at `{TRUNK_ROOT}/.notes/`" and return. Don't silently return empty results — the caller needs to know the difference between "no matches" and "no vault."
 
 (Smoke-test for editors: invoke this agent from a worktree with a query for known vault content; a passing run returns matches under the trunk's absolute `.notes/...`.)
 

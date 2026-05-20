@@ -47,7 +47,7 @@ Before categorizing or drafting, every candidate must pass the questions that ap
 
    - **Vault** (→ AGENTS.md / `.notes/`) — project-specific to Athena Notes: agents, skills, vaults, identity, hub-spoke, this repo's layout.
    - **Harness memory** — cross-project user-collaboration preference (how this user thinks, anchors, decides), project motivation / stakeholder context, or external-system pointer.
-   - **GitHub issue against this repo** — Athena Notes plugin-improvement signal (a `plugins/athena-notes/` agent or skill misbehaved); see Step 1.5's issue-route tunings for the reading.
+   - **GitHub issue against this repo** — Athena Notes plugin-improvement signal (a `plugins/cairn-notes/` agent or skill misbehaved); see Step 1.5's issue-route tunings for the reading.
 
    A transient session vibe isn't durable; a general engineering truism isn't scoped. Neither qualifies.
 3. **Future-actionable.** Will a concrete decision — in a future chat or by your future self — change because this note exists? If removing the note wouldn't change any future outcome, it's a log.
@@ -97,7 +97,7 @@ Read back through the session with **three lenses**:
 
 - **Technical lens.** Moments where something about the code, architecture, or project state was discovered, decided, or clarified.
 - **Collaboration lens.** Moments where the user redirected your framing, elevated a "minor" suggestion to a main issue, repeatedly anchored to a standard or principle, or endorsed an unusual approach without pushback. Signal about *how the user thinks* — routes to the harness memory system, not AGENTS.md / `.notes/`. (One exception: when the redirected framing is specifically about an Athena Notes agent or skill misbehaving, Step 1.5's destination-row routing lets the candidate land on issue-routes instead.)
-- **Plugin-improvement lens.** Moments where an agent or skill shipped under `plugins/athena-notes/` misbehaved or has a clear sharp edge worth filing — confusing output, a missed routing rule, a workflow that wasted a turn, a guardrail that fired in the wrong direction. Signal about *the plugin itself* — routes to a GitHub issue against this repo via `/issue-create`, not vault or memory. Strictly scoped: cross-plugin gripes (other plugins, the harness itself, unrelated tools) don't qualify here — those are user-collaboration preferences and route through the collaboration lens to memory instead.
+- **Plugin-improvement lens.** Moments where an agent or skill shipped under `plugins/cairn-notes/` misbehaved or has a clear sharp edge worth filing — confusing output, a missed routing rule, a workflow that wasted a turn, a guardrail that fired in the wrong direction. Signal about *the plugin itself* — routes to a GitHub issue against this repo via `/issue-create`, not vault or memory. Strictly scoped: cross-plugin gripes (other plugins, the harness itself, unrelated tools) don't qualify here — those are user-collaboration preferences and route through the collaboration lens to memory instead.
 
 A session can have signal in one lens, several, or none. Ignore routine task execution. Flag candidates — no quota. Most sessions produce zero to two.
 
@@ -108,8 +108,8 @@ Run each candidate against the four questions above. Drop any that don't pass.
 - **Vault-route candidates** (AGENTS.md / `.notes/` / daily plan): all four questions must pass.
 - **Memory-route candidates** (harness memory): Q2 (durable & scoped), Q3 (future-actionable), and Q4 (readable in six months) all apply. Q1 (novel-in-vault) doesn't — memory is a separate index from the vault. A preference that wouldn't change any future agent decision still fails Q3.
 - **Issue-route candidates** (GitHub issue against this repo via `/issue-create`): all four apply, with these route-specific tunings:
-  - **Q1 (Novel)** — dedup also against the open issue list. Run e.g. `gh issue list --repo SnowboardTechie/athena-notes --state open --search "scribe vault routing"`, substituting the candidate's specific topic (skill or agent name, the misbehavior verb, the affected workflow). If a clearly-matching open issue exists, drop the candidate; the existing issue *is* the signal. (See the keyword-hygiene callout below before constructing the search string.)
-  - **Q2 (Durable & scoped)** — read as *"reproducible miss, not one-off hiccup."* The scope sub-check (only `plugins/athena-notes/` agents/skills) is already enforced by the lens definition in Step 1; Q2 doesn't need to re-filter for it.
+  - **Q1 (Novel)** — dedup also against the open issue list. Run e.g. `gh issue list --repo SnowboardTechie/cairn-notes --state open --search "scribe vault routing"`, substituting the candidate's specific topic (skill or agent name, the misbehavior verb, the affected workflow). If a clearly-matching open issue exists, drop the candidate; the existing issue *is* the signal. (See the keyword-hygiene callout below before constructing the search string.)
+  - **Q2 (Durable & scoped)** — read as *"reproducible miss, not one-off hiccup."* The scope sub-check (only `plugins/cairn-notes/` agents/skills) is already enforced by the lens definition in Step 1; Q2 doesn't need to re-filter for it.
   - **Q3 (Future-actionable)** — read as *"would implementing the fix change future agent or skill behavior in a real way, or is it cosmetic?"* If a fix wouldn't change any future agent's output, the candidate is a vibe rather than a defect; drop.
   - **Q4 (Readable in six months)** — read as *"triage-worthy reading the issue backlog cold months later — title and first paragraph make the problem clear?"* If a future-you scrolling the backlog wouldn't know what to do with it, compress the framing or drop.
 
@@ -124,8 +124,8 @@ This is the filter that does the real work; downstream steps only handle survivo
 A session often closes a loop that was tracked on today's daily plan (e.g., `[P3 afternoon] Triage #646 / #734 / #731`). Step 1's lenses target knowledge moments (technical discoveries, collaboration patterns); the Signal Test is insight-tuned. Tracked-item resolutions are state changes, so they slip through both. This step catches them.
 
 1. **Resolve today's plan path** (same convention as `workday-planning` Phase 0):
-   - Read `~/.claude/athena/identity.md` → `notes_root` (default `~/notes`), `personal_vault` (default `second-brain`), `TZ` (IANA).
-   - Read `~/.claude/athena/planning-sources.md` frontmatter → `output_folder` (default `Daily`).
+   - Read `~/.claude/cairn/identity.md` → `notes_root` (default `~/notes`), `personal_vault` (default `second-brain`), `TZ` (IANA).
+   - Read `~/.claude/cairn/planning-sources.md` frontmatter → `output_folder` (default `Daily`).
    - TZ validation: must match `^(UTC|[A-Za-z][A-Za-z0-9_+-]*/[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z][A-Za-z0-9_+-]*)?)$`. On mismatch, warn once and fall back to system TZ. If the validated-TZ `date` invocation exits non-zero (shape-valid but the zone doesn't exist on this system, e.g. `America/Fakeville`), re-run without `TZ` and emit the same fallback warning.
    - Compute today's date in that zone: `TZ="{{TIMEZONE}}" date +%Y-%m-%d` (or plain `date +%Y-%m-%d` on fallback).
    - Path: `{notes_root}/{personal_vault}/{output_folder}/{YYYY-MM-DD}-daily-plan.md`. If `output_folder` is `.`, the path is `{notes_root}/{personal_vault}/{YYYY-MM-DD}-daily-plan.md` (vault root).
@@ -150,7 +150,7 @@ Before drafting anything, check for prior art so you don't propose duplicates or
 Check for existing notes about {topic}. Return matches with type, path, and a 1-line summary. If nothing matches, say so.")
    ```
 
-   Use the `scope:` keyword (not prose like "published notes only") to narrow archivist's search — see the *Scope* section of `plugins/athena-notes/agents/archivist.md`.
+   Use the `scope:` keyword (not prose like "published notes only") to narrow archivist's search — see the *Scope* section of `plugins/cairn-notes/agents/archivist.md`.
 
    If archivist returns a match, treat the candidate as an **update** to that note, not a new one. Draft it using the Update template below.
 3. **Harness memory** — for memory-route candidates (collaboration / project-motivation / external-system-pointer), skip the `@archivist` call. Archivist searches `.notes/`, not the harness memory system. The user — or a hub agent with memory access — is responsible for the dedupe pass at the approval gate.
@@ -205,12 +205,12 @@ Memory-route candidates have **no automated write step**. After approval, the sk
 For each approved GitHub-issue draft, invoke `/issue-create` directly with the draft body as the seed:
 
 ```
-Skill(skill="athena-notes:issue-create", args="<draft body>")
+Skill(skill="cairn-notes:issue-create", args="<draft body>")
 ```
 
-The draft body is everything from the line `Filing this against SnowboardTechie/athena-notes:` through the final `## Open questions` section (or `## Acceptance criteria` if Open questions was dropped) — *not* the `### Proposed GitHub Issue` meta header, the `**Target:** / **Surfaced agent/skill:** / **Trigger moment:**` lines, the horizontal rules, or the trailing italic approval line. `/issue-create` reads what you pass as the user's initial framing (its Stage 2.1: *"Use the user's initial framing as the seed — if they already answered an area, skip the question"*); the seed's default-structure headings cover Problem / Proposed behavior / Scope / Implementation hints / Acceptance / Open questions, so most of `/issue-create`'s Stage 2 Q&A skips and the user lands on its Stage 3 (Show & iterate) approval gate to confirm the post itself.
+The draft body is everything from the line `Filing this against SnowboardTechie/cairn-notes:` through the final `## Open questions` section (or `## Acceptance criteria` if Open questions was dropped) — *not* the `### Proposed GitHub Issue` meta header, the `**Target:** / **Surfaced agent/skill:** / **Trigger moment:**` lines, the horizontal rules, or the trailing italic approval line. `/issue-create` reads what you pass as the user's initial framing (its Stage 2.1: *"Use the user's initial framing as the seed — if they already answered an area, skip the question"*); the seed's default-structure headings cover Problem / Proposed behavior / Scope / Implementation hints / Acceptance / Open questions, so most of `/issue-create`'s Stage 2 Q&A skips and the user lands on its Stage 3 (Show & iterate) approval gate to confirm the post itself.
 
-**Caveats for the handoff.** The `Filing this against SnowboardTechie/athena-notes:` lead-in is a hint, not an override. `/issue-create` Stage 1.1 resolves the target repo from `git remote get-url origin` in the *current* directory; if `session-review` is running from a worktree whose origin is a different repo, Stage 1.1's "user's initial message references a different repo than cwd" branch may fire on the lead-in, but verify the target repo explicitly at `/issue-create`'s Stage 3.4 gate regardless — that's where the post target is unambiguous. While reviewing at Stage 3.4, also re-read the rendered draft for anything that shouldn't appear in a public issue — the seed lifts text verbatim from session content, which can include private URLs, internal identifiers, or content from external documents the user pasted during the session.
+**Caveats for the handoff.** The `Filing this against SnowboardTechie/cairn-notes:` lead-in is a hint, not an override. `/issue-create` Stage 1.1 resolves the target repo from `git remote get-url origin` in the *current* directory; if `session-review` is running from a worktree whose origin is a different repo, Stage 1.1's "user's initial message references a different repo than cwd" branch may fire on the lead-in, but verify the target repo explicitly at `/issue-create`'s Stage 3.4 gate regardless — that's where the post target is unambiguous. While reviewing at Stage 3.4, also re-read the rendered draft for anything that shouldn't appear in a public issue — the seed lifts text verbatim from session content, which can include private URLs, internal identifiers, or content from external documents the user pasted during the session.
 
 Two gates total: this skill's Step 5 catches *"is this worth filing?"*, `/issue-create`'s Stage 3.4 catches *"is the post correct?"*. If the user approves a draft here but later declines at `/issue-create`'s gate, the draft stays in `/issue-create`'s drafts directory for future iteration — this skill's job is done as soon as the handoff fires.
 
@@ -242,7 +242,7 @@ Declining at this skill's Step 5 drops the candidate entirely; `/issue-create` i
 **Type:** {DECISION | EXPLORATION | SESSION}
 **Filename:** `{YYYY-MM-DD}-{type}-{slug}.md`
 
-{Draft content using the athena-notes template for that type}
+{Draft content using the cairn-notes template for that type}
 
 *Approve to have @scribe write this note*
 ```
@@ -286,13 +286,13 @@ Use this for plugin-improvement candidates that survived the issue-route Signal 
 ```markdown
 ### Proposed GitHub Issue
 
-**Target:** `SnowboardTechie/athena-notes`
+**Target:** `SnowboardTechie/cairn-notes`
 **Surfaced agent/skill:** {e.g., `scribe`, `workday-planning`, `archivist`}
 **Trigger moment:** {one-line — the conversation moment this surfaced from}
 
 ---
 
-Filing this against `SnowboardTechie/athena-notes`:
+Filing this against `SnowboardTechie/cairn-notes`:
 
 ## Problem / Motivation
 

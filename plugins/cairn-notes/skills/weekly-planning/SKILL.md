@@ -30,16 +30,16 @@ Opinionated flow for ADHD brains: mandatory vent, hard cap at 3 rocks, permissio
 
 Reads two files; neither is required — both have sensible defaults.
 
-### `~/.claude/athena/identity.md` (vault root + personal vault)
+### `~/.claude/cairn/identity.md` (vault root + personal vault)
 
 ```yaml
 notes_root: ~/notes            # default: ~/notes
 personal_vault: second-brain   # default: second-brain
 ```
 
-Populated by `/athena-setup`. If the file is missing, fall back to the defaults above — don't block planning on a missing identity.
+Populated by `/cairn-setup`. If the file is missing, fall back to the defaults above — don't block planning on a missing identity.
 
-### `~/.claude/athena/planning-sources.md` (output folder)
+### `~/.claude/cairn/planning-sources.md` (output folder)
 
 This is the same config file `workday-planning` uses. Weekly-planning adds a nested `weekly_planning:` section alongside the existing top-level `output_folder` (which belongs to workday-planning):
 
@@ -344,7 +344,7 @@ Workday-planning's bootstrap is supposed to preserve this key (see its Bootstrap
 ## Dependencies
 
 - `obsidian` skill — vault path conventions and wikilink syntax.
-- `athena-notes` skill — note type patterns (this is a `weekly-plan` type note; follows the same frontmatter/linking conventions).
+- `cairn-notes` skill — note type patterns (this is a `weekly-plan` type note; follows the same frontmatter/linking conventions).
 - `scout` agent — optional forge-activity fetch for Phase 0.
 
 ---

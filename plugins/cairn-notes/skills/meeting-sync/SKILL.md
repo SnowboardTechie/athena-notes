@@ -113,7 +113,7 @@ Task(subagent_type="archivist", prompt="scope: published
 Check for existing notes about {topic}. Return matches with type, path, and a 1-line summary. If nothing matches, say so.")
 ```
 
-Use the `scope:` keyword (not prose) — see the *Scope* section of `plugins/athena-notes/agents/archivist.md`. Run all archivist calls in one message so they execute concurrently.
+Use the `scope:` keyword (not prose) — see the *Scope* section of `plugins/cairn-notes/agents/archivist.md`. Run all archivist calls in one message so they execute concurrently.
 
 If archivist returns a match, treat the item as an **update** to that note in Step 4, not a new spin-off. If nothing matches, proceed with a new spin-off.
 
@@ -123,8 +123,8 @@ Archivist in v1 searches only the project `.notes/` (or the vault-equivalent bas
 
 Draft, in order:
 
-1. **The MEETING anchor** using the template below. For each spin-off you're about to propose, use a *provisional* wikilink matching scribe's kebab-case convention (`[[decision-{slug}]]`, `[[task-{slug}]]`, `[[idea-{slug}]]`) — no date prefix; scribe strips dates per `plugins/athena-notes/agents/scribe.md` §Filename Convention. Step 6 swaps these for the real slugs scribe reports back.
-2. **Each spin-off** using the New Spin-Off template for DECISION / TASK / IDEA (matching the `athena-notes` skill's templates for those types).
+1. **The MEETING anchor** using the template below. For each spin-off you're about to propose, use a *provisional* wikilink matching scribe's kebab-case convention (`[[decision-{slug}]]`, `[[task-{slug}]]`, `[[idea-{slug}]]`) — no date prefix; scribe strips dates per `plugins/cairn-notes/agents/scribe.md` §Filename Convention. Step 6 swaps these for the real slugs scribe reports back.
+2. **Each spin-off** using the New Spin-Off template for DECISION / TASK / IDEA (matching the `cairn-notes` skill's templates for those types).
 3. **Each update-to-existing** using the Update template, one per match returned by archivist.
 
 Keep drafts concise. The MEETING Raw Notes section holds the full paste — don't duplicate it into every spin-off.
@@ -191,7 +191,7 @@ Numbered so the user can reference it in their approval reply.
 **Filename:** `meeting-{slug}.md` (scribe's kebab-case convention; date is in the `date:` frontmatter field)
 **Target vault:** {project `.notes/` | personal vault}
 
-{full drafted anchor body using the MEETING template from `plugins/athena-notes/skills/athena-notes/SKILL.md`, with provisional wikilinks like `[[decision-{slug}]]` that get resolved to real paths in Phase 6b}
+{full drafted anchor body using the MEETING template from `plugins/cairn-notes/skills/cairn-notes/SKILL.md`, with provisional wikilinks like `[[decision-{slug}]]` that get resolved to real paths in Phase 6b}
 
 *Approve this number to have @scribe write the anchor.*
 ```
@@ -204,7 +204,7 @@ Numbered so the user can reference it in their approval reply.
 **Filename:** `{type}-{slug}.md` (scribe's kebab-case convention — no date prefix)
 **Linked from anchor:** Decisions | Action Items | Ideas Captured
 
-{drafted content using the {TYPE} template from the athena-notes skill}
+{drafted content using the {TYPE} template from the cairn-notes skill}
 
 *Approve this number to have @scribe write the spin-off.*
 ```

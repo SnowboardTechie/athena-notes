@@ -9,7 +9,7 @@ Arguments (all optional):
 - `--mode=day` — force daily plan only (no overlays)
 - `--mode=week-prep` — force Monday week-prep overlay + day plan
 - `--mode=week-wrap` — force Friday week-wrap overlay + day plan
-- `--edit-sources` — jump straight to editing `~/.claude/athena/planning-sources.md`
+- `--edit-sources` — jump straight to editing `~/.claude/cairn/planning-sources.md`
 
 If no flags are passed, mode auto-detects from the day-of-week in the user's timezone.
 

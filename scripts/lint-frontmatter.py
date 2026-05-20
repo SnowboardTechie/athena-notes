@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Lint frontmatter for Athena Notes agents and skills.
+"""Lint frontmatter for Cairn Notes agents and skills.
 
 Rules:
-  Agents (plugins/athena-notes/agents/*.md, plugins/athena-notes/examples/agents/*.md)
+  Agents (plugins/cairn-notes/agents/*.md, plugins/cairn-notes/examples/agents/*.md)
     - Frontmatter block present, valid YAML mapping.
     - Required string keys: name, description, tools, model.
     - name matches ^[a-z][a-z0-9-]*$.
     - tools is a comma-separated string of capitalized tool names (not a YAML list).
     - model is one of {opus, sonnet, haiku, inherit}.
 
-  Skills (plugins/athena-notes/skills/*/SKILL.md, plugins/athena-notes/examples/skills/*/SKILL.md)
+  Skills (plugins/cairn-notes/skills/*/SKILL.md, plugins/cairn-notes/examples/skills/*/SKILL.md)
     - SKILL.md present in each skill directory.
     - Frontmatter block present, valid YAML mapping.
     - Required string keys: name, description.
@@ -36,7 +36,7 @@ import yaml
 # Anchor to repo root via script location so `python3 scripts/lint-frontmatter.py`
 # works from any CWD. Silent "0 files found" passes would be a false-green otherwise.
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-PLUGIN_ROOT = REPO_ROOT / "plugins" / "athena-notes"
+PLUGIN_ROOT = REPO_ROOT / "plugins" / "cairn-notes"
 EXAMPLES_ROOT = PLUGIN_ROOT / "examples"
 
 AGENT_DIRS = [

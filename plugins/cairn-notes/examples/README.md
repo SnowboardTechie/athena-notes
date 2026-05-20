@@ -25,10 +25,10 @@ Personal agents and skills Bryan built on top of Athena Notes. They are **refere
 1. **Copy, don't symlink.** These files will drift as Bryan evolves them.
    ```bash
    # Agent
-   cp plugins/athena-notes/examples/agents/calliope.md ~/.claude/agents/mywriter.md
+   cp plugins/cairn-notes/examples/agents/calliope.md ~/.claude/agents/mywriter.md
 
    # Skill
-   cp -r plugins/athena-notes/examples/skills/catalog-review ~/.claude/skills/
+   cp -r plugins/cairn-notes/examples/skills/catalog-review ~/.claude/skills/
    ```
 
 2. **Rename.** The `name:` frontmatter field and any references inside the body should match your new agent/skill name.

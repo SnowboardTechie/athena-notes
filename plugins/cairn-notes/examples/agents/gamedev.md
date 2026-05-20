@@ -59,7 +59,7 @@ Use the `agent-workspace` skill's `resolve_trunk_root` and symlink auto-creation
 
 ### Integration with Athena
 
-Notes are discoverable by Archivist since they're in an Obsidian vault. **Use project folders, NOT athena-notes defaults:**
+Notes are discoverable by Archivist since they're in an Obsidian vault. **Use project folders, NOT cairn-notes defaults:**
 
 | Athena Type | Burnt Ice Equivalent |
 |-------------|---------------------|

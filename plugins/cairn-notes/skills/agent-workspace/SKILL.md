@@ -362,7 +362,7 @@ When an agent is invoked in a git repo and `.notes/` is missing. Use tool-native
 
 3. **If missing, read `notes_root` from identity** — use **Read**, not `grep`:
    ```
-   Read(file_path="~/.claude/athena/identity.md")
+   Read(file_path="~/.claude/cairn/identity.md")
    ```
    Parse the `notes_root:` field in your response; expand `~` to `$HOME`.
 
@@ -416,14 +416,14 @@ If the notes target directory (e.g., `~/notes/{project}/`) doesn't have `.agents
 When writing to the personal vault (`{NOTES_ROOT}/{PERSONAL_VAULT}/`) and it doesn't exist:
 
 ```bash
-NOTES_ROOT=$(grep '^notes_root:' ~/.claude/athena/identity.md | cut -d: -f2- | xargs)
-PERSONAL_VAULT=$(grep '^personal_vault:' ~/.claude/athena/identity.md | cut -d: -f2- | xargs)
+NOTES_ROOT=$(grep '^notes_root:' ~/.claude/cairn/identity.md | cut -d: -f2- | xargs)
+PERSONAL_VAULT=$(grep '^personal_vault:' ~/.claude/cairn/identity.md | cut -d: -f2- | xargs)
 NOTES_ROOT="${NOTES_ROOT/#\~/$HOME}"
 
 mkdir -p "${NOTES_ROOT}/${PERSONAL_VAULT}"
 ```
 
-Do this silently the first time. No prompt needed — user already configured this during `/athena-setup`.
+Do this silently the first time. No prompt needed — user already configured this during `/cairn-setup`.
 
 ---
 

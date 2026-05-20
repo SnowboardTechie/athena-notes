@@ -9,7 +9,7 @@ Athena Notes is a hub-spoke of specialized AI agents that help you think, resear
 - You only talk to Athena. The subagents are her tools, not yours.
 - Everything writes to Obsidian using wikilinks, frontmatter, and your existing vault structure.
 
-> **Extending or contributing?** Read [`plugins/athena-notes/AGENTS.md`](plugins/athena-notes/AGENTS.md) — it's the framework spec (identity, vault routing, worktree resolution, agent invocation conventions, cross-tool portability) and the single source of truth for writing or porting agents and skills.
+> **Extending or contributing?** Read [`plugins/cairn-notes/AGENTS.md`](plugins/cairn-notes/AGENTS.md) — it's the framework spec (identity, vault routing, worktree resolution, agent invocation conventions, cross-tool portability) and the single source of truth for writing or porting agents and skills.
 
 ---
 
@@ -25,7 +25,7 @@ Athena Notes is a hub-spoke of specialized AI agents that help you think, resear
 
 ```bash
 # From Claude Code
-/plugin install github:SnowboardTechie/athena-notes
+/plugin install github:SnowboardTechie/cairn-notes
 ```
 
 After installing, **start a new session and talk to athena**. She will detect that Athena Notes isn't set up yet and walk you through identity setup (~2 minutes).
@@ -33,7 +33,7 @@ After installing, **start a new session and talk to athena**. She will detect th
 Or run setup explicitly:
 
 ```
-/athena-setup
+/cairn-setup
 ```
 
 ---
@@ -44,10 +44,10 @@ On first invocation, athena will:
 
 1. Scan your existing Claude Code setup for identity clues (name, timezone, etc.)
 2. Ask 5-7 quick questions to fill in what's missing
-3. Write `~/.claude/athena/identity.md`
+3. Write `~/.claude/cairn/identity.md`
 4. Continue with your original request
 
-After that, agents know who you are. You can update identity any time by re-running `/athena-setup`.
+After that, agents know who you are. You can update identity any time by re-running `/cairn-setup`.
 
 ---
 
@@ -152,7 +152,7 @@ The pattern: you talk to Athena; Athena handles routing.
 Core skills (always loaded):
 
 - `obsidian` — wikilinks, frontmatter, cross-reference patterns
-- `athena-notes` — note types, templates, capture patterns
+- `cairn-notes` — note types, templates, capture patterns
 - `agent-workspace` — working state conventions, worktree resolution, `.notes/` auto-setup
 
 Utility skills (available when relevant):
@@ -163,32 +163,32 @@ Utility skills (available when relevant):
 
 ## Extending
 
-The `plugins/athena-notes/examples/` directory contains personal agents and skills the plugin author built for their own workflow:
+The `plugins/cairn-notes/examples/` directory contains personal agents and skills the plugin author built for their own workflow:
 
 - `calliope` — content writing agent (blog posts, newsletters)
 - `aria` — domain-specialist agent (accessibility / VA.gov)
 - `gamedev` — project-specific assistant (Godot)
 - Skill examples: `catalog-review`, `manual-merge`, `sprint-deliverable-update`
 
-Copy any of these into your own `~/.claude/agents/` or `~/.claude/skills/` and adapt. They show the patterns — make them yours. See [`examples/README.md`](plugins/athena-notes/examples/README.md) for per-example adaptation notes.
+Copy any of these into your own `~/.claude/agents/` or `~/.claude/skills/` and adapt. They show the patterns — make them yours. See [`examples/README.md`](plugins/cairn-notes/examples/README.md) for per-example adaptation notes.
 
 ---
 
 ## Cross-tool portability
 
-The framework conventions live in [`plugins/athena-notes/AGENTS.md`](plugins/athena-notes/AGENTS.md) — readable by Cursor, Aider, Codex, and other tools. The agents and skills themselves are Claude Code-specific, but the conventions translate.
+The framework conventions live in [`plugins/cairn-notes/AGENTS.md`](plugins/cairn-notes/AGENTS.md) — readable by Cursor, Aider, Codex, and other tools. The agents and skills themselves are Claude Code-specific, but the conventions translate.
 
-[`core/AGENTS.md`](core/AGENTS.md) is the boundary spec for host-agnostic content (skill prose, agent personas, templates) versus host-specific glue (runtime tool calls, agent frontmatter, plugin manifest). Migration issues [#15](https://github.com/SnowboardTechie/athena-notes/issues/15)–[#17](https://github.com/SnowboardTechie/athena-notes/issues/17) will move host-agnostic content under `core/` so that other-host adapters (e.g., the planned [opencode adapter](https://github.com/SnowboardTechie/athena-notes/issues/21)) can consume it directly.
+[`core/AGENTS.md`](core/AGENTS.md) is the boundary spec for host-agnostic content (skill prose, agent personas, templates) versus host-specific glue (runtime tool calls, agent frontmatter, plugin manifest). Migration issues [#15](https://github.com/SnowboardTechie/cairn-notes/issues/15)–[#17](https://github.com/SnowboardTechie/cairn-notes/issues/17) will move host-agnostic content under `core/` so that other-host adapters (e.g., the planned [opencode adapter](https://github.com/SnowboardTechie/cairn-notes/issues/21)) can consume it directly.
 
 ---
 
 ## Troubleshooting
 
 **"athena doesn't know who I am"**
-Identity lives at `~/.claude/athena/identity.md`. Run `/athena-setup` to create or update it. Re-running is safe — it pre-fills from the existing file.
+Identity lives at `~/.claude/cairn/identity.md`. Run `/cairn-setup` to create or update it. Re-running is safe — it pre-fills from the existing file.
 
 **"I want to change my vault location"**
-Edit `personal_vault` (or `notes_root`) in `~/.claude/athena/identity.md`. The next agent invocation picks up the change.
+Edit `personal_vault` (or `notes_root`) in `~/.claude/cairn/identity.md`. The next agent invocation picks up the change.
 
 **"Scribe keeps writing to `~/notes/second-brain/` when I'm inside a repo"**
 That means the `.notes/` symlink in your repo isn't set up. Start a fresh session inside the repo and ask athena to "set up the workspace here" — it will create `.notes/` → `~/notes/{repo-name}/` and add it to `.gitignore`.
@@ -197,7 +197,7 @@ That means the `.notes/` symlink in your repo isn't set up. Start a fresh sessio
 Sage prefers MCPs in order: Exa → Context7 → grep.app → built-in WebSearch. Check that the MCP is listed in `claude mcp list` and authenticated. If you installed Exa after sage first ran, restart the Claude Code session.
 
 **"Permissions keep prompting when athena reads my notes"**
-Run `/athena-setup`. Phase 5 offers to configure `permissions.defaultMode: "auto"` in `~/.claude/settings.json` with a resolved, absolute allowlist covering your notes, identity file, and the Bash shapes the spokes use. You'll see the exact config before it's written. If you prefer manual control, skip Phase 5 and approve-and-remember each path on first prompt instead.
+Run `/cairn-setup`. Phase 5 offers to configure `permissions.defaultMode: "auto"` in `~/.claude/settings.json` with a resolved, absolute allowlist covering your notes, identity file, and the Bash shapes the spokes use. You'll see the exact config before it's written. If you prefer manual control, skip Phase 5 and approve-and-remember each path on first prompt instead.
 
 **"I'm in a git worktree and notes aren't showing up"**
 `.notes/` lives in the **trunk** (main worktree) so it's shared across every branch worktree. Agent-workspace resolves the trunk root automatically via `git rev-parse`. If something still looks off, `ls -la .notes` in the trunk to confirm the symlink.
@@ -216,7 +216,7 @@ This license was chosen to prevent enclosure: Athena Notes should never become a
 
 ## Contributing
 
-Issues and PRs welcome at [github.com/SnowboardTechie/athena-notes](https://github.com/SnowboardTechie/athena-notes). See [CONTRIBUTING.md](CONTRIBUTING.md) for the submission workflow and conventions.
+Issues and PRs welcome at [github.com/SnowboardTechie/cairn-notes](https://github.com/SnowboardTechie/cairn-notes). See [CONTRIBUTING.md](CONTRIBUTING.md) for the submission workflow and conventions.
 
 Before contributing an agent or skill, check the five-point filter:
 - Does it serve the thinking + note-capture core? (vs. being a random utility)

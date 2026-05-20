@@ -1,5 +1,5 @@
 ---
-name: athena-notes
+name: cairn-notes
 description: Note type system for Athena - templates, linking patterns, capture triggers, and vault structure
 ---
 
@@ -102,7 +102,6 @@ type: exploration
 date: YYYY-MM-DD
 tags:
   - exploration
-  - athena
   - {topic}
 status: in-progress | complete
 session_context: "{what prompted this exploration}"
@@ -238,9 +237,7 @@ type: session
 date: YYYY-MM-DD
 tags:
   - session
-  - athena
 duration: "{approximate length}"
-participants: [athena, {{USER_NAME}}]
 ---
 
 # Session: {Topic or Date}
@@ -518,7 +515,6 @@ When creating a new note that relates to existing notes:
 #session       → conversation records
 #thread        → connected ideas
 #task          → work tracking
-#athena        → captured by athena system
 
 #project/{name} → project-specific
 #domain/{area}  → knowledge domain
@@ -566,7 +562,7 @@ Agents that capture notes should load this skill:
 ```yaml
 # In agent frontmatter
 skills:
-  - athena-notes
+  - cairn-notes
 ```
 
 ### Scribe Integration

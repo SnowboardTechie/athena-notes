@@ -28,7 +28,7 @@ Pull live context from the user's tracked projects (Google Docs, GitHub issues, 
 
 ---
 
-## Config: `~/.claude/athena/planning-sources.md`
+## Config: `~/.claude/cairn/planning-sources.md`
 
 User-owned, editable by hand, bootstrapped by this skill on first run. Format:
 
@@ -105,9 +105,9 @@ The daily plan is always written to the **personal vault**. The path is built fr
 {notes_root}/{personal_vault}/{output_folder}/{YYYY-MM-DD}-daily-plan.md
 ```
 
-- `notes_root` — from `~/.claude/athena/identity.md` (default `~/notes`)
-- `personal_vault` — from `~/.claude/athena/identity.md` (default `second-brain`)
-- `output_folder` — from the **top-level `output_folder` key** in `~/.claude/athena/planning-sources.md` frontmatter (default `Daily`)
+- `notes_root` — from `~/.claude/cairn/identity.md` (default `~/notes`)
+- `personal_vault` — from `~/.claude/cairn/identity.md` (default `second-brain`)
+- `output_folder` — from the **top-level `output_folder` key** in `~/.claude/cairn/planning-sources.md` frontmatter (default `Daily`)
 
 Typical resolved path: `~/notes/second-brain/Daily/2026-04-21-daily-plan.md`.
 
@@ -139,12 +139,12 @@ If missing, bootstrap asks the user which folder to use (default `Daily`) and wr
 
 ### Phase 0 — Resolve mode, vault, and output path
 
-1. Read `~/.claude/athena/identity.md`. Resolve:
+1. Read `~/.claude/cairn/identity.md`. Resolve:
    - `{{TIMEZONE}}` — must be an IANA zone string (e.g. `America/New_York`, `Europe/London`, `UTC`). **Validate before using** (see below). If missing or invalid, warn and fall back to system TZ — don't block planning on a config nit.
    - `{{PERSONAL_VAULT}}` (fall back to `second-brain`).
    - `{{NOTES_ROOT}}` (fall back to `~/notes`).
-2. Read `~/.claude/athena/planning-sources.md` frontmatter's top-level `output_folder` (fall back to `Daily`). If the file is missing, defer to Phase 1 bootstrap.
-3. **TZ validation.** Before shelling, check `{{TIMEZONE}}` matches `^(UTC|[A-Za-z][A-Za-z0-9_+-]*/[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z][A-Za-z0-9_+-]*)?)$` (IANA shape: `Region/City` or `Region/Country/City`, or bare `UTC`). Abbreviations like `EST` or `PT` fail this check — they also don't handle DST correctly. On mismatch, warn once (`⚠️ Identity TZ "{value}" is not an IANA zone — falling back to system TZ. Fix via /athena-setup.`) and proceed with the unset `TZ` env var so `date` uses the system default. This is also the injection guard: a validated value is safe to interpolate into the `TZ=...` shell command.
+2. Read `~/.claude/cairn/planning-sources.md` frontmatter's top-level `output_folder` (fall back to `Daily`). If the file is missing, defer to Phase 1 bootstrap.
+3. **TZ validation.** Before shelling, check `{{TIMEZONE}}` matches `^(UTC|[A-Za-z][A-Za-z0-9_+-]*/[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z][A-Za-z0-9_+-]*)?)$` (IANA shape: `Region/City` or `Region/Country/City`, or bare `UTC`). Abbreviations like `EST` or `PT` fail this check — they also don't handle DST correctly. On mismatch, warn once (`⚠️ Identity TZ "{value}" is not an IANA zone — falling back to system TZ. Fix via /cairn-setup.`) and proceed with the unset `TZ` env var so `date` uses the system default. This is also the injection guard: a validated value is safe to interpolate into the `TZ=...` shell command.
 4. Compute today's day-of-week in the resolved timezone via `date`: `TZ="{{TIMEZONE}}" date +%A` when validated, or plain `date +%A` on fallback. If the validated-TZ invocation exits non-zero (shape-valid but the zone doesn't exist on this system, e.g. `America/Fakeville`), re-run the command without `TZ` and emit the same fallback warning as step 3 before continuing.
 5. Mode:
    - `--mode=<x>` flag wins.
@@ -154,7 +154,7 @@ If missing, bootstrap asks the user which folder to use (default `Daily`) and wr
 
 ### Phase 1 — Load or bootstrap `planning-sources.md`
 
-1. Check `~/.claude/athena/planning-sources.md`:
+1. Check `~/.claude/cairn/planning-sources.md`:
    - **Missing** → run the [Bootstrap Flow](#bootstrap-flow) below, then continue.
    - **Present but empty `projects:` list** → offer to bootstrap now or skip and use a generic "what are you working on?" prompt.
    - **Present and populated** → parse the YAML frontmatter into a project list.
@@ -372,7 +372,7 @@ If the file does not exist, skip Step 0 and start at Step 1 with an empty preser
 ```
 No planning sources file yet. Let's build one.
 
-I'll ask a few questions to populate ~/.claude/athena/planning-sources.md.
+I'll ask a few questions to populate ~/.claude/cairn/planning-sources.md.
 You can edit it directly after (it's just markdown + YAML). Takes ~3 minutes.
 ```
 
@@ -442,9 +442,9 @@ Assemble the final YAML:
 1. workday-planning's own keys first (`output_folder`, `projects`).
 2. The preserved foreign keys from Step 0, in their original order.
 
-Show the assembled frontmatter and ask: `Write this to ~/.claude/athena/planning-sources.md? [Y/n]`
+Show the assembled frontmatter and ask: `Write this to ~/.claude/cairn/planning-sources.md? [Y/n]`
 
-If yes, write the file with the assembled frontmatter + a brief markdown body explaining the user can edit freely. Create `~/.claude/athena/` if missing.
+If yes, write the file with the assembled frontmatter + a brief markdown body explaining the user can edit freely. Create `~/.claude/cairn/` if missing.
 
 ### Step 5 — Continue or stop
 
@@ -478,11 +478,11 @@ If the user passes `--mode=week-wrap` on a Tuesday, run the overlay anyway — u
 Fall back to presenting the Phase 3 synthesis + a manual "what will you tackle today?" prompt. Don't block the session on forge being unreachable.
 
 **Source config references an unknown type:**
-Halt with: `Unknown source type '{x}' in {project}. Edit ~/.claude/athena/planning-sources.md and rerun.` Don't guess.
+Halt with: `Unknown source type '{x}' in {project}. Edit ~/.claude/cairn/planning-sources.md and rerun.` Don't guess.
 
 **Malformed YAML frontmatter in `planning-sources.md`:**
 If parsing fails, halt with the parser error and the offending line if available:
-`Could not parse frontmatter in ~/.claude/athena/planning-sources.md: {error}. Fix the file or run /plan-workday --edit-sources.` Do NOT fall back to bootstrap — that would overwrite the user's in-progress edit. Do NOT guess at the intended shape.
+`Could not parse frontmatter in ~/.claude/cairn/planning-sources.md: {error}. Fix the file or run /plan-workday --edit-sources.` Do NOT fall back to bootstrap — that would overwrite the user's in-progress edit. Do NOT guess at the intended shape.
 
 **Drive MCP not authed (Google Doc fails):**
 Treat as a source failure in Phase 2. The halt-and-ask prompt will let the user fix auth and retry, skip the source, or abort.

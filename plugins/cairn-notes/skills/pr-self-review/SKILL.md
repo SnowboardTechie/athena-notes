@@ -133,7 +133,7 @@ for label in tech-debt known-issue follow-up; do
 done
 ```
 
-The label list is configurable: if the user's `~/.claude/athena/pr-self-review.md` exists with `related_labels: [...]`, use that list instead. Otherwise use the default above. Do not silently add labels beyond what's listed — it drowns reviewers in noise.
+The label list is configurable: if the user's `~/.claude/cairn/pr-self-review.md` exists with `related_labels: [...]`, use that list instead. Otherwise use the default above. Do not silently add labels beyond what's listed — it drowns reviewers in noise.
 
 **Forgejo equivalents:** `tea api` against `/repos/{owner}/{repo}/issues?state=open&q={term}` for (B) and `?labels={id}` for (C). Resolve label names → integer IDs first (same pattern as `issue-create` Stage 2.2).
 
@@ -158,7 +158,7 @@ Write the merged cache to `{state-dir}/related-issues.json`:
 
 Resolve `TRUNK_ROOT` using the worktree-aware pattern defined in [`skills/agent-workspace/SKILL.md`](../agent-workspace/SKILL.md) — the canonical `resolve_trunk_root` function, which checks whether `$(git rev-parse --show-toplevel)/.git` is a regular file (i.e., we're inside a worktree) and, if so, returns `dirname $(git rev-parse --git-common-dir)`. Do not re-spell that logic here; cite and reuse.
 
-Then: `Glob(pattern="{TRUNK_ROOT}/.notes")`. Empty → log once ("No project notes available; skipping archivist phase.") and write `{state-dir}/related-notes.json` as `[]`. Do not auto-create `.notes/` — this is a read-only review skill; the user opts into notes via `/athena-setup`.
+Then: `Glob(pattern="{TRUNK_ROOT}/.notes")`. Empty → log once ("No project notes available; skipping archivist phase.") and write `{state-dir}/related-notes.json` as `[]`. Do not auto-create `.notes/` — this is a read-only review skill; the user opts into notes via `/cairn-setup`.
 
 If `.notes/` is present, extract keyword topics from the diff:
 

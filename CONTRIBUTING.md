@@ -1,20 +1,20 @@
-# Contributing to Athena Notes
+# Contributing to cairn-notes
 
-Issues and PRs welcome. This plugin is maintained in the open because the hub-spoke thinking/capture pattern works better the more eyes it gets.
+Issues and PRs welcome. This plugin is maintained in the open because the capture / recall pattern works better the more eyes it gets.
 
 ## Before you start
 
-Read [`plugins/cairn-notes/AGENTS.md`](plugins/cairn-notes/AGENTS.md). It's the framework spec — identity, vault routing, worktree resolution, the "users talk only to Athena" convention, cross-tool portability rules. Every agent and skill in this plugin obeys it. Yours should too.
+Read [`plugins/cairn-notes/AGENTS.md`](plugins/cairn-notes/AGENTS.md). It's the framework spec — identity, vault routing, worktree resolution, the skill-and-spoke conventions, cross-tool portability rules. Every skill and spoke in this plugin obeys it. Yours should too.
 
 If your contribution is host-agnostic prose (skill bodies, agent personas, templates, vault spec), also read [`core/AGENTS.md`](core/AGENTS.md). It defines the boundary between content that belongs under `core/` and content that belongs in a host-specific layer like `plugins/cairn-notes/`.
 
-## The five-point filter (for agents & skills)
+## The five-point filter (for skills & spokes)
 
-Before opening a PR that adds an agent or skill to the main tree, check:
+Before opening a PR that adds a skill or spoke to the main tree, check:
 
 _While migration into `core/` is in progress, host-agnostic content can land in `plugins/cairn-notes/` alongside its glue — flag the choice in your PR description so reviewers can route it later._
 
-1. **Does it serve the thinking + note-capture core?** Not every useful utility belongs here. A Godot project assistant is useful, but it isn't about thinking — it's an example, not a utility.
+1. **Does it serve the capture / recall / planning core?** Not every useful utility belongs here. A Godot project assistant is useful, but it isn't about capture or planning — it's an example, not a utility.
 2. **Is it Obsidian-aware?** Wikilinks, frontmatter, and the existing vault structure should feel native. If your skill writes raw JSON to a flat file, rethink it.
 3. **Is it free of personal hardcoding?** No specific names, companies, projects, vault paths, or domain-specific jargon (VA.gov, HHS, "my SnowboardTechie brand"). Use placeholders (`{{USER_NAME}}`, `{{NOTES_ROOT}}`, `{{PERSONAL_VAULT}}`) read from `~/.claude/cairn/identity.md`.
 4. **Would a teammate you've never met find it useful?** If the honest answer is "only people who work exactly like me," it's an example — open a PR to `plugins/cairn-notes/examples/` instead.
@@ -28,9 +28,9 @@ Hit all five → main tree. Miss one or more → `examples/`, still welcome, lab
 
 Agents use `Glob`, `Grep`, `Read`, `Write`, `Edit`, `Task` directly. Avoid wrapping file-reading or searching in `Bash` — the native tools are faster, safer, and render better in Claude Code. Reserve `Bash` for shell-only operations (`git`, `gh`, `cd && foo`, one-shot system commands).
 
-### Hub-spoke, not star
+### Skill-and-spoke
 
-Users should only talk to Athena. Specialist agents (scribe, archivist, forge, etc.) include a line in their description like `"not user-facing; Athena invokes via Task"` and a matching note near the top of the body. If your new agent is meant to be user-facing, talk through whether it should be a skill invoked by Athena instead.
+Users invoke slash commands (skills); skills delegate to helper spokes via Task when warranted by context-isolation, parallelism, reusability, or specialized persona (see [AGENTS.md "When to add a new spoke"](plugins/cairn-notes/AGENTS.md)). Specialist spokes (scribe, archivist, forge, etc.) include a description line naming the skills that call them and a matching note near the top of the body. If you're adding a new user-facing surface, the default answer is a slash command (skill); a new spoke only makes sense if at least one of the four criteria applies.
 
 ### Identity is authoritative
 

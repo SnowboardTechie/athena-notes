@@ -45,9 +45,9 @@ Before categorizing or drafting, every candidate must pass the questions that ap
 1. **Novel.** Is the rule, decision, or pattern already captured in AGENTS.md or an existing `.notes/` note? If so, the existing record *is* the signal. (Issue-route candidates extend this dedup to the open GitHub issue list — see Step 1.5 Q1.)
 2. **Durable & scoped.** The candidate routes to one of three destinations:
 
-   - **Vault** (→ AGENTS.md / `.notes/`) — project-specific to Athena Notes: agents, skills, vaults, identity, hub-spoke, this repo's layout.
+   - **Vault** (→ AGENTS.md / `.notes/`) — project-specific to cairn-notes: skills, spokes, vaults, identity, slash-command / helper-spoke layout.
    - **Harness memory** — cross-project user-collaboration preference (how this user thinks, anchors, decides), project motivation / stakeholder context, or external-system pointer.
-   - **GitHub issue against this repo** — Athena Notes plugin-improvement signal (a `plugins/cairn-notes/` agent or skill misbehaved); see Step 1.5's issue-route tunings for the reading.
+   - **GitHub issue against this repo** — cairn-notes plugin-improvement signal (a `plugins/cairn-notes/` skill or spoke misbehaved); see Step 1.5's issue-route tunings for the reading.
 
    A transient session vibe isn't durable; a general engineering truism isn't scoped. Neither qualifies.
 3. **Future-actionable.** Will a concrete decision — in a future chat or by your future self — change because this note exists? If removing the note wouldn't change any future outcome, it's a log.

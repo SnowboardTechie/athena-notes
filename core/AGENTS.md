@@ -61,7 +61,7 @@ If a skill is *mostly* host-agnostic but has one or two host-specific calls, the
 
 ## Cross-references
 
-- [`plugins/cairn-notes/AGENTS.md`](../plugins/cairn-notes/AGENTS.md) — current framework spec for the Claude Code plugin (identity, vault routing, hub-spoke architecture, skill authoring, git conventions). This file (`core/AGENTS.md`) defines the boundary; that file defines the conventions agents follow inside the boundary.
+- [`plugins/cairn-notes/AGENTS.md`](../plugins/cairn-notes/AGENTS.md) — current framework spec for the Claude Code plugin (identity, vault routing, skill-and-spoke architecture, skill authoring, git conventions). This file (`core/AGENTS.md`) defines the boundary; that file defines the conventions agents follow inside the boundary.
 - [`CONTRIBUTING.md`](../CONTRIBUTING.md) — submission workflow including the host-agnostic check in the contribution filter.
 - [#14](https://github.com/SnowboardTechie/cairn-notes/issues/14) — issue that established this file.
 - [#21](https://github.com/SnowboardTechie/cairn-notes/issues/21) — planned opencode adapter; first real test of the portability thesis.

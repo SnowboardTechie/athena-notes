@@ -4,12 +4,12 @@
     "name": "Bryan Thompson"
   },
   "metadata": {
-    "description": "Single-plugin marketplace for the Cairn Notes plugin — an Obsidian-native note-capture system for Claude Code."
+    "description": "Single-plugin marketplace for the cairn-notes plugin — a capture-first note system for Claude Code, native to Obsidian."
   },
   "plugins": [
     {
       "name": "cairn-notes",
-      "description": "Obsidian-native note-capture system for Claude Code. Captures your thinking into Obsidian vaults with zero setup friction.",
+      "description": "Capture-first note system for Claude Code, native to Obsidian. Slash commands for capture, recall, planning, and meeting/session sync turn conversations into durable notes.",
       "category": "productivity",
       "source": "./plugins/cairn-notes",
       "homepage": "https://github.com/SnowboardTechie/cairn-notes",

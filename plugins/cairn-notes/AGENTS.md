@@ -1,6 +1,6 @@
-# Athena Notes — Agent Framework
+# cairn-notes — Agent Framework
 
-This file documents the conventions agents follow in the Athena Notes system. It is written in `AGENTS.md` format for cross-tool portability (Claude Code, Cursor, Aider, Codex, etc.). Claude Code can reference it via `@AGENTS.md` import in `CLAUDE.md`.
+This file documents the conventions agents follow in the cairn-notes system. It is written in `AGENTS.md` format for cross-tool portability (Claude Code, Cursor, Aider, Codex, etc.). Claude Code can reference it via `@AGENTS.md` import in `CLAUDE.md`.
 
 ---
 
@@ -8,9 +8,7 @@ This file documents the conventions agents follow in the Athena Notes system. It
 
 User identity lives at `~/.claude/cairn/identity.md` and is populated by the `/cairn-setup` slash command on first use. Agents read this file at invocation to resolve `{{USER_NAME}}`, `{{TIMEZONE}}`, `{{PERSONAL_VAULT}}`, `{{WORKING_HOURS}}`, `{{COGNITIVE_PEAK}}`, and `{{PRONOUNS}}`.
 
-**If identity is missing:**
-- Athena runs `/cairn-setup` inline before proceeding with the user's request
-- Other agents stop and direct the user to athena or `/cairn-setup`
+**If identity is missing:** the invoked skill (or spoke, when reached directly) tells the user to run `/cairn-setup` and stops. Skills don't bootstrap identity inline — `/cairn-setup` owns that flow.
 
 Never hard-code user-specific values in agent bodies.
 
@@ -18,30 +16,41 @@ Never hard-code user-specific values in agent bodies.
 
 ## Architecture
 
+cairn-notes is **slash commands on top, helper spokes underneath**. Users invoke skills; skills delegate to spokes via Task when context-isolation, parallelism, reusability, or specialized persona warrants it.
+
 ```
-                                          ┌─────────────┐
-                                          │   ATHENA    │  ← Primary thinking partner (hub)
-                                          └──────┬──────┘
-      ┌──────────┬──────────┬──────────┬─────────┴─────────┬──────────┬──────────┬──────────┐
-      ▼          ▼          ▼          ▼                   ▼          ▼          ▼          ▼
- ┌─────────┐ ┌────────┐ ┌────────┐ ┌──────┐          ┌─────────┐ ┌───────┐ ┌────────┐ ┌──────────┐
- │ARCHIVIST│ │  SAGE  │ │ SCRIBE │ │ PYRE │          │  PRISM  │ │ FORGE │ │ KINDLE │ │  SCOUT   │
- │ (recall)│ │(search)│ │(write) │ │(del) │          │(refract)│ │(plan) │ │ (flow) │ │(activity)│
- └─────────┘ └────────┘ └────────┘ └──────┘          └─────────┘ └───────┘ └────────┘ └──────────┘
+                  User invokes a slash command
+                              │
+                              ▼
+ ┌─────────────────────────────────────────────────────────────────┐
+ │  Slash commands (skills)                                        │
+ │                                                                 │
+ │  /capture   /recall   /plan-workday   /plan-week   /meeting-sync│
+ │  /cairn-setup   /session-review   /issue-create   /issue-work…  │
+ └────────────────────────────────┬────────────────────────────────┘
+                                  │  Task(subagent_type=…)
+                                  ▼
+ ┌─────────────────────────────────────────────────────────────────┐
+ │  Helper spokes (not user-facing)                                │
+ │                                                                 │
+ │  scribe    archivist    sage    pyre    forge    kindle    scout│
+ │  impl-reviewer    ticket-analyst                                │
+ └─────────────────────────────────────────────────────────────────┘
 ```
 
-All spokes are **athena-only** — users talk to Athena; Athena delegates via Task. Scribe in particular is never invoked directly by users — Athena gathers the context scribe needs (note type, title, related notes) before delegating.
+Spokes are **skill-invokable, not user-invokable**. Each spoke's `description:` frontmatter names the skills that call it; if a user reaches a spoke directly, the spoke redirects them to the appropriate slash command. Scribe is never invoked directly — the calling skill gathers the context scribe needs (note type, title, related notes) before delegating.
 
 ### Spoke roster
 
-- **archivist** — past-note retrieval from `.notes/`
-- **sage** — external research (web, docs, code examples)
-- **scribe** — note persistence (only writer in the system)
-- **pyre** — note deletion with tiered confirmation
-- **prism** — creative refraction; paradoxes and hidden frames
-- **forge** — daily planning; goal-mode by default, blocks/schedules opt-in
-- **kindle** — flow-barrier coaching (anxiety / boredom / distraction)
-- **scout** — developer-forge activity (PR reviews, issues, own PRs, mentions) from GitHub via `gh` or Forgejo via `tea`; invoked automatically before forge on planning requests
+- **scribe** — note persistence (only writer in the system); invoked by `/capture`, `meeting-sync`, `session-review`
+- **archivist** — past-note retrieval from `.notes/` and the personal vault; invoked by `/recall`, `/capture` (pre-link), `meeting-sync`, `session-review`
+- **sage** — external research (web, docs, code examples); invoked by skills that need current external grounding
+- **pyre** — note deletion with tiered confirmation; invoked by cleanup flows
+- **forge** — daily planning (goal-mode by default, blocks/schedules opt-in); invoked by `/plan-workday`, `/plan-week`
+- **kindle** — flow-barrier coaching (anxiety / boredom / distraction); invoked by `/plan-workday` and forge
+- **scout** — developer-forge activity (PR reviews, issues, own PRs, mentions) from GitHub via `gh` or Forgejo via `tea`; invoked by `/plan-workday` and `/plan-week` before forge
+- **impl-reviewer** — single-lens implementation review (correctness / security / simplicity); invoked by `pr-self-review` and `issue-work`
+- **ticket-analyst** — fetches and digests a GitHub/Forgejo issue or PR into a structured context file; invoked by `issue-work`
 
 ### When to add a new spoke (subagent) vs. keep work in a skill
 
@@ -49,7 +58,7 @@ A new spoke is warranted only when at least one applies:
 
 1. **Context isolation** — the work reads many files or produces large synthesis that would bloat main context.
 2. **Parallelism** — independent units that can fan out (spawn N spokes in parallel, each returning its own artifact).
-3. **Reusability** — multiple skills, or Athena itself, would invoke the same worker.
+3. **Reusability** — multiple skills would invoke the same worker.
 4. **Specialized persona** — a distinct prompt/frame improves the output (not just tool-level calls).
 
 If none apply, the work stays in the invoking skill. Interactive multi-turn flows (user Q&A loops, triage) are the wrong shape for spokes — spokes return a single artifact, not a conversation. MCPs and skills cover architectures that look agent-shaped but aren't: MCP for tool surfaces exposed to many agents; skill for user-facing orchestration.
@@ -128,23 +137,23 @@ This applies to all delegated work: code reviews, exploration results, research 
 
 ---
 
-## Capture Triggers (for athena + other hub agents)
+## Capture Triggers
 
-Auto-capture these moments without asking — the point of Athena Notes is low-friction capture:
+These are the moments worth capturing — the point of cairn-notes is low-friction capture, and `/capture` is the primary surface for it. Other skills (`meeting-sync`, `session-review`) capture during their own flows; main Claude can invoke `/capture` directly when a signal lands mid-conversation.
 
 | Signal | Note type | Action |
 |---|---|---|
-| Insight emerges | IDEA | Delegate to scribe with type=IDEA |
-| Topic explored deeply | EXPLORATION | Delegate at natural pause |
-| Choice made | DECISION | Record choice and rationale |
-| Session ending, was valuable | SESSION | Summary before close |
-| Same topic 3+ times | THREAD | Connect the dots |
-| Checking ticket/PR status | TASK | Update or create task note |
-| Blocker identified | TASK | Capture blocker + timeline |
+| Insight emerges | IDEA | `/capture <insight>` (or scribe Task with type=IDEA) |
+| Topic explored deeply | EXPLORATION | `/capture exploration: …` at natural pause |
+| Choice made | DECISION | `/capture decision: …` — record choice and rationale |
+| Session ending, was valuable | SESSION | `/capture session: …` summary before close |
+| Same topic 3+ times | THREAD | `/capture thread: …` — connect the dots |
+| Checking ticket/PR status | TASK | `/capture task: …` — update or create task note |
+| Blocker identified | TASK | `/capture task: …` — capture blocker + timeline |
 
-Scribe writes immediately on invocation. No previews, no confirmation prompts.
+Scribe writes immediately on invocation. No previews, no confirmation prompts — the calling skill (e.g., `/capture`) owns any approval gate.
 
-**Scope.** This table covers *vault-note capture* — durable, project-specific knowledge written into Obsidian by `@scribe`. Cross-project user-collaboration preferences (how the user thinks, anchors, decides) route to the harness memory system, not the vault — see `skills/session-review/SKILL.md` for the collaboration-lens flow. Plugin-misbehavior signal (an Athena Notes agent or skill that misbehaved or has a sharp edge worth filing) routes to a GitHub issue against this repo via `/issue-create` — see the same skill for the plugin-improvement-lens flow.
+**Scope.** This table covers *vault-note capture* — durable, project-specific knowledge written into Obsidian by `@scribe`. Cross-project user-collaboration preferences (how the user thinks, anchors, decides) route to the harness memory system, not the vault — see `skills/session-review/SKILL.md` for the collaboration-lens flow. Plugin-misbehavior signal (a cairn-notes agent or skill that misbehaved or has a sharp edge worth filing) routes to a GitHub issue against this repo via `/issue-create` — see the same skill for the plugin-improvement-lens flow.
 
 ---
 

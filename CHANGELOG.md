@@ -1,10 +1,15 @@
 # Changelog
 
-All notable changes to Athena Notes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [Semantic Versioning](https://semver.org/).
+All notable changes to cairn-notes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `/capture` skill — primary capture surface. Accepts freeform input (`/capture <text>`), explicit-prefix (`/capture <type>: <text>`), or no-args interactive. Auto-detects note type with high/medium/low confidence tiers; medium and low confidence gate via `AskUserQuestion`. DECISION and EXPLORATION captures dispatch `archivist` first, then inline the returned wikilinks into the `scribe` prompt (sequential by force — scribe's prompt depends on archivist's output). MEETING-shape inputs hand off to `/meeting-sync`. Tracks [#86](https://github.com/SnowboardTechie/cairn-notes/issues/86) (Phase A).
+- `/recall` skill — primary retrieval surface. Freeform query plus optional `scope:project|personal|both`, `type:`, `since:`, and `attendees:` flags. `scope:both` fires two parallel `archivist` calls (one per vault) via the new `vault:` directive. Single match across all searched vaults auto-includes the full note body; multi-match groups results by vault. Published-only — `.notes/.agents/` working files are excluded. Tracks [#86](https://github.com/SnowboardTechie/cairn-notes/issues/86) (Phase A).
+
 ### Changed
+- `archivist` agent — adds a first-line `vault:` directive (paralleling the existing `scope:` keyword) for overriding the default trunk-vault resolution. Three values: `vault: project` (today's behavior), `vault: personal` (resolves from `~/.claude/cairn/identity.md`), and `vault: <absolute-path>`. Search strategies switch to `{VAULT_ROOT}` as the path prefix; response format gains a `Vault searched:` line. Backward-compatible — callers that omit the directive get today's behavior. Tracks [#86](https://github.com/SnowboardTechie/cairn-notes/issues/86) (Phase A).
 - `session-review` skill — adds a plugin-improvement lens that routes Athena Notes agent/skill misbehavior signal to a GitHub issue against this repo via `/issue-create`. Resolves [#75](https://github.com/SnowboardTechie/athena-notes/issues/75).
 - Plugin renamed from `athena-notes` to `cairn-notes`. GitHub repo (`SnowboardTechie/athena-notes` → `SnowboardTechie/cairn-notes`), plugin directory (`plugins/athena-notes/` → `plugins/cairn-notes/`), slash command (`/athena-setup` → `/cairn-setup`), plugin namespace (`/athena-notes:*` → `/cairn-notes:*`), identity path (`~/.claude/athena/` → `~/.claude/cairn/`), and internal `athena-notes` reference skill (now `cairn-notes`) all rename. SESSION and EXPLORATION default tag templates drop `- athena`; the `#athena` tag entry leaves the tag hierarchy table. Old GitHub URLs auto-redirect; identity files at `~/.claude/athena/` are not migrated automatically. Tracks [#86](https://github.com/SnowboardTechie/cairn-notes/issues/86) (Phase 0.5).
 

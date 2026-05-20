@@ -31,12 +31,12 @@ jobs:
           needs_changelog=false
           while IFS= read -r f; do
             case "$f" in
-              plugins/athena-notes/agents/*|\
-              plugins/athena-notes/commands/*|\
-              plugins/athena-notes/skills/*|\
-              plugins/athena-notes/AGENTS.md|\
-              plugins/athena-notes/CLAUDE.md|\
-              plugins/athena-notes/.claude-plugin/*|\
+              plugins/cairn-notes/agents/*|\
+              plugins/cairn-notes/commands/*|\
+              plugins/cairn-notes/skills/*|\
+              plugins/cairn-notes/AGENTS.md|\
+              plugins/cairn-notes/CLAUDE.md|\
+              plugins/cairn-notes/.claude-plugin/*|\
               .claude-plugin/*)
                 needs_changelog=true
                 echo "Touches versionable path: $f"
@@ -59,8 +59,29 @@ jobs:
             exit 1
           fi
 
-          manifest="plugins/athena-notes/.claude-plugin/plugin.json"
-          base_version=$(git show "$BASE_SHA:$manifest" | jq -r '.version')
+          manifest="plugins/cairn-notes/.claude-plugin/plugin.json"
+
+          # Resolve the manifest's path in the base tree. If this PR renamed
+          # it, follow the rename so we can still compare versions; if it's a
+          # genuinely new file (no rename source), treat as non-release.
+          if git cat-file -e "$BASE_SHA:$manifest" 2>/dev/null; then
+            base_manifest="$manifest"
+          else
+            # -M10% lowers the rename similarity threshold from git's default 50%.
+            # A small file like plugin.json can dip below 50% when the description
+            # is rewritten alongside the path change (this PR: 36% similarity).
+            # Don't use `-- $manifest`: git diff's pathspec filters by the OLD
+            # (deleted) path for renames, not the new one we already have.
+            base_manifest=$(git diff -M10% --diff-filter=R --name-status "$BASE_SHA" "$HEAD_SHA" | awk -F'\t' -v new="$manifest" '$3 == new {print $2}' | head -1)
+            if [ -z "$base_manifest" ]; then
+              echo "Manifest '$manifest' is new in this PR (no rename source) — non-release context."
+              echo "OK — CHANGELOG touched."
+              exit 0
+            fi
+            echo "Manifest renamed from '$base_manifest' in this PR — using old path for base version."
+          fi
+
+          base_version=$(git show "$BASE_SHA:$base_manifest" | jq -r '.version')
           head_version=$(jq -r '.version' "$manifest")
 
           echo "Base version: $base_version"

@@ -38,7 +38,7 @@ These belong in the host-specific layer for whichever runtime they target.
 
 ```
 Is the content runtime-bound (tool calls, frontmatter, config paths)?
-├── Yes → host-specific layer (today: plugins/athena-notes/; future: adapters/{host}/)
+├── Yes → host-specific layer (today: plugins/cairn-notes/; future: adapters/{host}/)
 └── No → core/
 ```
 
@@ -53,15 +53,15 @@ If a skill is *mostly* host-agnostic but has one or two host-specific calls, the
 
 ## Current state
 
-`core/` is established as the destination. Migration of existing host-agnostic content is tracked under the [portability epic](https://github.com/SnowboardTechie/athena-notes/issues/22) — specifically [#15](https://github.com/SnowboardTechie/athena-notes/issues/15) (skills), [#16](https://github.com/SnowboardTechie/athena-notes/issues/16) (embedded content), and [#17](https://github.com/SnowboardTechie/athena-notes/issues/17) (regression safeguards + contributor docs). Until those land:
+`core/` is established as the destination. Migration of existing host-agnostic content is tracked under the [portability epic](https://github.com/SnowboardTechie/cairn-notes/issues/22) — specifically [#15](https://github.com/SnowboardTechie/cairn-notes/issues/15) (skills), [#16](https://github.com/SnowboardTechie/cairn-notes/issues/16) (embedded content), and [#17](https://github.com/SnowboardTechie/cairn-notes/issues/17) (regression safeguards + contributor docs). Until those land:
 
-- `plugins/athena-notes/AGENTS.md` is the active framework spec for the Claude Code plugin; `core/AGENTS.md` is the boundary spec only.
-- `plugins/athena-notes/skills/` and `plugins/athena-notes/agents/` are the active skill and agent trees.
+- `plugins/cairn-notes/AGENTS.md` is the active framework spec for the Claude Code plugin; `core/AGENTS.md` is the boundary spec only.
+- `plugins/cairn-notes/skills/` and `plugins/cairn-notes/agents/` are the active skill and agent trees.
 - New skills and agents can land in either location depending on which scope they fit; flag the choice in the PR description so reviewers can route it.
 
 ## Cross-references
 
-- [`plugins/athena-notes/AGENTS.md`](../plugins/athena-notes/AGENTS.md) — current framework spec for the Claude Code plugin (identity, vault routing, hub-spoke architecture, skill authoring, git conventions). This file (`core/AGENTS.md`) defines the boundary; that file defines the conventions agents follow inside the boundary.
+- [`plugins/cairn-notes/AGENTS.md`](../plugins/cairn-notes/AGENTS.md) — current framework spec for the Claude Code plugin (identity, vault routing, hub-spoke architecture, skill authoring, git conventions). This file (`core/AGENTS.md`) defines the boundary; that file defines the conventions agents follow inside the boundary.
 - [`CONTRIBUTING.md`](../CONTRIBUTING.md) — submission workflow including the host-agnostic check in the contribution filter.
-- [#14](https://github.com/SnowboardTechie/athena-notes/issues/14) — issue that established this file.
-- [#21](https://github.com/SnowboardTechie/athena-notes/issues/21) — planned opencode adapter; first real test of the portability thesis.
+- [#14](https://github.com/SnowboardTechie/cairn-notes/issues/14) — issue that established this file.
+- [#21](https://github.com/SnowboardTechie/cairn-notes/issues/21) — planned opencode adapter; first real test of the portability thesis.

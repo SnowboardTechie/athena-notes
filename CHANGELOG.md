@@ -6,6 +6,7 @@ All notable changes to Athena Notes are documented here. Format follows [Keep a 
 
 ### Changed
 - `session-review` skill — adds a plugin-improvement lens that routes Athena Notes agent/skill misbehavior signal to a GitHub issue against this repo via `/issue-create`. Resolves [#75](https://github.com/SnowboardTechie/athena-notes/issues/75).
+- Plugin renamed from `athena-notes` to `cairn-notes`. GitHub repo (`SnowboardTechie/athena-notes` → `SnowboardTechie/cairn-notes`), plugin directory (`plugins/athena-notes/` → `plugins/cairn-notes/`), slash command (`/athena-setup` → `/cairn-setup`), plugin namespace (`/athena-notes:*` → `/cairn-notes:*`), identity path (`~/.claude/athena/` → `~/.claude/cairn/`), and internal `athena-notes` reference skill (now `cairn-notes`) all rename. SESSION and EXPLORATION default tag templates drop `- athena`; the `#athena` tag entry leaves the tag hierarchy table. Old GitHub URLs auto-redirect; identity files at `~/.claude/athena/` are not migrated automatically. Tracks [#86](https://github.com/SnowboardTechie/cairn-notes/issues/86) (Phase 0.5).
 
 ## [0.5.0] — 2026-05-03
 

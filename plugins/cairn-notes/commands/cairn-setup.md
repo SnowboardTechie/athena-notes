@@ -179,7 +179,7 @@ Re-run `/cairn-setup` any time to update. Skills and spokes read this file at in
 
 ## Fields
 
-- **name** — for direct address (forge, kindle)
+- **name** — for direct address by skills and spokes that greet by name
 - **timezone** — IANA timezone for daily notes, timestamps, working-hour detection
 - **notes_root** — root directory for all vaults
 - **personal_vault** — default vault for cross-project / personal notes
@@ -315,9 +315,11 @@ Default: yes (they just set up the plugin; they want it to work).
 
 ### 5.3 If approved: write safely
 
-1. Read `~/.claude/settings.json` (create if missing with `{}`)
-2. Parse as JSON
-3. If `permissions` key doesn't exist, create it: `{"permissions": {}}`
+Build the complete settings object in memory across steps 1–6; write to disk once at step 7. If any step fails, do not write partial state — restore the original file and report (per the validation invariant in 5.6).
+
+1. Read `~/.claude/settings.json` (if missing, treat as `{}` in memory — defer any write until step 7)
+2. Parse as JSON (in memory)
+3. If `permissions` key doesn't exist, add it in memory: `{"permissions": {}}`
 4. Set `permissions.defaultMode = "auto"` (overwrite if already set to something else — warn user)
 5. Ensure `permissions.allow` is a list; add these 58 entries if not present (dedupe by exact string match).
 
@@ -395,7 +397,7 @@ Bash(cd * && tea repos ls:*)
 Bash(cd * && tea repos show:*)
 ```
 
-6. Ensure `permissions.deny` is a list; add these 17 entries if not present:
+6. Ensure `permissions.deny` is a list; add these 17 entries if not present (dedupe by exact string match, same as allow):
 
 ```
 Bash(rm -rf /)

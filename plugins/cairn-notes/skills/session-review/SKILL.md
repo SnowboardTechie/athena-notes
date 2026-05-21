@@ -1,6 +1,6 @@
 ---
 name: session-review
-description: Review conversation sessions for project-specific learnings (AGENTS.md / .notes/), cross-project user-collaboration preferences (harness memory), resolved tracked items (today's daily plan), and Athena Notes plugin-misbehavior signal (GitHub issues via /issue-create)
+description: Review conversation sessions for project-specific learnings (AGENTS.md / .notes/), cross-project user-collaboration preferences (harness memory), resolved tracked items (today's daily plan), and cairn-notes plugin-misbehavior signal (GitHub issues via /issue-create)
 ---
 
 # Session Review
@@ -79,7 +79,7 @@ Zero survivors is fine. Better to capture nothing than to grow an archive you ne
 | Project motivation / stakeholder context | Harness memory | project record | "Auth migration is compliance-driven, not tech-debt cleanup" |
 | External-system pointer | Harness memory | reference record | "Pipeline bugs live in Linear project INGEST" |
 
-**Issue routes** (Athena Notes plugin-improvement signal; routed to a GitHub issue against this repo via `/issue-create`. The skill drafts the candidate at the approval gate; on approval it invokes `/issue-create` with the draft as seed text and `/issue-create` runs its own approval flow before posting):
+**Issue routes** (cairn-notes plugin-improvement signal; routed to a GitHub issue against this repo via `/issue-create`. The skill drafts the candidate at the approval gate; on approval it invokes `/issue-create` with the draft as seed text and `/issue-create` runs its own approval flow before posting):
 
 | Learning Type | Destination | Target | Example |
 |---------------|-------------|--------|---------|
@@ -96,7 +96,7 @@ Zero survivors is fine. Better to capture nothing than to grow an archive you ne
 Read back through the session with **three lenses**:
 
 - **Technical lens.** Moments where something about the code, architecture, or project state was discovered, decided, or clarified.
-- **Collaboration lens.** Moments where the user redirected your framing, elevated a "minor" suggestion to a main issue, repeatedly anchored to a standard or principle, or endorsed an unusual approach without pushback. Signal about *how the user thinks* — routes to the harness memory system, not AGENTS.md / `.notes/`. (One exception: when the redirected framing is specifically about an Athena Notes agent or skill misbehaving, Step 1.5's destination-row routing lets the candidate land on issue-routes instead.)
+- **Collaboration lens.** Moments where the user redirected your framing, elevated a "minor" suggestion to a main issue, repeatedly anchored to a standard or principle, or endorsed an unusual approach without pushback. Signal about *how the user thinks* — routes to the harness memory system, not AGENTS.md / `.notes/`. (One exception: when the redirected framing is specifically about a cairn-notes skill or spoke misbehaving, Step 1.5's destination-row routing lets the candidate land on issue-routes instead.)
 - **Plugin-improvement lens.** Moments where an agent or skill shipped under `plugins/cairn-notes/` misbehaved or has a clear sharp edge worth filing — confusing output, a missed routing rule, a workflow that wasted a turn, a guardrail that fired in the wrong direction. Signal about *the plugin itself* — routes to a GitHub issue against this repo via `/issue-create`, not vault or memory. Strictly scoped: cross-plugin gripes (other plugins, the harness itself, unrelated tools) don't qualify here — those are user-collaboration preferences and route through the collaboration lens to memory instead.
 
 A session can have signal in one lens, several, or none. Ignore routine task execution. Flag candidates — no quota. Most sessions produce zero to two.
@@ -115,7 +115,7 @@ Run each candidate against the four questions above. Drop any that don't pass.
 
   > **Keyword hygiene for the Q1 search.** Pass `--search` as a separate argument token — never interpolate keywords into a single shell string. Strip any character from candidate-derived terms that is not alphanumeric, hyphen, underscore, or whitespace before passing them to `gh`; a positive allowlist avoids the recurring trap of an enumerative strip list missing a metacharacter. Keep the full query under ~200 characters; trim to the most specific 3–4 tokens if the candidate description is long, since longer queries hit GitHub's Search API total-query-length limit and silently return zero matches (which would falsely pass Q1).
 
-Routing is by destination row, not by which lens flagged the candidate — a technical-lens finding can land on memory-routes if it fits a project-motivation or external-system-pointer row, and a collaboration-lens finding about an Athena Notes agent's specific misbehavior can land on issue-routes.
+Routing is by destination row, not by which lens flagged the candidate — a technical-lens finding can land on memory-routes if it fits a project-motivation or external-system-pointer row, and a collaboration-lens finding about a cairn-notes skill or spoke misbehaving can land on issue-routes.
 
 This is the filter that does the real work; downstream steps only handle survivors.
 
@@ -198,7 +198,7 @@ For each approved daily-plan edit from Step 1.6, apply it directly via the Edit 
 
 ### Step 9: Hand off approved memory recommendations
 
-Memory-route candidates have **no automated write step**. After approval, the skill's job is done — the user (or a hub agent with memory access, e.g. an `athena` invocation that can write to `~/.claude/projects/*/memory/`) makes the actual write. Surface the approved recommendations one more time at the end of the run with the harness-specific destination clearly marked, so the next handoff has everything it needs.
+Memory-route candidates have **no automated write step**. After approval, the skill's job is done — the user (or a separate Claude Code session with memory-access tooling that can write to `~/.claude/projects/*/memory/`) makes the actual write. Surface the approved recommendations one more time at the end of the run with the harness-specific destination clearly marked, so the next handoff has everything it needs.
 
 ### Step 10: Hand off approved plugin-improvement issues
 

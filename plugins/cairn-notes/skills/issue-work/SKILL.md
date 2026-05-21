@@ -7,7 +7,7 @@ description: End-to-end GitHub/Forgejo ticket workflow. Use when the user shares
 
 End-to-end workflow for taking a GitHub or Forgejo ticket from URL to review-ready implementation. Four phases: **Intake → Plan → Implement → Self-Review**, with a human approval checkpoint between Plan and Implement.
 
-Standalone — does not require any specific note system. Ships in the Athena Notes plugin, but writes state under `~/.claude/issue-work/` (not the notes vault).
+Standalone — does not require any specific note system. Ships in the cairn-notes plugin, but writes state under `~/.claude/issue-work/` (not the notes vault).
 
 ---
 

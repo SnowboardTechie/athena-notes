@@ -1,6 +1,6 @@
 ---
 name: agent-workspace
-description: Working directory conventions for Athena Notes agents - task context, drafts, research cache in .notes/.agents/. Includes worktree-aware .notes path resolution and auto-setup of project vaults.
+description: Working directory conventions for cairn-notes skills and spokes — task context, drafts, research cache in .notes/.agents/. Includes worktree-aware .notes path resolution and auto-setup of project vaults.
 ---
 
 # Agent Workspace — Working Directory Conventions
@@ -20,7 +20,7 @@ The `.agents/` prefix keeps working files separate from permanent notes while al
 
 ```
 .notes/.agents/
-├── athena/                  # Athena's exploration context
+├── {skill}/                 # Per-skill working state (long-running task pattern)
 │   └── {task-slug}/
 │       ├── context.md       # Task context and goals
 │       ├── progress.md      # What's been explored/decided
@@ -54,7 +54,7 @@ The `.agents/` prefix keeps working files separate from permanent notes while al
 
 ## File Conventions
 
-### Task Context (`athena/{task-slug}/context.md`)
+### Task Context (`{skill}/{task-slug}/context.md`)
 
 ```markdown
 ---
@@ -79,7 +79,7 @@ status: active | paused | complete
 - [[{existing note}]]
 ```
 
-### Task Progress (`athena/{task-slug}/progress.md`)
+### Task Progress (`{skill}/{task-slug}/progress.md`)
 
 ```markdown
 ---
@@ -231,7 +231,7 @@ One canonical artifact per archive file. If the draft produced multiple outputs 
 | Draft explicitly abandoned by user | Delete via pyre |
 | Half-finished scratch work the user says to drop | Delete via pyre |
 | Draft older than 14 days and never promoted | Review with user — promote, archive, or delete |
-| Task context for completed work (`athena/{task-slug}/`) | Archive if there are non-trivial insights; otherwise delete |
+| Task context for completed work (`{skill}/{task-slug}/`) | Archive if there are non-trivial insights; otherwise delete |
 
 **Default to archive** when a draft produced an artifact. Deletion is reserved for work the user has explicitly walked away from.
 
@@ -243,16 +243,9 @@ One canonical artifact per archive file. If the draft produced multiple outputs 
 
 ## Agent Responsibilities
 
-### Athena
+### Scribe (only writer)
 
-- Creates task context when starting significant exploration
-- Updates progress as exploration proceeds
-- Signals task completion → triggers cleanup
-- Can request draft promotion to permanent notes
-
-### Scribe
-
-- Writes task context files to `.agents/athena/{task}/`
+- Writes task context files to `.agents/{skill}/{task}/` when a calling skill uses the long-running task pattern
 - Writes drafts to `.agents/drafts/`
 - Promotes drafts to `.notes/` when ready
 - Updates progress files
@@ -266,7 +259,7 @@ One canonical artifact per archive file. If the draft produced multiple outputs 
 
 ### Archivist
 
-- Searches both `.notes/` AND `.notes/.agents/` for context
+- Searches both `.notes/` AND `.notes/.agents/` for context (honors the `scope:` keyword to narrow)
 - Prioritizes permanent notes over working state
 - Reports working state separately ("Also found in working files...")
 
@@ -281,6 +274,11 @@ One canonical artifact per archive file. If the draft produced multiple outputs 
 
 - Each writes to its own subdirectory (`.agents/forge/`, `.agents/kindle/`)
 - Session state is ephemeral; patterns/wins are append-only
+
+### Calling skills
+
+- Skills that orchestrate long-running tasks (issue-work, planning skills) own their own `.agents/{skill}/` subdir
+- Task lifecycle (start / update progress / complete / cleanup) is the skill's job, not a spoke's — the skill delegates the actual file writes/deletions to scribe and pyre
 
 ---
 
@@ -404,7 +402,7 @@ When an agent is invoked in a git repo and `.notes/` is missing. Use tool-native
 When `.agents/` first needs to be used, create the structure:
 
 ```bash
-mkdir -p .notes/.agents/{athena,sage,archivist,forge,kindle,drafts,_archive}
+mkdir -p .notes/.agents/{sage,archivist,forge,kindle,drafts,_archive}
 ```
 
 If the notes target directory (e.g., `~/notes/{project}/`) doesn't have `.agents/`, it will be created on first write. No explicit init step needed.

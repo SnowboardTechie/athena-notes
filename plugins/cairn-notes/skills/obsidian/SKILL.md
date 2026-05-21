@@ -5,7 +5,7 @@ description: Obsidian vault patterns - wikilinks, frontmatter, vault discovery f
 
 # Obsidian Skill
 
-Shared patterns for working with Obsidian vaults in the Athena Notes system.
+Shared patterns for working with Obsidian vaults in the cairn-notes system.
 
 ## CRITICAL: When to Use This Skill
 

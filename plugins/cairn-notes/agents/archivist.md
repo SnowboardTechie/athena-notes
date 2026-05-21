@@ -148,7 +148,7 @@ How to apply filters in practice:
 Use the **Grep** and **Glob** tools — never shell out to `grep`, `rg`, `ls`, or `find`. Tool-native search matches the plugin's allowlist and avoids permission friction.
 
 The example strategies below span both locations. Filter them by the resolved scope:
-- `scope: published` — drop patterns rooted in `{VAULT_ROOT}/.agents/*` (e.g., skip Strategy 4 entirely and any `{VAULT_ROOT}/.agents/athena/...` paths in Strategy 1).
+- `scope: published` — drop patterns rooted in `{VAULT_ROOT}/.agents/*` (e.g., skip Strategy 4 entirely and any `{VAULT_ROOT}/.agents/...` paths in Strategy 1).
 - `scope: working` — restrict to `{VAULT_ROOT}/.agents/*` patterns; skip strategies that aren't under `.agents/`.
 - `scope: both` (or no keyword) — run all applicable strategies.
 
@@ -159,7 +159,7 @@ Search by note type, tags, or status via Grep:
 ```
 Grep(pattern="type: decision", path="{VAULT_ROOT}", glob="*.md", output_mode="files_with_matches")
 Grep(pattern="- auth", path="{VAULT_ROOT}", output_mode="files_with_matches")
-Grep(pattern="status: active", path="{VAULT_ROOT}/.agents/athena", output_mode="files_with_matches")
+Grep(pattern="status: active", path="{VAULT_ROOT}/.agents", output_mode="files_with_matches")
 ```
 
 ### Strategy 2: Content search
@@ -176,8 +176,8 @@ Grep(pattern="jwt|token|session", path="{VAULT_ROOT}", -i=true, output_mode="fil
 Search by filename pattern via Glob:
 
 ```
-Glob(pattern="{VAULT_ROOT}/*auth*.md")             # permanent notes with "auth" in the name
-Glob(pattern="{VAULT_ROOT}/.agents/athena/*auth*") # active tasks about auth
+Glob(pattern="{VAULT_ROOT}/*auth*.md")              # permanent notes with "auth" in the name
+Glob(pattern="{VAULT_ROOT}/.agents/*/*auth*")       # active tasks about auth, any skill
 ```
 
 Glob returns results sorted by modification time (newest first). Take the top N when you only want the most recent.
@@ -185,9 +185,9 @@ Glob returns results sorted by modification time (newest first). Take the top N 
 ### Strategy 4: Working files specifically
 
 ```
-Glob(pattern="{VAULT_ROOT}/.agents/athena/*/context.md")  # all active task contexts
-Glob(pattern="{VAULT_ROOT}/.agents/drafts/*.md")          # all drafts
-Glob(pattern="{VAULT_ROOT}/.agents/sage/*/findings.md")   # sage research cache
+Glob(pattern="{VAULT_ROOT}/.agents/*/*/context.md")      # all active task contexts (any skill)
+Glob(pattern="{VAULT_ROOT}/.agents/drafts/*.md")         # all drafts
+Glob(pattern="{VAULT_ROOT}/.agents/sage/*/findings.md")  # sage research cache
 ```
 
 ### Strategy 5: Chronological

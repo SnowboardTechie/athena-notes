@@ -64,14 +64,14 @@ Draft may contain unfinished work. Delete? (yes/no)
 ### RELAXED Confirmation (Ephemeral Working Files)
 
 **Applies to:**
-- `.notes/.agents/athena/{task}/*` (task context)
+- `.notes/.agents/{skill}/{task}/*` (per-skill task context)
 - `.notes/.agents/sage/{topic}/*` (research cache)
 - `.notes/.agents/archivist/*` (search history)
 
 ```
 🧹 Clean up task working files?
 
-📁 .notes/.agents/athena/api-authentication-design/
+📁 .notes/.agents/issue-work/api-authentication-design/
    - context.md
    - progress.md
 
@@ -90,7 +90,7 @@ When a skill asks to clean up a completed task:
 
 **Process:**
 
-1. List all files in `.notes/.agents/athena/{task-slug}/`
+1. List all files in `.notes/.agents/{skill}/{task-slug}/` (the calling skill names the path)
 2. Show brief summary (file count, total size)
 3. Ask with RELAXED confirmation
 4. Delete the task folder
@@ -153,7 +153,7 @@ No chains (`&&`, `||`, `|`), no redirects (`2>/dev/null`), no `cd`, absolute pat
 |-----------|--------------|---------|
 | Permanent notes (`.notes/`) | FULL | "yes" only |
 | Drafts (`.notes/.agents/drafts/`) | NORMAL | "yes" only |
-| Task context (`.notes/.agents/athena/`) | RELAXED | "y" or "yes" |
+| Task context (`.notes/.agents/{skill}/`) | RELAXED | "y" or "yes" |
 | Research cache (`.notes/.agents/sage/`) | RELAXED | "y" or "yes" |
 
 **Universal rules:**
@@ -183,7 +183,7 @@ Process one at a time. Any "no" skips that file and continues to the next.
 
 - Permanent notes in `.notes/`
 - Drafts in `.notes/.agents/drafts/`
-- Task context folders in `.notes/.agents/athena/`
+- Task context folders in `.notes/.agents/{skill}/`
 - Research cache in `.notes/.agents/sage/`
 - Search history in `.notes/.agents/archivist/`
 
@@ -272,7 +272,7 @@ Response:
 ```
 🧹 Clean up task working files?
 
-📁 .notes/.agents/athena/api-authentication-design/
+📁 .notes/.agents/issue-work/api-authentication-design/
    - context.md (created Jan 25)
    - progress.md (updated Jan 29)
    - threads.md (created Jan 27)
@@ -287,7 +287,7 @@ User: "y"
 Response:
 
 ```
-✓ Cleaned up: .notes/.agents/athena/api-authentication-design/
+✓ Cleaned up: .notes/.agents/issue-work/api-authentication-design/
   Removed 3 files.
 ```
 
@@ -302,7 +302,7 @@ Response:
 ```
 📦 Archive task working files?
 
-📁 .notes/.agents/athena/api-authentication-design/
+📁 .notes/.agents/issue-work/api-authentication-design/
    → .notes/.agents/_archive/2026-04-16-api-authentication-design/
 
 Archive? (y/n)

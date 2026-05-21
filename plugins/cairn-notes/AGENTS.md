@@ -113,7 +113,7 @@ Agents resolve the **trunk root** (not the current worktree) before any `.notes/
 - `.notes/` — permanent knowledge: ideas, explorations, decisions worth keeping
 - `.notes/.agents/` — working state: task context, drafts, research cache
 
-Working files live under `.notes/.agents/{agent-name}/` and are cleaned up when tasks complete. The `.agents/` prefix hides them from Obsidian's default view.
+Working files live under `.notes/.agents/{skill}/` and are cleaned up when tasks complete. The `.agents/` prefix hides them from Obsidian's default view.
 
 ### Vault reads must filter dot-prefixed dirs
 

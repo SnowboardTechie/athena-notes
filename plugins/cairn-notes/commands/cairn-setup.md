@@ -179,13 +179,13 @@ Re-run `/cairn-setup` any time to update. Skills and spokes read this file at in
 
 ## Fields
 
-- **name** — used in direct address by forge, kindle, and other skills/spokes
+- **name** — for direct address (forge, kindle)
 - **timezone** — IANA timezone for daily notes, timestamps, working-hour detection
 - **notes_root** — root directory for all vaults
 - **personal_vault** — default vault for cross-project / personal notes
 - **working_hours** — start/end in 24-hour format; forge uses this for block planning
 - **cognitive_peak** — when you do your best analytical work; forge sequences hardest tasks here
-- **pronouns** — optional; skills/spokes use this for natural conversational style
+- **pronouns** — optional; for natural conversational style
 ```
 
 Also ensure `~/.claude/cairn/` directory exists. Create it if missing.
@@ -237,15 +237,16 @@ If you approve, I'll set these values in ~/.claude/settings.json:
     Project-local view (.notes/**, symlink inside each repo):
       • Read, Write, Edit, Glob, Grep
 
-  allow — Bash shapes the spokes need (8 entries):
-    • Bash(git rev-parse:*)  — resolve trunk vs. worktree
-    • Bash(mkdir:*)          — create vault directory on first use
-    • Bash(ln:*)             — create the .notes symlink
-    • Bash(readlink:*)       — inspect the .notes symlink
-    • Bash(rm:*)             — pyre file deletion
-    • Bash(echo:*)           — identity discovery ($USER, $TZ, $HOME)
-    • Bash(date:*)           — timezone discovery
-    • Bash(test:*)           — file/symlink existence checks
+  allow — Bash shapes the spokes need (9 entries):
+    • Bash(git rev-parse:*)            — resolve trunk vs. worktree
+    • Bash(mkdir:*)                    — create vault directory on first use
+    • Bash(ln:*)                       — create the .notes symlink
+    • Bash(readlink:*)                 — inspect the .notes symlink
+    • Bash(rm .notes/**:*)             — pyre file deletion (scoped to vault)
+    • Bash(rm -r .notes/.agents/**:*)  — task-cleanup recursive (working state only)
+    • Bash(echo:*)                     — identity discovery ($USER, $TZ, $HOME)
+    • Bash(date:*)                     — timezone discovery
+    • Bash(test:*)                     — file/symlink existence checks
 
   allow — read-only gh (forge uses these for daily planning, 17 entries):
     • Bash(gh pr list:*)              • Bash(cd * && gh pr list:*)
@@ -273,7 +274,7 @@ If you approve, I'll set these values in ~/.claude/settings.json:
         Skip prompt-free if user has no Forgejo/Gitea remotes (entries
         match nothing harmful). For users on GitHub-only setups, harmless.
 
-  deny (hard blocks for truly dangerous ops, 13 entries):
+  deny (hard blocks for truly dangerous ops, 17 entries):
     • Bash(rm -rf /)                — wipe filesystem
     • Bash(rm -rf /*)               — wipe filesystem
     • Bash(rm -rf ~)                — wipe home
@@ -281,6 +282,10 @@ If you approve, I'll set these values in ~/.claude/settings.json:
     • Bash(rm -rf $HOME)            — wipe home
     • Bash(rm -rf $HOME/)           — wipe home
     • Bash(sudo:*)                  — privilege escalation
+    • Bash(su:*)                    — privilege escalation
+    • Bash(doas:*)                  — privilege escalation
+    • Bash(pkexec:*)                — privilege escalation (polkit)
+    • Bash(osascript:*)             — macOS shell-script escalation
     • Bash(curl * | sh)             — remote code execution
     • Bash(curl * | bash)           — remote code execution
     • Bash(wget * | sh)             — remote code execution
@@ -314,7 +319,7 @@ Default: yes (they just set up the plugin; they want it to work).
 2. Parse as JSON
 3. If `permissions` key doesn't exist, create it: `{"permissions": {}}`
 4. Set `permissions.defaultMode = "auto"` (overwrite if already set to something else — warn user)
-5. Ensure `permissions.allow` is a list; add these 57 entries if not present (dedupe by exact string match).
+5. Ensure `permissions.allow` is a list; add these 58 entries if not present (dedupe by exact string match).
 
    **Substitute `{NOTES_ROOT_ABS}` and `{CAIRN_HOME_ABS}` with the absolute values resolved in 5.0. Never write `~` into an entry.**
 
@@ -339,12 +344,13 @@ Edit(.notes/**)
 Glob(.notes/**)
 Grep(.notes/**)
 
-# Bash shapes the spokes use (8)
+# Bash shapes the spokes use (9)
 Bash(git rev-parse:*)
 Bash(mkdir:*)
 Bash(ln:*)
 Bash(readlink:*)
-Bash(rm:*)
+Bash(rm .notes/**:*)
+Bash(rm -r .notes/.agents/**:*)
 Bash(echo:*)
 Bash(date:*)
 Bash(test:*)
@@ -389,7 +395,7 @@ Bash(cd * && tea repos ls:*)
 Bash(cd * && tea repos show:*)
 ```
 
-6. Ensure `permissions.deny` is a list; add these 13 entries if not present:
+6. Ensure `permissions.deny` is a list; add these 17 entries if not present:
 
 ```
 Bash(rm -rf /)
@@ -399,6 +405,10 @@ Bash(rm -rf ~/)
 Bash(rm -rf $HOME)
 Bash(rm -rf $HOME/)
 Bash(sudo:*)
+Bash(su:*)
+Bash(doas:*)
+Bash(pkexec:*)
+Bash(osascript:*)
 Bash(curl * | sh)
 Bash(curl * | bash)
 Bash(wget * | sh)
@@ -443,10 +453,10 @@ If some are present and some missing (rare, e.g., user deleted a few manually), 
 ### 5.6 Safety invariants
 
 - **Never replace** the `permissions.allow` array — always append.
-- **Never touch** `permissions.deny`, `permissions.ask`, or any other settings key.
+- **Never replace** the `permissions.deny` array — always append. Never modify `permissions.ask` or any other permissions key.
 - **Never modify** `hooks`, `enabledPlugins`, or any unrelated section.
 - **Validate JSON** after write — if parse fails, restore the original and report.
-- If `~/.claude/settings.json` doesn't exist, create it with only `{"permissions": {"allow": [...]}}` — nothing else.
+- If `~/.claude/settings.json` doesn't exist, create it with only `{"permissions": {"defaultMode": "auto", "allow": [...], "deny": [...]}}` — nothing else (both lists populated on first create).
 
 ---
 

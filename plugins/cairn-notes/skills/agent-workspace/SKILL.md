@@ -50,8 +50,6 @@ The `.agents/` prefix keeps working files separate from permanent notes while al
     └── {date}-{task-slug}/
 ```
 
-The `{skill}/{task-slug}/` shape at the top is the **long-running task pattern** — any skill that wants per-task state (context + progress + open threads across multiple sessions) writes to its own namespaced subdir. Per-skill top-level files (like `forge/today.md`) work alongside it.
-
 ---
 
 ## File Conventions

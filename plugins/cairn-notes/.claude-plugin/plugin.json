@@ -1,6 +1,6 @@
 {
   "name": "cairn-notes",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Capture-first note system for Claude Code, native to Obsidian. Slash commands for capture, recall, planning, and meeting/session sync turn conversations into durable notes.",
   "author": {
     "name": "Bryan Thompson"
@@ -11,9 +11,10 @@
   "keywords": [
     "obsidian",
     "notes",
-    "thinking",
+    "capture",
+    "recall",
     "agents",
     "claude-code",
-    "second-brain"
+    "slash-commands"
   ]
 }

@@ -4,6 +4,12 @@ All notable changes to cairn-notes are documented here. Format follows [Keep a C
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+## [0.6.0] — 2026-05-20
+
+**Capture-first reframing + rename to cairn-notes.** Renames the plugin from `athena-notes` to `cairn-notes` ("cairn" = trail markers your agents leave in your vault), retires the `athena` and `prism` agents, and introduces `/capture` and `/recall` as the primary user-facing surfaces. Helper spokes (scribe, archivist, sage, pyre, forge, kindle, scout, impl-reviewer, ticket-analyst) are skill-invokable, not user-invokable; each spoke's `description:` names the skills that call it. **Breaking:** `@athena` and `@prism` return "Unknown agent"; `/athena-setup` becomes `/cairn-setup`; the plugin namespace shifts from `/athena-notes:*` to `/cairn-notes:*`; identity moves from `~/.claude/athena/` to `~/.claude/cairn/` (no automatic migration — copy your identity file manually if you had one). See [#86](https://github.com/SnowboardTechie/cairn-notes/issues/86) for the full reframing story.
+
 ### Added
 - `/capture` skill — primary capture surface. Accepts freeform input (`/capture <text>`), explicit-prefix (`/capture <type>: <text>`), or no-args interactive. Auto-detects note type with high/medium/low confidence tiers; medium and low confidence gate via `AskUserQuestion`. DECISION and EXPLORATION captures dispatch `archivist` first, then inline the returned wikilinks into the `scribe` prompt (sequential by force — scribe's prompt depends on archivist's output). MEETING-shape inputs hand off to `/meeting-sync`. Tracks [#86](https://github.com/SnowboardTechie/cairn-notes/issues/86) (Phase A).
 - `/recall` skill — primary retrieval surface. Freeform query plus optional `scope:project|personal|both`, `type:`, `since:`, and `attendees:` flags. `scope:both` fires two parallel `archivist` calls (one per vault) via the new `vault:` directive. Single match across all searched vaults auto-includes the full note body; multi-match groups results by vault. Published-only — `.notes/.agents/` working files are excluded. Tracks [#86](https://github.com/SnowboardTechie/cairn-notes/issues/86) (Phase A).
@@ -28,6 +34,9 @@ All notable changes to cairn-notes are documented here. Format follows [Keep a C
 
 ### Removed
 - `plugins/cairn-notes/agents/athena.md` and `plugins/cairn-notes/agents/prism.md` — the `athena` hub-and-thinking-partner agent and the `prism` creative-refraction spoke are retired. `@athena` and `@prism` now return "Unknown agent". The capture / recall / planning surface is now slash commands directly (`/capture`, `/recall`, `/plan-workday`, `/plan-week`, `/meeting-sync`, `/session-review`); spokes are skill-invokable helpers, not user-invokable. Tracks [#86](https://github.com/SnowboardTechie/cairn-notes/issues/86) (Phase B).
+
+### Meta
+- Plugin manifest `keywords` updated for capture-first framing: dropped `thinking` and `second-brain`; added `capture`, `recall`, and `slash-commands`.
 
 ## [0.5.0] — 2026-05-03
 
@@ -152,12 +161,13 @@ First public release. Complete port from the OpenCode/OhMyOpenAgent implementati
 ### Removed
 - `PORTING.md` — internal tracker from the OpenCode → Claude Code port. The port is done; the file was stale (GitHub repo already exists, "remaining" items all landed). Historical context preserved in git history.
 
-[Unreleased]: https://github.com/SnowboardTechie/athena-notes/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.5.0
-[0.4.3]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.3
-[0.4.2]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.2
-[0.4.1]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.1
-[0.4.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.4.0
-[0.3.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.3.0
-[0.2.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.2.0
-[0.1.0]: https://github.com/SnowboardTechie/athena-notes/releases/tag/v0.1.0
+[Unreleased]: https://github.com/SnowboardTechie/cairn-notes/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/SnowboardTechie/cairn-notes/releases/tag/v0.6.0
+[0.5.0]: https://github.com/SnowboardTechie/cairn-notes/releases/tag/v0.5.0
+[0.4.3]: https://github.com/SnowboardTechie/cairn-notes/releases/tag/v0.4.3
+[0.4.2]: https://github.com/SnowboardTechie/cairn-notes/releases/tag/v0.4.2
+[0.4.1]: https://github.com/SnowboardTechie/cairn-notes/releases/tag/v0.4.1
+[0.4.0]: https://github.com/SnowboardTechie/cairn-notes/releases/tag/v0.4.0
+[0.3.0]: https://github.com/SnowboardTechie/cairn-notes/releases/tag/v0.3.0
+[0.2.0]: https://github.com/SnowboardTechie/cairn-notes/releases/tag/v0.2.0
+[0.1.0]: https://github.com/SnowboardTechie/cairn-notes/releases/tag/v0.1.0
